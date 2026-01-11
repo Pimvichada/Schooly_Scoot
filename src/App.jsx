@@ -43,51 +43,13 @@ import {
   GraduationCap
 } from 'lucide-react';
 
-// --- MASCOT COMPONENTS (น้องๆ เรขาคณิต) ---
-
-const MascotCircle = ({ className = "w-16 h-16" }) => (
-  <svg viewBox="0 0 100 100" className={className}>
-    <circle cx="50" cy="50" r="45" fill="#96C68E" stroke="#7aa371" strokeWidth="3" />
-    <circle cx="35" cy="45" r="8" fill="white" />
-    <circle cx="35" cy="45" r="3" fill="black" />
-    <circle cx="65" cy="45" r="8" fill="white" />
-    <circle cx="65" cy="45" r="3" fill="black" />
-    <path d="M 40 65 Q 50 75 60 65" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
-  </svg>
-);
-
-const MascotSquare = ({ className = "w-16 h-16" }) => (
-  <svg viewBox="0 0 100 100" className={className}>
-    <rect x="10" y="10" width="80" height="80" rx="10" fill="#BEE1FF" stroke="#90b8e6" strokeWidth="3" />
-    <circle cx="35" cy="40" r="8" fill="white" />
-    <circle cx="35" cy="40" r="3" fill="black" />
-    <circle cx="65" cy="40" r="8" fill="white" />
-    <circle cx="65" cy="40" r="3" fill="black" />
-    <path d="M 35 65 Q 50 60 65 65" stroke="#5a7a9e" strokeWidth="3" fill="none" strokeLinecap="round" />
-  </svg>
-);
-
-const MascotTriangle = ({ className = "w-16 h-16" }) => (
-  <svg viewBox="0 0 100 100" className={className}>
-    <path d="M 50 10 L 90 90 L 10 90 Z" fill="#FF917B" stroke="#d6725e" strokeWidth="3" strokeLinejoin="round" />
-    <circle cx="40" cy="55" r="6" fill="white" />
-    <circle cx="40" cy="55" r="2.5" fill="black" />
-    <circle cx="60" cy="55" r="6" fill="white" />
-    <circle cx="60" cy="55" r="2.5" fill="black" />
-    <circle cx="50" cy="75" r="3" fill="#8f4637" />
-  </svg>
-);
-
-const MascotStar = ({ className = "w-16 h-16" }) => (
-  <svg viewBox="0 0 100 100" className={className}>
-    <polygon points="50,5 61,35 95,35 68,55 79,90 50,70 21,90 32,55 5,35 39,35" fill="#FFE787" stroke="#e0c868" strokeWidth="3" strokeLinejoin="round"/>
-    <circle cx="42" cy="50" r="5" fill="white" />
-    <circle cx="42" cy="50" r="2" fill="black" />
-    <circle cx="58" cy="50" r="5" fill="white" />
-    <circle cx="58" cy="50" r="2" fill="black" />
-    <path d="M 45 65 Q 50 70 55 65" stroke="#b39d49" strokeWidth="2" fill="none" strokeLinecap="round" />
-  </svg>
-);
+import { MascotCircle, MascotSquare, MascotTriangle, MascotStar } from './components/Mascots';
+import LoginPage from './components/LoginPage';
+import SettingsView from './components/SettingsView';
+import StatCard from './components/StatCard';
+import CourseCard from './components/CourseCard';
+import SidebarItem from './components/SidebarItem';
+import NotificationItem from './components/NotificationItem';
 
 // --- MOCK DATA (Updated with Dynamic Feed) ---
 
@@ -231,165 +193,9 @@ const BADGES = [
 
 // --- SEPARATE COMPONENTS ---
 
-const LoginPage = ({ onLogin }) => {
-  const [selectedRole, setSelectedRole] = useState('student'); // 'student' or 'teacher'
+// import LoginPage from './components/LoginPage';
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#eef2f6] to-[#e6e9f0] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Elegant Abstract Background */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-[#96C68E]/10 blur-[100px]"></div>
-          <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-[#BEE1FF]/10 blur-[100px]"></div>
-          <div className="absolute -bottom-[10%] left-[20%] w-[45%] h-[45%] rounded-full bg-[#FF917B]/10 blur-[100px]"></div>
-      </div>
-      
-      <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 border border-white/60">
-        <div className="text-center mb-8">
-          <div className="w-24 h-24 bg-gradient-to-tr from-[#FF917B] to-[#FFE787] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl transform rotate-3 hover:rotate-6 transition-transform duration-500">
-            <MascotStar className="w-16 h-16 text-white drop-shadow-sm" />
-          </div>
-          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Schooly Scoot</h1>
-          <p className="text-slate-500 mt-3 font-medium">ระบบจัดการการเรียนรู้สำหรับคนรุ่นใหม่</p>
-        </div>
 
-        {/* Role Switcher */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8 relative">
-          <div 
-            className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-out ${selectedRole === 'teacher' ? 'translate-x-full left-1.5' : 'left-1.5'}`}
-          ></div>
-          <button 
-            onClick={() => setSelectedRole('student')}
-            className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm relative z-10 transition-colors duration-300 ${selectedRole === 'student' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            <User size={18} className="mr-2"/> นักเรียน
-          </button>
-          <button 
-            onClick={() => setSelectedRole('teacher')}
-            className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm relative z-10 transition-colors duration-300 ${selectedRole === 'teacher' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            <GraduationCap size={18} className="mr-2"/> ครูผู้สอน
-          </button>
-        </div>
-
-        <form onSubmit={(e) => { e.preventDefault(); onLogin(selectedRole); }} className="space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">ชื่อผู้ใช้ / อีเมล</label>
-            <div className="relative group">
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={20}/>
-              <input 
-                type="text" 
-                key={selectedRole} // Force re-render on role change
-                defaultValue={selectedRole === 'student' ? "student@schoolyscoot.ac.th" : "teacher@schoolyscoot.ac.th"}
-                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:bg-white focus:border-[#96C68E] focus:ring-4 focus:ring-[#96C68E]/10 transition-all outline-none text-slate-700 font-medium placeholder:text-slate-300"
-                placeholder="กรอกชื่อผู้ใช้..."
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">รหัสผ่าน</label>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={20}/>
-              <input 
-                type="password" 
-                defaultValue="password123"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:bg-white focus:border-[#96C68E] focus:ring-4 focus:ring-[#96C68E]/10 transition-all outline-none text-slate-700 font-medium placeholder:text-slate-300"
-                placeholder="กรอกรหัสผ่าน..."
-              />
-            </div>
-          </div>
-          
-          <button 
-            type="submit" 
-            className={`w-full text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center group ${selectedRole === 'student' ? 'bg-[#96C68E] hover:bg-[#85b57d]' : 'bg-[#FF917B] hover:bg-[#ff7e61]'}`}
-          >
-            {selectedRole === 'student' ? 'เข้าสู่ระบบนักเรียน' : 'เข้าสู่ระบบอาจารย์'} <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20}/>
-          </button>
-        </form>
-
-        <div className="mt-8 text-center">
-          <p className="text-sm text-slate-500">
-            ยังไม่มีบัญชี? <a href="#" className={`font-bold hover:underline transition-colors ${selectedRole === 'student' ? 'text-[#96C68E]' : 'text-[#FF917B]'}`}>ลงทะเบียนเรียน</a>
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SettingsView = ({ profile, onSave }) => {
-  const [formData, setFormData] = useState(profile);
-  const [isSaved, setIsSaved] = useState(false);
-
-  useEffect(() => {
-    setFormData(profile);
-  }, [profile]);
-
-  const handleSave = () => {
-    onSave(formData);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
-  };
-
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-       <h1 className="text-2xl font-bold text-slate-800 flex items-center"><User className="mr-3 text-slate-400"/> ตั้งค่าบัญชี</h1>
-       
-       {/* Badges Section */}
-       <div className="bg-gradient-to-r from-[#BEE1FF] to-[#E0F2FE] rounded-3xl p-6 shadow-sm border border-blue-100 relative overflow-hidden">
-          <div className="absolute right-0 top-0 opacity-10 transform translate-x-10 -translate-y-10">
-             <Trophy size={180} />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center relative z-10">
-             <Award className="mr-2 text-slate-700"/> เหรียญรางวัลของฉัน
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
-             {BADGES.map(badge => (
-                <div key={badge.id} className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl flex flex-col items-center text-center shadow-sm">
-                   <div className={`w-12 h-12 rounded-full ${badge.color} flex items-center justify-center mb-2 shadow-md`}>
-                      {badge.icon}
-                   </div>
-                   <span className="font-bold text-sm text-slate-700">{badge.name}</span>
-                   <span className="text-xs text-slate-500">{badge.date}</span>
-                </div>
-             ))}
-          </div>
-       </div>
-
-       <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 max-w-2xl">
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-             <div className="grid grid-cols-2 gap-4">
-               <div>
-                 <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อจริง</label>
-                 <input 
-                  type="text" 
-                  value={formData.firstName} 
-                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#BEE1FF] outline-none"
-                 />
-               </div>
-               <div>
-                 <label className="block text-sm font-bold text-slate-600 mb-1">นามสกุล</label>
-                 <input 
-                  type="text" 
-                  value={formData.lastName} 
-                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#BEE1FF] outline-none"
-                 />
-               </div>
-             </div>
-             <button 
-              type="submit" 
-              className={`px-6 py-3 rounded-xl font-bold shadow-sm transition-all flex items-center ${
-                  isSaved ? 'bg-green-500 text-white' : 'bg-[#96C68E] text-white hover:bg-[#85b57d]'
-              }`}
-             >
-               {isSaved ? <><CheckCircle className="mr-2"/> บันทึกเรียบร้อย</> : 'บันทึกการเปลี่ยนแปลง'}
-             </button>
-          </form>
-       </div>
-    </div>
-  );
-};
 
 // --- MAIN COMPONENT ---
 
@@ -562,59 +368,9 @@ export default function SchoolyScootLMS() {
 
   // --- SUB-COMPONENTS (Internal) ---
 
-  const SidebarItem = ({ id, label, icon: Icon }) => (
-    <button
-      onClick={() => {
-        setActiveTab(id);
-        setSelectedCourse(null);
-        setIsMobileMenuOpen(false);
-      }}
-      className={`flex items-center w-full px-4 py-3 mb-2 rounded-2xl transition-all duration-200 ${
-        activeTab === id 
-          ? 'bg-white shadow-sm text-slate-800 font-bold' 
-          : 'text-slate-600 hover:bg-white/50'
-      }`}
-    >
-      <Icon className={`w-5 h-5 mr-3 ${activeTab === id ? 'text-[#FF917B]' : 'text-slate-400'}`} />
-      <span>{label}</span>
-    </button>
-  );
+  
 
-  const StatCard = ({ title, value, color, icon, onClick }) => (
-    <div 
-      onClick={onClick}
-      className={`${color} p-5 rounded-3xl shadow-sm hover:shadow-md transition-all relative overflow-hidden cursor-pointer hover:scale-105 active:scale-95`}
-    >
-      <div className="absolute right-[-10px] top-[-10px] opacity-20 transform rotate-12">
-        {icon}
-      </div>
-      <h3 className="text-slate-700 font-medium text-sm mb-1">{title}</h3>
-      <p className="text-3xl font-bold text-slate-800">{value}</p>
-      <div className="mt-2 text-xs font-bold text-slate-800 opacity-60 flex items-center">
-        แตะเพื่อดูรายละเอียด <ChevronRight size={12} className="ml-1"/>
-      </div>
-    </div>
-  );
 
-  const CourseCard = ({ course, onClick }) => (
-    <div 
-      onClick={onClick}
-      className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-[#BEE1FF] transition-all cursor-pointer group"
-    >
-      <div className={`h-24 rounded-2xl ${course.color} mb-4 flex items-center justify-center relative overflow-hidden`}>
-        <div className="absolute inset-0 bg-white/20 group-hover:bg-transparent transition-all"></div>
-        {course.icon}
-      </div>
-      <h3 className="font-bold text-lg text-slate-800 mb-1">{course.name}</h3>
-      <p className="text-slate-500 text-sm mb-3">{course.code} • {course.teacher}</p>
-      <div className="flex items-center justify-between mt-4">
-        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">25 นักเรียน</span>
-        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#FF917B] group-hover:text-white transition-colors">
-          <ChevronRight size={16} />
-        </div>
-      </div>
-    </div>
-  );
 
   // --- MODALS ---
 
@@ -870,24 +626,7 @@ export default function SchoolyScootLMS() {
                </h2>
                <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                  {NOTIFICATIONS.map((notif) => (
-                   <div 
-                    key={notif.id} 
-                    onClick={() => {
-                      setSelectedNotification(notif);
-                      setActiveModal('notificationDetail');
-                    }}
-                    className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md transition-all cursor-pointer group"
-                   >
-                     <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 
-                       ${notif.type === 'homework' ? 'bg-[#FFE787]' : notif.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
-                       {notif.type === 'homework' ? <FileText size={24} className="text-slate-700"/> : 
-                        notif.type === 'grade' ? <CheckSquare size={24} className="text-white"/> : <User size={24} className="text-slate-700"/>}
-                     </div>
-                     <div>
-                       <p className="text-slate-800 font-bold text-base leading-tight mb-1 group-hover:text-[#96C68E] transition-colors">{notif.message}</p>
-                       <p className="text-sm text-slate-400">{notif.time}</p>
-                     </div>
-                   </div>
+                   <NotificationItem key={notif.id} notif={notif} onClick={() => { setSelectedNotification(notif); setActiveModal('notificationDetail'); }} />
                  ))}
                </div>
                <button onClick={closeModal} className="w-full py-3 mt-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">
@@ -1160,24 +899,7 @@ export default function SchoolyScootLMS() {
            </h2>
            <div className="space-y-4">
              {NOTIFICATIONS.map((notif) => (
-               <div 
-                key={notif.id} 
-                onClick={() => {
-                  setSelectedNotification(notif);
-                  setActiveModal('notificationDetail');
-                }}
-                className="flex gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer group"
-               >
-                 <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 
-                   ${notif.type === 'homework' ? 'bg-[#FFE787]' : notif.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
-                   {notif.type === 'homework' ? <FileText size={18} className="text-slate-700"/> : 
-                    notif.type === 'grade' ? <CheckSquare size={18} className="text-white"/> : <User size={18} className="text-slate-700"/>}
-                 </div>
-                 <div>
-                   <p className="text-sm text-slate-800 font-medium leading-tight group-hover:text-[#96C68E] transition-colors">{notif.message}</p>
-                   <p className="text-xs text-slate-400 mt-1">{notif.time}</p>
-                 </div>
-               </div>
+               <NotificationItem compact key={notif.id} notif={notif} onClick={() => { setSelectedNotification(notif); setActiveModal('notificationDetail'); }} />
              ))}
            </div>
         </div>
@@ -1689,15 +1411,15 @@ export default function SchoolyScootLMS() {
 
         <nav className="flex-1 overflow-y-auto custom-scrollbar">
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">เมนูหลัก</p>
-          <SidebarItem id="dashboard" label="แดชบอร์ด" icon={PieChart} />
-          <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} />
-          <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} />
-          <SidebarItem id="exams" label="แบบทดสอบ" icon={ClipboardList} />
-          <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} />
+          <SidebarItem id="dashboard" label="แดชบอร์ด" icon={PieChart} activeTab={activeTab} onSelect={() => { setActiveTab('dashboard'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} activeTab={activeTab} onSelect={() => { setActiveTab('courses'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="exams" label="แบบทดสอบ" icon={ClipboardList} activeTab={activeTab} onSelect={() => { setActiveTab('exams'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 mt-6 tracking-wider">อื่นๆ</p>
-          <SidebarItem id="messages" label="ข้อความ" icon={MessageSquare} />
-          <SidebarItem id="settings" label="ตั้งค่า" icon={Settings} />
+          <SidebarItem id="messages" label="ข้อความ" icon={MessageSquare} activeTab={activeTab} onSelect={() => { setActiveTab('messages'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="settings" label="ตั้งค่า" icon={Settings} activeTab={activeTab} onSelect={() => { setActiveTab('settings'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
         </nav>
 
         <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
@@ -1769,7 +1491,7 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'exams' && renderExams()}
                 {activeTab === 'schedule' && renderSchedule()}
                 {activeTab === 'messages' && renderMessages()}
-                {activeTab === 'settings' && <SettingsView profile={profile} onSave={setProfile} />}
+                {activeTab === 'settings' && <SettingsView profile={profile} onSave={setProfile} badges={BADGES} />}
               </>
             )}
             
