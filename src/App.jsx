@@ -15,6 +15,7 @@ import {
   Search,
   MoreVertical,
   ChevronRight,
+  ChevronLeft,
   Menu,
   X,
   MessageSquare,
@@ -141,7 +142,7 @@ const INITIAL_QUIZZES = [
   }
 ];
 
-const NOTIFICATIONS = [
+const DEFAULT_NOTIFICATIONS = [
   { id: 1, type: 'homework', message: 'ใกล้ถึงกำหนดส่ง: แบบฝึกหัดบทที่ 1', time: '1 ชม. ที่แล้ว', read: false, detail: 'แบบฝึกหัดบทที่ 1 วิชาคณิตศาสตร์พื้นฐาน จะหมดเวลาส่งในอีก 1 ชั่วโมง กรุณารีบดำเนินการและตรวจสอบความถูกต้องก่อนส่ง' },
   { id: 2, type: 'grade', message: 'ประกาศคะแนนสอบกลางภาค วิชาศิลปะ', time: '3 ชม. ที่แล้ว', read: false, detail: 'คุณครูศิลป์ได้ทำการประกาศคะแนนสอบกลางภาคแล้ว นักเรียนสามารถเข้าไปดูคะแนนได้ที่เมนู "ห้องเรียน > ศิลปะและการออกแบบ > คะแนน"' },
   {
@@ -223,7 +224,16 @@ const NOTIFICATIONS = [
     time: '2 สัปดาห์ที่แล้ว',
     read: true,
     detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
+  },
+   {
+    id: 13,
+    type: 'user',
+    message: 'แจ้งเตือน: ',
+    time: '2 สัปดาห์ที่แล้ว',
+    read: true,
+    detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
   }
+  
 ];
 
 const INITIAL_CHATS = [
@@ -336,6 +346,16 @@ const [newAssignment, setNewAssignment] = useState({
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
+
+  // Notifications state
+  const [notifications, setNotifications] = useState(DEFAULT_NOTIFICATIONS);
+
+  const markNotificationRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    if (selectedNotification && selectedNotification.id === id) {
+      setSelectedNotification(prev => prev ? { ...prev, read: true } : prev);
+    }
+  };
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -715,8 +735,13 @@ const [newAssignment, setNewAssignment] = useState({
                 <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
               </h2>
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar ">
-                {NOTIFICATIONS.map((notif) => (
-                  <NotificationItem key={notif.id} notif={notif} onClick={() => { setSelectedNotification(notif); setActiveModal('notificationDetail'); }} />
+                {notifications.map((notif) => (
+                  <NotificationItem
+                    key={notif.id}
+                    notif={notif}
+                    isSelected={selectedNotification?.id === notif.id}
+                    onClick={() => { setSelectedNotification(notif); markNotificationRead(notif.id); setActiveModal('notificationDetail'); }}
+                  />
 
                 ))}
                 {/* notif.read = true; */}
@@ -731,6 +756,9 @@ const [newAssignment, setNewAssignment] = useState({
           {activeModal === 'notificationDetail' && selectedNotification && (
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
+                <button onClick={() => setActiveModal('notificationsList')} className="p-2 rounded-full hover:bg-slate-100">
+                  <ChevronLeft size={24} className="text-slate-700" />
+                </button>
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center 
                    ${selectedNotification.type === 'homework' ? 'bg-[#FFE787]' : selectedNotification.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
                   {selectedNotification.type === 'homework' ? <FileText size={24} className="text-slate-700" /> :
@@ -1103,13 +1131,15 @@ const [newAssignment, setNewAssignment] = useState({
           </h2>
           <div className="space-y-4">
             {/* ใช้ .slice(0, 3) เพื่อเลือกแค่ 3 รายการแรก */}
-            {NOTIFICATIONS.slice(0, 4).map((notif) => (
+            {notifications.slice(0, 4).map((notif) => (
               <NotificationItem
                 compact
                 key={notif.id}
                 notif={notif}
+                isSelected={selectedNotification?.id === notif.id}
                 onClick={() => {
                   setSelectedNotification(notif);
+                  markNotificationRead(notif.id);
                   setActiveModal('notificationDetail');
                 }}
               />
