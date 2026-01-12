@@ -311,6 +311,18 @@ export default function SchoolyScootLMS() {
   const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers { questionIndex: optionIndex }
   const [quizResult, setQuizResult] = useState(null); // Stores final score
 
+  //  Assignment State (สำคัญมาก)
+  const [assignments, setAssignments] = useState(ASSIGNMENTS);
+
+  // ฟอร์มสร้างงาน
+const [newAssignment, setNewAssignment] = useState({
+  title: '',
+  course: '',
+  dueDate: '',
+  description: '',
+  file: null,
+});
+
   // Create Exam State
   const [newExam, setNewExam] = useState({
     title: '',
@@ -798,6 +810,123 @@ export default function SchoolyScootLMS() {
               </div>
             </div>
           )}
+
+          {/* CREATE ASSIGNMENT MODAL (TEACHER) */}
+{activeModal === 'createAssignment' && (
+  <div className="p-8">
+    <h2 className="text-2xl font-bold text-slate-800 mb-6">
+      เพิ่มงานในชั้นเรียน
+    </h2>
+
+    <div className="space-y-4">
+      <input
+        type="text"
+        placeholder="ชื่องาน"
+        className="w-full p-3 rounded-xl border"
+        value={newAssignment.title}
+        onChange={(e) =>
+          setNewAssignment({ ...newAssignment, title: e.target.value })
+        }
+      />
+
+      <input
+        type="text"
+        placeholder="กำหนดส่ง"
+        className="w-full p-3 rounded-xl border"
+        value={newAssignment.dueDate}
+        onChange={(e) =>
+          setNewAssignment({ ...newAssignment, dueDate: e.target.value })
+        }
+      />
+
+      <textarea
+        placeholder="คำอธิบายงาน"
+        rows={4}
+        className="w-full p-3 rounded-xl border"
+        value={newAssignment.description}
+        onChange={(e) =>
+          setNewAssignment({ ...newAssignment, description: e.target.value })
+        }
+      />
+        
+       {/* แนบไฟล์สำหรับงานที่กำลังสร้าง */}
+<div>
+  <label className="block text-sm font-bold text-slate-600 mb-1">
+    แนบไฟล์ (ถ้ามี)
+  </label>
+
+  <input
+    type="file"
+    onChange={(e) =>
+      setNewAssignment({
+        ...newAssignment,
+        file: e.target.files[0],
+      })
+    }
+    className="block w-full text-sm text-slate-500
+               file:mr-4 file:py-2 file:px-4
+               file:rounded-xl file:border-0
+               file:text-sm file:font-bold
+               file:bg-[#F0FDF4] file:text-[#96C68E]
+               hover:file:bg-[#E6F7EC]"
+  />
+
+  {newAssignment.file && (
+    <div className="mt-3 flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3">
+      <FileText className="text-[#96C68E]" />
+      <div>
+        <p className="text-sm font-bold text-slate-700">
+          {newAssignment.file.name}
+        </p>
+        <p className="text-xs text-slate-400">
+          ไฟล์ที่แนบ
+        </p>
+      </div>
+    </div>
+  )}
+</div>
+
+
+      <button
+        onClick={() => {
+          if (!newAssignment.title) {
+            alert('กรุณากรอกชื่องาน');
+            return;
+          }
+
+          setAssignments(prev => [
+  ...prev,
+  {
+    id: Date.now(),
+    title: newAssignment.title,
+    course: newAssignment.course,
+    dueDate: newAssignment.dueDate,
+    description: newAssignment.description,
+    file: newAssignment.file, // ✅ เพิ่มตรงนี้
+    status: 'pending',
+    score: null,
+  },
+]);
+
+          setNewAssignment({
+  title: '',
+  course: '',
+  dueDate: '',
+  description: '',
+  file: null,
+});
+
+
+          setActiveModal(null);
+        }}
+        className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold"
+      >
+        บันทึกงาน
+      </button>
+    </div>
+  </div>
+)}
+
 
           {/* TEACHER GRADING MODAL */}
           {activeModal === 'grading' && selectedAssignment && (
@@ -1287,27 +1416,98 @@ export default function SchoolyScootLMS() {
     // Helper to render content based on active sub-tab
     const renderSubTabContent = () => {
       switch (courseTab) {
-        case 'work':
-          return (
-            <div className="space-y-4">
-              <button className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E] transition-all">
-                + เพิ่มงาน (เฉพาะครู) หรือ ส่งงาน (เฉพาะนักเรียน)
-              </button>
-              {ASSIGNMENTS.filter(a => a.course === selectedCourse.name).length > 0 ? (
-                ASSIGNMENTS.filter(a => a.course === selectedCourse.name).map(a => (
-                  <div key={a.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center">
-                    <div>
-                      <h4 className="font-bold text-slate-800">{a.title}</h4>
-                      <p className="text-sm text-slate-500">ครบกำหนด: {a.dueDate}</p>
-                    </div>
-                    <span className="text-sm px-3 py-1 bg-slate-100 rounded-lg text-slate-600">10 คะแนน</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-slate-400 py-10">ยังไม่มีงานในวิชานี้</p>
-              )}
+      case 'work': {
+  const courseAssignments = assignments.filter(
+    a => a.course === selectedCourse.name
+  );
+
+  return (
+    <div className="space-y-4">
+
+      {/* ปุ่มเพิ่มงาน (เฉพาะครู) */}
+      {userRole === 'teacher' && (
+        <button
+          onClick={() => {
+            setNewAssignment(prev => ({
+              ...prev,
+              course: selectedCourse.name,
+            }));
+            setActiveModal('createAssignment');
+          }}
+          className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl
+                     text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E]"
+        >
+          + เพิ่มงานในชั้นเรียน
+        </button>
+      )}
+
+      {/* รายการงาน */}
+      {courseAssignments.length > 0 ? (
+        courseAssignments.map(a => (
+          <div
+            key={a.id}
+            className="bg-white p-4 rounded-2xl border border-slate-100
+                       flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+          >
+            <div>
+              <span
+                className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
+                  a.status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-600'
+                    : a.status === 'submitted'
+                    ? 'bg-green-100 text-green-600'
+                    : 'bg-red-100 text-red-600'
+                }`}
+              >
+                {a.status === 'pending'
+                  ? 'รอส่ง'
+                  : a.status === 'submitted'
+                  ? 'ส่งแล้ว'
+                  : 'เลยกำหนด'}
+              </span>
+
+              <h4 className="font-bold text-slate-800 mt-1">{a.title}</h4>
+              <p className="text-sm text-slate-500">
+                ครบกำหนด: {a.dueDate}
+              </p>
             </div>
-          );
+
+            <div className="flex items-center gap-3">
+              <span className="text-sm px-3 py-1 bg-slate-100 rounded-lg text-slate-600">
+                {a.score ?? '10'} คะแนน
+              </span>
+
+              <button
+                onClick={() => {
+                  setSelectedAssignment(a);
+                  setActiveModal(
+                    userRole === 'teacher'
+                      ? 'grading'
+                      : 'assignmentDetail'
+                  );
+                }}
+                className={`px-4 py-2 rounded-xl font-bold text-xs ${
+                  userRole === 'teacher'
+                    ? 'bg-white border border-[#96C68E] text-[#96C68E]'
+                    : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#a0d2ff]'
+                }`}
+              >
+                {userRole === 'teacher' ? 'ตรวจ' : 'ดูงาน'}
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p className="text-center text-slate-400 py-10">
+          ยังไม่มีงานในวิชานี้
+        </p>
+      )}
+    </div>
+  );
+}
+
+
+                  
         case 'people':
           return (
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
