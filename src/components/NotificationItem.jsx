@@ -1,33 +1,61 @@
 import React from 'react';
-import { FileText, CheckSquare, User } from 'lucide-react';
+import { FileText, CheckSquare, User, Bell } from 'lucide-react';
 
-export default function NotificationItem({ notif, onClick, compact = false }) {
-  const Icon = notif.type === 'homework' ? FileText : notif.type === 'grade' ? CheckSquare : User;
-  const bg = notif.type === 'homework' ? 'bg-[#FFE787]' : notif.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]';
-
-  if (compact) {
-    return (
-      <div onClick={onClick} className="flex gap-3 p-3 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer group">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
-          <Icon size={18} className="text-slate-700"/>
-        </div>
-        <div>
-          <p className="text-sm text-slate-800 font-medium leading-tight group-hover:text-[#96C68E] transition-colors">{notif.message}</p>
-          <p className="text-xs text-slate-400 mt-1">{notif.time}</p>
-        </div>
-      </div>
-    );
+const NOTIF_CONFIG = {
+  homework: {
+    Icon: FileText,
+    bg: 'bg-[#FFE787]',
+    hoverText: 'group-hover:text-[#3fbf28]'
+  },
+  grade: {
+    Icon: CheckSquare,
+    bg: 'bg-[#96C68E]',
+    hoverText: 'group-hover:text-[#96C68E]'
+  },
+  default: {
+    Icon: User,
+    bg: 'bg-[#BEE1FF]',
+    hoverText: 'group-hover:text-blue-500'
   }
+};
+
+export default function NotificationItem({ notif, onClick, displayTime, compact = false }) {
+  const config = NOTIF_CONFIG[notif.type] || NOTIF_CONFIG.default;
+  const { Icon, bg, hoverText } = config;
+
+  const containerClasses = compact 
+    ? "p-3 gap-3 hover:bg-slate-50" 
+    : "p-4 gap-4 bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md";
+  
+  const iconSize = compact ? 18 : 24;
+  const iconWrapperSize = compact ? "w-10 h-10" : "w-12 h-12";
+  const titleSize = compact ? "text-sm font-medium" : "text-base font-bold mb-1";
 
   return (
-    <div onClick={onClick} className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md transition-all cursor-pointer group">
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
-        <Icon size={24} className="text-slate-700"/>
+    <div 
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      className={`flex rounded-2xl transition-all cursor-pointer group ${containerClasses}`}
+    >
+      <div className={`${iconWrapperSize} rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
+        <Icon size={iconSize} className="text-slate-700" />
       </div>
-      <div>
-        <p className="text-slate-800 font-bold text-base leading-tight mb-1 group-hover:text-[#96C68E] transition-colors">{notif.message}</p>
-        <p className="text-sm text-slate-400">{notif.time}</p>
+
+      <div className="flex flex-col justify-center flex-1">
+        <p className={`text-slate-800 leading-tight transition-colors ${titleSize} ${hoverText}`}>
+          {notif.message}
+        </p>
+        <p className={`${compact ? 'text-xs' : 'text-sm'} text-slate-400 mt-1`}>
+          {/* ใช้ค่าที่คำนวณส่งมาให้จากหน้าหลัก */}
+          {displayTime} 
+        </p>
       </div>
+      
+      {/* (แถม) เพิ่มจุดสีแดงถ้ายังไม่ได้อ่าน */}
+      {!notif.read && (
+        <div className="w-2 h-2 bg-red-500 rounded-full self-center ml-2" />
+      )}
     </div>
   );
 }

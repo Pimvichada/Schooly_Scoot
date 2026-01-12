@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  BookOpen, 
-  Calendar, 
-  CheckSquare, 
-  Bell, 
-  User, 
-  LogOut, 
-  PieChart, 
-  Video, 
-  FileText, 
-  Upload, 
-  Users, 
+import {
+  BookOpen,
+  Calendar,
+  CheckSquare,
+  Bell,
+  User,
+  LogOut,
+  PieChart,
+  Video,
+  FileText,
+  Upload,
+  Users,
   Plus,
   Search,
   MoreVertical,
@@ -54,13 +54,13 @@ import NotificationItem from './components/NotificationItem';
 // --- MOCK DATA (Updated with Dynamic Feed) ---
 
 const COURSES = [
-  { 
-    id: 1, 
-    name: 'คณิตศาสตร์พื้นฐาน', 
-    code: 'MATH101', 
-    teacher: 'ครูสมชาย', 
-    color: 'bg-[#96C68E]', 
-    icon: <MascotSquare className="w-12 h-12"/>,
+  {
+    id: 1,
+    name: 'คณิตศาสตร์พื้นฐาน',
+    code: 'MATH101',
+    teacher: 'ครูสมชาย',
+    color: 'bg-[#96C68E]',
+    icon: <MascotSquare className="w-12 h-12" />,
     description: 'เรียนรู้พื้นฐานคณิตศาสตร์ พีชคณิต เรขาคณิต และสถิติเบื้องต้น',
     feed: [
       { id: 101, text: 'ยินดีต้อนรับสู่เทอมการศึกษาใหม่ ขอให้นักเรียนทุกคนตั้งใจเรียนนะครับ', date: '8 ม.ค.', file: null },
@@ -68,38 +68,38 @@ const COURSES = [
       { id: 103, text: 'อย่าลืมทำการบ้านแบบฝึกหัดที่ 1.2 ส่งภายในวันศุกร์นี้นะครับ', date: 'เมื่อวาน', file: null }
     ]
   },
-  { 
-    id: 2, 
-    name: 'วิทยาศาสตร์ทั่วไป', 
-    code: 'SCI102', 
-    teacher: 'ครูวิไล', 
-    color: 'bg-[#BEE1FF]', 
-    icon: <MascotCircle className="w-12 h-12"/>,
+  {
+    id: 2,
+    name: 'วิทยาศาสตร์ทั่วไป',
+    code: 'SCI102',
+    teacher: 'ครูวิไล',
+    color: 'bg-[#BEE1FF]',
+    icon: <MascotCircle className="w-12 h-12" />,
     description: 'ศึกษาเกี่ยวกับสิ่งมีชีวิต ระบบนิเวศ และสารเคมีในชีวิตประจำวัน',
     feed: [
       { id: 201, text: 'แจ้งการสอบเก็บคะแนนย่อยครั้งที่ 1 ในสัปดาห์หน้า เตรียมตัวให้พร้อมนะคะ', date: 'เมื่อวาน', file: null },
       { id: 202, text: 'สรุปผลการทดลองเรื่องกรด-เบส นักเรียนสามารถโหลดไปอ่านทบทวนได้ค่ะ', date: 'วันนี้', file: 'Lab_Report_Template.docx' }
     ]
   },
-  { 
-    id: 3, 
-    name: 'ภาษาไทยเพื่อการสื่อสาร', 
-    code: 'THAI201', 
-    teacher: 'ครูมานี', 
-    color: 'bg-[#FF917B]', 
-    icon: <MascotTriangle className="w-12 h-12"/>,
+  {
+    id: 3,
+    name: 'ภาษาไทยเพื่อการสื่อสาร',
+    code: 'THAI201',
+    teacher: 'ครูมานี',
+    color: 'bg-[#FF917B]',
+    icon: <MascotTriangle className="w-12 h-12" />,
     description: 'การใช้ภาษาไทยเพื่อการสื่อสาร การเขียน และการพูดในที่สาธารณะ',
     feed: [
       { id: 301, text: 'ให้นักเรียนจับคู่ฝึกแต่งกลอนสุภาพ ส่งในคาบเรียน', date: '2 วันที่แล้ว', file: null }
     ]
   },
-  { 
-    id: 4, 
-    name: 'ศิลปะและการออกแบบ', 
-    code: 'ART303', 
-    teacher: 'ครูศิลป์', 
-    color: 'bg-[#FFE787]', 
-    icon: <MascotStar className="w-12 h-12"/>,
+  {
+    id: 4,
+    name: 'ศิลปะและการออกแบบ',
+    code: 'ART303',
+    teacher: 'ครูศิลป์',
+    color: 'bg-[#FFE787]',
+    icon: <MascotStar className="w-12 h-12" />,
     description: 'ฝึกวาดภาพระบายสี องค์ประกอบศิลป์ และประวัติศาสตร์ศิลปะ',
     feed: [
       { id: 401, text: 'อย่าลืมเตรียมสีน้ำและพู่กันมาในคาบหน้านะครับ', date: '10 ม.ค.', file: null },
@@ -115,57 +115,137 @@ const ASSIGNMENTS = [
 ];
 
 const INITIAL_QUIZZES = [
-  { 
-    id: 1, 
-    title: 'สอบย่อย ครั้งที่ 1', 
-    course: 'คณิตศาสตร์พื้นฐาน', 
-    questions: 3, 
-    time: '15 นาที', 
-    status: 'available', 
+  {
+    id: 1,
+    title: 'สอบย่อย ครั้งที่ 1',
+    course: 'คณิตศาสตร์พื้นฐาน',
+    questions: 3,
+    time: '15 นาที',
+    status: 'available',
     score: null,
     items: [
-        { q: '1. ข้อใดคือค่าของ 2 + 2 x 2 ?', options: ['6', '8', '4', '10'], correct: 0 },
-        { q: '2. มุมภายในของสามเหลี่ยมรวมกันได้กี่องศา?', options: ['90', '180', '360', '270'], correct: 1 },
-        { q: '3. สูตรพื้นที่สี่เหลี่ยมจัตุรัสคือ?', options: ['กว้าง x ยาว', 'ด้าน x ด้าน', '1/2 x ฐาน x สูง', '2 x (กว้าง + ยาว)'], correct: 1 }
+      { q: '1. ข้อใดคือค่าของ 2 + 2 x 2 ?', options: ['6', '8', '4', '10'], correct: 0 },
+      { q: '2. มุมภายในของสามเหลี่ยมรวมกันได้กี่องศา?', options: ['90', '180', '360', '270'], correct: 1 },
+      { q: '3. สูตรพื้นที่สี่เหลี่ยมจัตุรัสคือ?', options: ['กว้าง x ยาว', 'ด้าน x ด้าน', '1/2 x ฐาน x สูง', '2 x (กว้าง + ยาว)'], correct: 1 }
     ]
   },
-  { 
-    id: 2, 
-    title: 'สอบกลางภาค', 
-    course: 'วิทยาศาสตร์ทั่วไป', 
-    questions: 20, 
-    time: '60 นาที', 
-    status: 'completed', 
+  {
+    id: 2,
+    title: 'สอบกลางภาค',
+    course: 'วิทยาศาสตร์ทั่วไป',
+    questions: 20,
+    time: '60 นาที',
+    status: 'completed',
     score: '18/20',
-    items: [] 
+    items: []
   }
 ];
 
 const NOTIFICATIONS = [
   { id: 1, type: 'homework', message: 'ใกล้ถึงกำหนดส่ง: แบบฝึกหัดบทที่ 1', time: '1 ชม. ที่แล้ว', read: false, detail: 'แบบฝึกหัดบทที่ 1 วิชาคณิตศาสตร์พื้นฐาน จะหมดเวลาส่งในอีก 1 ชั่วโมง กรุณารีบดำเนินการและตรวจสอบความถูกต้องก่อนส่ง' },
   { id: 2, type: 'grade', message: 'ประกาศคะแนนสอบกลางภาค วิชาศิลปะ', time: '3 ชม. ที่แล้ว', read: false, detail: 'คุณครูศิลป์ได้ทำการประกาศคะแนนสอบกลางภาคแล้ว นักเรียนสามารถเข้าไปดูคะแนนได้ที่เมนู "ห้องเรียน > ศิลปะและการออกแบบ > คะแนน"' },
+  {
+    id: 3,
+    type: 'homework',
+    message: 'มอบหมายงานใหม่: การทดลองแรงโน้มถ่วง',
+    time: '5 ชม. ที่แล้ว',
+    read: true,
+    detail: 'วิชาวิทยาศาสตร์: ให้นักเรียนจัดทำวิดีโอการทดลองสั้นๆ เรื่องแรงโน้มถ่วง พร้อมเขียนรายงานสรุปผลการทดลอง 1 หน้ากระดาษ A4'
+  },
+  {
+    id: 4,
+    type: 'user',
+    message: 'คุณครูสมศรี เพิ่มคุณเข้ากลุ่ม "โครงงานวิทย์"',
+    time: '1 วันที่แล้ว',
+    read: false,
+    detail: 'คุณถูกเชิญเข้ากลุ่มสำหรับการทำโครงงานวิทยาศาสตร์ประจำภาคเรียนที่ 2/2568 คุณสามารถเริ่มสนทนากับเพื่อนในกลุ่มได้ทันที'
+  },
+  {
+    id: 5,
+    type: 'grade',
+    message: 'แก้ไขคะแนน: ใบงานที่ 4 วิชาภาษาไทย',
+    time: '2 วันที่แล้ว',
+    read: true,
+    detail: 'มีการอัปเดตคะแนนใหม่เนื่องจากมีการตรวจทานซ้ำ คะแนนของคุณเปลี่ยนจาก 8 เป็น 10 คะแนน'
+  },
+  {
+    id: 6,
+    type: 'homework',
+    message: 'แจ้งเตือน: งานค้างส่งวิชาประวัติศาสตร์',
+    time: '2 วันที่แล้ว',
+    read: false,
+    detail: 'คุณยังมีงานค้าง "สรุปเหตุการณ์กรุงศรีอยุธยา" ที่เกินกำหนดส่งมาแล้ว 2 วัน กรุณาส่งงานเพื่อไม่ให้ถูกหักคะแนนความรับผิดชอบ'
+  },
+  {
+    id: 7,
+    type: 'user',
+    message: 'เพื่อนร่วมชั้น 3 คน แสดงความคิดเห็นในโพสต์ของคุณ',
+    time: '3 วันที่แล้ว',
+    read: true,
+    detail: 'เพื่อนๆ ได้เข้ามาแสดงความคิดเห็นในหัวข้อ "ไอเดียจัดงานวันเด็ก" ในกระดานข่าวสารห้องเรียน'
+  },
+  {
+    id: 8,
+    type: 'grade',
+    message: 'สรุปผลการเรียนประจำเดือน ธันวาคม',
+    time: '4 วันที่แล้ว',
+    read: false,
+    detail: 'ระบบสรุปภาพรวมคะแนนเก็บประจำเดือนธันวาคมของคุณออกมาแล้ว คุณมีคะแนนเฉลี่ยอยู่ในระดับ "ดีเยี่ยม"'
+  },
+  {
+    id: 9,
+    type: 'homework',
+    message: 'เตรียมตัวสอบย่อย: คำศัพท์ภาษาอังกฤษ Unit 5',
+    time: '5 วันที่แล้ว',
+    read: true,
+    detail: 'วิชาภาษาอังกฤษจะมีการทดสอบย่อย (Quiz) ในวันจันทร์หน้า อย่าลืมทบทวนคำศัพท์เกี่ยวกับ Environment จำนวน 20 คำ'
+  },
+  {
+    id: 10,
+    type: 'user',
+    message: 'อัปเดตรูปโปรไฟล์ใหม่โดยคุณครูที่ปรึกษา',
+    time: '1 สัปดาห์ที่แล้ว',
+    read: true,
+    detail: 'คุณครูประจำชั้นได้อัปเดตรูปภาพกิจกรรมในหน้าข้อมูลส่วนตัวของชั้นเรียน คุณสามารถเข้าไปดูภาพกิจกรรมทัศนศึกษาได้แล้ว'
+  },
+  {
+    id: 11,
+    type: 'grade',
+    message: 'ประกาศผลการคัดเลือกตัวแทนแข่งขันคณิตศาสตร์',
+    time: '1 สัปดาห์ที่แล้ว',
+    read: false,
+    detail: 'ยินดีด้วย! คุณผ่านการคัดเลือกรอบแรกในการเป็นตัวแทนโรงเรียนไปแข่งขันคณิตศาสตร์โอลิมปิกระดับจังหวัด'
+  },
+  {
+    id: 12,
+    type: 'user',
+    message: 'แจ้งเตือน: การเข้าใช้งานระบบจากอุปกรณ์ใหม่',
+    time: '2 สัปดาห์ที่แล้ว',
+    read: true,
+    detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
+  }
 ];
 
 const INITIAL_CHATS = [
-  { 
-    id: 1, 
-    name: 'ครูสมชาย', 
+  {
+    id: 1,
+    name: 'ครูสมชาย',
     role: 'Teacher',
-    avatar: 'bg-[#FF917B]', 
-    lastMessage: 'อย่าลืมส่งงานนะครับ', 
-    time: '10:30', 
+    avatar: 'bg-[#FF917B]',
+    lastMessage: 'อย่าลืมส่งงานนะครับ',
+    time: '10:30',
     unread: 1,
     messages: [
       { id: 1, sender: 'other', text: 'สวัสดีครับนักเรียน วันนี้อย่าลืมส่งงานนะครับ', time: '10:30' }
     ]
   },
-  { 
-    id: 2, 
-    name: 'สมหญิง (หัวหน้าห้อง)', 
+  {
+    id: 2,
+    name: 'สมหญิง (หัวหน้าห้อง)',
     role: 'Student',
-    avatar: 'bg-pink-200', 
-    lastMessage: 'พรุ่งนี้มีสอบย่อยนะ', 
-    time: '09:15', 
+    avatar: 'bg-pink-200',
+    lastMessage: 'พรุ่งนี้มีสอบย่อยนะ',
+    time: '09:15',
     unread: 0,
     messages: [
       { id: 1, sender: 'me', text: 'พรุ่งนี้วิชาอะไรสอบบ้างนะ?', time: '09:10' },
@@ -185,10 +265,10 @@ const GRADING_LIST = [
 ];
 
 const BADGES = [
-  { id: 1, name: 'ส่งงานตรงเวลา', icon: <CheckCircle className="text-white"/>, color: 'bg-green-400', date: '5 ม.ค. 67' },
-  { id: 2, name: 'ยอดนักอ่าน', icon: <BookOpen className="text-white"/>, color: 'bg-blue-400', date: '8 ม.ค. 67' },
-  { id: 3, name: 'คะแนนเต็ม', icon: <Star className="text-white"/>, color: 'bg-yellow-400', date: '10 ม.ค. 67' },
-  { id: 4, name: 'แอคทีฟสุดๆ', icon: <Zap className="text-white"/>, color: 'bg-red-400', date: 'เมื่อวาน' },
+  { id: 1, name: 'ส่งงานตรงเวลา', icon: <CheckCircle className="text-white" />, color: 'bg-green-400', date: '5 ม.ค. 67' },
+  { id: 2, name: 'ยอดนักอ่าน', icon: <BookOpen className="text-white" />, color: 'bg-blue-400', date: '8 ม.ค. 67' },
+  { id: 3, name: 'คะแนนเต็ม', icon: <Star className="text-white" />, color: 'bg-yellow-400', date: '10 ม.ค. 67' },
+  { id: 4, name: 'แอคทีฟสุดๆ', icon: <Zap className="text-white" />, color: 'bg-red-400', date: 'เมื่อวาน' },
 ];
 
 // --- SEPARATE COMPONENTS ---
@@ -204,7 +284,7 @@ export default function SchoolyScootLMS() {
   const [userRole, setUserRole] = useState('student');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // Profile State
   const [profile, setProfile] = useState({
     firstName: 'รักเรียน',
@@ -214,7 +294,7 @@ export default function SchoolyScootLMS() {
     level: 5,
     xp: 75
   });
-  
+
   // Chat State
   const [chats, setChats] = useState(INITIAL_CHATS);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -223,8 +303,8 @@ export default function SchoolyScootLMS() {
 
   // Course & Quiz State
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [courseTab, setCourseTab] = useState('home'); 
-  
+  const [courseTab, setCourseTab] = useState('home');
+
   // --- UPDATED QUIZ STATE & LOGIC ---
   const [quizzes, setQuizzes] = useState(INITIAL_QUIZZES);
   const [activeQuiz, setActiveQuiz] = useState(null); // Which quiz is currently being taken
@@ -240,7 +320,7 @@ export default function SchoolyScootLMS() {
   });
 
   // Modal State
-  const [activeModal, setActiveModal] = useState(null); 
+  const [activeModal, setActiveModal] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
@@ -306,7 +386,7 @@ export default function SchoolyScootLMS() {
     if (!activeQuiz) return;
     let score = 0;
     activeQuiz.items.forEach((item, idx) => {
-        if (quizAnswers[idx] === item.correct) score++;
+      if (quizAnswers[idx] === item.correct) score++;
     });
     setQuizResult({ score, total: activeQuiz.items.length });
   };
@@ -368,7 +448,7 @@ export default function SchoolyScootLMS() {
 
   // --- SUB-COMPONENTS (Internal) ---
 
-  
+
 
 
 
@@ -391,174 +471,172 @@ export default function SchoolyScootLMS() {
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
         <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'takeQuiz', 'createExam'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
           <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
-            <X size={20} className="text-slate-600"/>
+            <X size={20} className="text-slate-600" />
           </button>
 
           {/* CREATE EXAM MODAL (TEACHER) */}
           {activeModal === 'createExam' && (
             <div className="p-8 h-[80vh] flex flex-col">
-               <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
-                 <Plus className="mr-3 text-[#FF917B]" /> สร้างแบบทดสอบใหม่
-               </h2>
-               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
-                 {/* Exam Details */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อแบบทดสอบ</label>
-                        <input 
-                            type="text" 
-                            className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                            placeholder="เช่น สอบย่อยบทที่ 1"
-                            value={newExam.title}
-                            onChange={(e) => setNewExam({...newExam, title: e.target.value})}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1">วิชา</label>
-                        <select 
-                            className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none bg-white"
-                            value={newExam.course}
-                            onChange={(e) => setNewExam({...newExam, course: e.target.value})}
-                        >
-                            {COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1">เวลาในการทำ (นาที)</label>
-                        <input 
-                            type="text" 
-                            className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                            placeholder="เช่น 30 นาที"
-                            value={newExam.time}
-                            onChange={(e) => setNewExam({...newExam, time: e.target.value})}
-                        />
-                    </div>
-                 </div>
-
-                 {/* Question Editor */}
-                 <div className="space-y-4">
-                    <h3 className="font-bold text-slate-700">รายการคำถาม ({newExam.items.length})</h3>
-                    {newExam.items.map((item, idx) => (
-                        <div key={idx} className="border border-slate-200 rounded-2xl p-4 relative group hover:border-[#BEE1FF] transition-all">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">ข้อที่ {idx + 1}</span>
-                                <button onClick={() => handleRemoveQuestion(idx)} className="text-red-400 hover:text-red-600"><Trash size={16}/></button>
-                            </div>
-                            <input 
-                                type="text" 
-                                className="w-full p-2 mb-3 border-b border-slate-200 focus:border-[#96C68E] outline-none font-bold text-slate-700"
-                                placeholder="พิมพ์โจทย์คำถาม..."
-                                value={item.q}
-                                onChange={(e) => handleUpdateQuestion(idx, 'q', e.target.value)}
-                            />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {item.options.map((opt, optIdx) => (
-                                    <div key={optIdx} className="flex items-center">
-                                        <input 
-                                            type="radio" 
-                                            name={`correct-${idx}`}
-                                            checked={item.correct === optIdx}
-                                            onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
-                                            className="mr-2"
-                                        />
-                                        <input 
-                                            type="text" 
-                                            className={`flex-1 p-2 rounded-lg border text-sm ${item.correct === optIdx ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-200'}`}
-                                            placeholder={`ตัวเลือก ${optIdx + 1}`}
-                                            value={opt}
-                                            onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                    <button 
-                        onClick={handleAddQuestion}
-                        className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-bold hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-50 transition-all"
+              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                <Plus className="mr-3 text-[#FF917B]" /> สร้างแบบทดสอบใหม่
+              </h2>
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                {/* Exam Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อแบบทดสอบ</label>
+                    <input
+                      type="text"
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                      placeholder="เช่น สอบย่อยบทที่ 1"
+                      value={newExam.title}
+                      onChange={(e) => setNewExam({ ...newExam, title: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">วิชา</label>
+                    <select
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none bg-white"
+                      value={newExam.course}
+                      onChange={(e) => setNewExam({ ...newExam, course: e.target.value })}
                     >
-                        + เพิ่มข้อสอบ
-                    </button>
-                 </div>
-               </div>
-               <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
-                 <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
-                 <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
-                    <Save size={20} className="mr-2"/> บันทึกแบบทดสอบ
-                 </button>
-               </div>
+                      {COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">เวลาในการทำ (นาที)</label>
+                    <input
+                      type="text"
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                      placeholder="เช่น 30 นาที"
+                      value={newExam.time}
+                      onChange={(e) => setNewExam({ ...newExam, time: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Question Editor */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-slate-700">รายการคำถาม ({newExam.items.length})</h3>
+                  {newExam.items.map((item, idx) => (
+                    <div key={idx} className="border border-slate-200 rounded-2xl p-4 relative group hover:border-[#BEE1FF] transition-all">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">ข้อที่ {idx + 1}</span>
+                        <button onClick={() => handleRemoveQuestion(idx)} className="text-red-400 hover:text-red-600"><Trash size={16} /></button>
+                      </div>
+                      <input
+                        type="text"
+                        className="w-full p-2 mb-3 border-b border-slate-200 focus:border-[#96C68E] outline-none font-bold text-slate-700"
+                        placeholder="พิมพ์โจทย์คำถาม..."
+                        value={item.q}
+                        onChange={(e) => handleUpdateQuestion(idx, 'q', e.target.value)}
+                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {item.options.map((opt, optIdx) => (
+                          <div key={optIdx} className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`correct-${idx}`}
+                              checked={item.correct === optIdx}
+                              onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
+                              className="mr-2"
+                            />
+                            <input
+                              type="text"
+                              className={`flex-1 p-2 rounded-lg border text-sm ${item.correct === optIdx ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-200'}`}
+                              placeholder={`ตัวเลือก ${optIdx + 1}`}
+                              value={opt}
+                              onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={handleAddQuestion}
+                    className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-bold hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-50 transition-all"
+                  >
+                    + เพิ่มข้อสอบ
+                  </button>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
+                <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+                <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
+                  <Save size={20} className="mr-2" /> บันทึกแบบทดสอบ
+                </button>
+              </div>
             </div>
           )}
 
           {/* QUIZ TAKING MODAL */}
           {activeModal === 'takeQuiz' && activeQuiz && (
             <div className="p-8 h-[80vh] flex flex-col">
-               <div className="mb-6 pb-4 border-b border-slate-100">
-                 <div className="flex justify-between items-center mb-2">
-                    <h2 className="text-2xl font-bold text-slate-800 flex items-center">
-                        <ClipboardList className="mr-3 text-[#FF917B]"/> {activeQuiz.title}
-                    </h2>
-                    <div className="flex items-center text-[#96C68E] font-bold bg-[#F0FDF4] px-4 py-2 rounded-xl">
-                        <Clock size={18} className="mr-2"/> {activeQuiz.time}
-                    </div>
-                 </div>
-                 <p className="text-slate-500">{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
-               </div>
+              <div className="mb-6 pb-4 border-b border-slate-100">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+                    <ClipboardList className="mr-3 text-[#FF917B]" /> {activeQuiz.title}
+                  </h2>
+                  <div className="flex items-center text-[#96C68E] font-bold bg-[#F0FDF4] px-4 py-2 rounded-xl">
+                    <Clock size={18} className="mr-2" /> {activeQuiz.time}
+                  </div>
+                </div>
+                <p className="text-slate-500">{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
+              </div>
 
-               {quizResult ? (
-                 <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in">
-                    <div className="w-32 h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-6 shadow-lg">
-                        <MascotStar className="w-24 h-24"/>
-                    </div>
-                    <h3 className="text-3xl font-bold text-slate-800 mb-2">ส่งข้อสอบเรียบร้อย!</h3>
-                    <p className="text-slate-500 mb-6">คุณทำคะแนนได้</p>
-                    <div className="text-6xl font-bold text-[#FF917B] mb-8">
-                        {quizResult.score} <span className="text-2xl text-slate-300">/ {quizResult.total}</span>
-                    </div>
-                    <button onClick={closeModal} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-700">ปิดหน้าต่าง</button>
-                 </div>
-               ) : (
-                 <>
-                   <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                      {activeQuiz.items.map((q, idx) => (
-                          <div key={idx} className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                              <h4 className="font-bold text-lg text-slate-800 mb-4">{q.q}</h4>
-                              <div className="space-y-3">
-                                  {q.options.map((opt, optIdx) => (
-                                      <label key={optIdx} className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                          quizAnswers[idx] === optIdx 
-                                            ? 'border-[#96C68E] bg-white shadow-sm' 
-                                            : 'border-transparent bg-white hover:bg-slate-100'
-                                      }`}>
-                                          <input 
-                                            type="radio" 
-                                            name={`q-${idx}`} 
-                                            className="w-5 h-5 text-[#96C68E] mr-3"
-                                            onChange={() => setQuizAnswers({...quizAnswers, [idx]: optIdx})}
-                                            checked={quizAnswers[idx] === optIdx}
-                                          />
-                                          <span className="text-slate-700">{opt}</span>
-                                      </label>
-                                  ))}
-                              </div>
-                          </div>
-                      ))}
-                   </div>
-                   <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
-                       <button 
-                        onClick={submitQuiz}
-                        disabled={Object.keys(quizAnswers).length < activeQuiz.items.length}
-                        className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${
-                            Object.keys(quizAnswers).length < activeQuiz.items.length
-                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                            : 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-md hover:translate-y-[-2px]'
+              {quizResult ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in">
+                  <div className="w-32 h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-6 shadow-lg">
+                    <MascotStar className="w-24 h-24" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-slate-800 mb-2">ส่งข้อสอบเรียบร้อย!</h3>
+                  <p className="text-slate-500 mb-6">คุณทำคะแนนได้</p>
+                  <div className="text-6xl font-bold text-[#FF917B] mb-8">
+                    {quizResult.score} <span className="text-2xl text-slate-300">/ {quizResult.total}</span>
+                  </div>
+                  <button onClick={closeModal} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-700">ปิดหน้าต่าง</button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                    {activeQuiz.items.map((q, idx) => (
+                      <div key={idx} className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 className="font-bold text-lg text-slate-800 mb-4">{q.q}</h4>
+                        <div className="space-y-3">
+                          {q.options.map((opt, optIdx) => (
+                            <label key={optIdx} className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${quizAnswers[idx] === optIdx
+                              ? 'border-[#96C68E] bg-white shadow-sm'
+                              : 'border-transparent bg-white hover:bg-slate-100'
+                              }`}>
+                              <input
+                                type="radio"
+                                name={`q-${idx}`}
+                                className="w-5 h-5 text-[#96C68E] mr-3"
+                                onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
+                                checked={quizAnswers[idx] === optIdx}
+                              />
+                              <span className="text-slate-700">{opt}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+                    <button
+                      onClick={submitQuiz}
+                      disabled={Object.keys(quizAnswers).length < activeQuiz.items.length}
+                      className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${Object.keys(quizAnswers).length < activeQuiz.items.length
+                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        : 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-md hover:translate-y-[-2px]'
                         }`}
-                       >
-                           ส่งข้อสอบ
-                       </button>
-                   </div>
-                 </>
-               )}
+                    >
+                      ส่งข้อสอบ
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -566,16 +644,16 @@ export default function SchoolyScootLMS() {
           {activeModal === 'video' && (
             <div className="flex flex-col h-[500px]">
               <div className="flex-1 bg-slate-900 relative flex items-center justify-center rounded-t-3xl">
-                 <div className="text-white text-center">
-                    <div className="w-24 h-24 rounded-full bg-slate-700 mx-auto mb-4 flex items-center justify-center text-4xl">👨‍🏫</div>
-                    <h3 className="text-xl font-bold">ห้องเรียน: คณิตศาสตร์</h3>
-                    <p className="text-slate-400">กำลังรอให้ครูอนุญาตให้เข้าห้อง...</p>
-                 </div>
-                 <div className="absolute bottom-6 flex space-x-4">
-                    <button className="p-4 rounded-full bg-red-500 text-white hover:bg-red-600 shadow-lg" onClick={closeModal}><PhoneOff size={24}/></button>
-                    <button className="p-4 rounded-full bg-slate-700 text-white hover:bg-slate-600"><MicOff size={24}/></button>
-                    <button className="p-4 rounded-full bg-slate-700 text-white hover:bg-slate-600"><VideoOff size={24}/></button>
-                 </div>
+                <div className="text-white text-center">
+                  <div className="w-24 h-24 rounded-full bg-slate-700 mx-auto mb-4 flex items-center justify-center text-4xl">👨‍🏫</div>
+                  <h3 className="text-xl font-bold">ห้องเรียน: คณิตศาสตร์</h3>
+                  <p className="text-slate-400">กำลังรอให้ครูอนุญาตให้เข้าห้อง...</p>
+                </div>
+                <div className="absolute bottom-6 flex space-x-4">
+                  <button className="p-4 rounded-full bg-red-500 text-white hover:bg-red-600 shadow-lg" onClick={closeModal}><PhoneOff size={24} /></button>
+                  <button className="p-4 rounded-full bg-slate-700 text-white hover:bg-slate-600"><MicOff size={24} /></button>
+                  <button className="p-4 rounded-full bg-slate-700 text-white hover:bg-slate-600"><VideoOff size={24} /></button>
+                </div>
               </div>
             </div>
           )}
@@ -621,43 +699,43 @@ export default function SchoolyScootLMS() {
           {/* ALL NOTIFICATIONS LIST MODAL */}
           {activeModal === 'notificationsList' && (
             <div className="p-6 h-[80vh] flex flex-col">
-               <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
-                 <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
-               </h2>
-               <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                 {NOTIFICATIONS.map((notif) => (
-                   <NotificationItem key={notif.id} notif={notif} onClick={() => { setSelectedNotification(notif); setActiveModal('notificationDetail'); }} />
-                 ))}
-               </div>
-               <button onClick={closeModal} className="w-full py-3 mt-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
+              </h2>
+              <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar ">
+                {NOTIFICATIONS.map((notif) => (
+                  <NotificationItem key={notif.id} notif={notif} onClick={() => { setSelectedNotification(notif); setActiveModal('notificationDetail'); }} />
+
+                ))}
+                {/* notif.read = true; */}
+              </div>
+              {/* <button onClick={closeModal} className="w-full py-3 mt-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">
                  ปิด
-               </button>
+               </button> */}
             </div>
           )}
 
           {/* NOTIFICATION DETAIL MODAL */}
           {activeModal === 'notificationDetail' && selectedNotification && (
             <div className="p-6">
-               <div className="flex items-center gap-4 mb-4">
-                 <div className={`w-12 h-12 rounded-full flex items-center justify-center 
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center 
                    ${selectedNotification.type === 'homework' ? 'bg-[#FFE787]' : selectedNotification.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
-                   {selectedNotification.type === 'homework' ? <FileText size={24} className="text-slate-700"/> : 
-                    selectedNotification.type === 'grade' ? <CheckSquare size={24} className="text-white"/> : <User size={24} className="text-slate-700"/>}
-                 </div>
-                 <div>
-                   <h3 className="text-lg font-bold text-slate-800">รายละเอียดการแจ้งเตือน</h3>
-                   <p className="text-sm text-slate-500">{selectedNotification.time}</p>
-                 </div>
-               </div>
-               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
-                 <h4 className="font-bold text-slate-700 mb-2">{selectedNotification.message}</h4>
-                 <p className="text-slate-600 text-sm leading-relaxed">
-                   {selectedNotification.detail || "ไม่มีรายละเอียดเพิ่มเติม"}
-                 </p>
-               </div>
-               <button onClick={closeModal} className="w-full py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">
-                 ปิด
-               </button>
+                  {selectedNotification.type === 'homework' ? <FileText size={24} className="text-slate-700" /> :
+                    selectedNotification.type === 'grade' ? <CheckSquare size={24} className="text-white" /> : <User size={24} className="text-slate-700" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">รายละเอียดการแจ้งเตือน</h3>
+                  <p className="text-sm text-slate-500">{selectedNotification.time}</p>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                <h4 className="font-bold text-slate-700 mb-2">{selectedNotification.message}</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  {selectedNotification.detail || "ไม่มีรายละเอียดเพิ่มเติม"}
+                </p>
+              </div>
+
             </div>
           )}
 
@@ -666,14 +744,14 @@ export default function SchoolyScootLMS() {
             <div className="p-8">
               <div className="flex items-start gap-4 mb-6">
                 <div className="bg-[#FFE787] p-3 rounded-2xl">
-                   <FileText size={32} className="text-slate-700"/>
+                  <FileText size={32} className="text-slate-700" />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">{selectedAssignment.title}</h2>
                   <p className="text-slate-500">{selectedAssignment.course} • ครบกำหนด {selectedAssignment.dueDate}</p>
                 </div>
               </div>
-              
+
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
                 <h3 className="font-bold text-slate-700 mb-2">คำชี้แจง</h3>
                 <p className="text-slate-600 text-sm leading-relaxed">{selectedAssignment.description}</p>
@@ -682,42 +760,40 @@ export default function SchoolyScootLMS() {
               <div className="border-t border-slate-100 pt-6">
                 <h3 className="font-bold text-slate-800 mb-4">งานของคุณ</h3>
                 <div className="relative">
-                  <input 
-                    type="file" 
-                    onChange={handleFileUpload} 
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${
-                    uploadFile 
-                      ? 'border-[#96C68E] bg-[#F0FDF4]' 
-                      : 'border-slate-300 hover:bg-slate-50 hover:border-[#96C68E]'
-                  }`}>
+                  <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${uploadFile
+                    ? 'border-[#96C68E] bg-[#F0FDF4]'
+                    : 'border-slate-300 hover:bg-slate-50 hover:border-[#96C68E]'
+                    }`}>
                     {uploadFile ? (
-                       <div>
-                         <CheckCircle size={32} className="mx-auto text-[#96C68E] mb-2"/>
-                         <p className="text-slate-800 font-bold">{uploadFile.name}</p>
-                         <p className="text-xs text-slate-500 mt-1">{(uploadFile.size / 1024).toFixed(2)} KB • พร้อมส่ง</p>
-                       </div>
+                      <div>
+                        <CheckCircle size={32} className="mx-auto text-[#96C68E] mb-2" />
+                        <p className="text-slate-800 font-bold">{uploadFile.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">{(uploadFile.size / 1024).toFixed(2)} KB • พร้อมส่ง</p>
+                      </div>
                     ) : (
-                       <div>
-                         <Upload size={32} className="mx-auto text-slate-400 mb-2"/>
-                         <p className="text-slate-500 font-bold">ลากไฟล์มาวาง หรือ คลิกเพื่ออัพโหลด</p>
-                         <p className="text-xs text-slate-400 mt-1">รองรับไฟล์ PDF, JPG, PNG</p>
-                       </div>
+                      <div>
+                        <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                        <p className="text-slate-500 font-bold">ลากไฟล์มาวาง หรือ คลิกเพื่ออัพโหลด</p>
+                        <p className="text-xs text-slate-400 mt-1">รองรับไฟล์ PDF, JPG, PNG</p>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <button 
-                  onClick={closeModal} 
+                <button
+                  onClick={closeModal}
                   disabled={!uploadFile}
-                  className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${
-                    uploadFile 
-                      ? 'bg-[#96C68E] text-white hover:bg-[#85b57d]' 
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
+                  className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${uploadFile
+                    ? 'bg-[#96C68E] text-white hover:bg-[#85b57d]'
+                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
                 >
-                  <CheckCircle className="mr-2"/> ส่งการบ้าน
+                  <CheckCircle className="mr-2" /> ส่งการบ้าน
                 </button>
               </div>
             </div>
@@ -726,68 +802,67 @@ export default function SchoolyScootLMS() {
           {/* TEACHER GRADING MODAL */}
           {activeModal === 'grading' && selectedAssignment && (
             <div className="p-8 h-[80vh] flex flex-col">
-               <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
-                 <div>
-                   <h2 className="text-2xl font-bold text-slate-800">ตรวจงาน: {selectedAssignment.title}</h2>
-                   <p className="text-slate-500">{selectedAssignment.course}</p>
-                 </div>
-                 <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
-                   คะแนนเต็ม: 10
-                 </div>
-               </div>
+              <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">ตรวจงาน: {selectedAssignment.title}</h2>
+                  <p className="text-slate-500">{selectedAssignment.course}</p>
+                </div>
+                <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
+                  คะแนนเต็ม: 10
+                </div>
+              </div>
 
-               <div className="flex-1 overflow-y-auto pr-2">
-                 <table className="w-full text-left border-collapse">
-                   <thead>
-                     <tr className="text-slate-400 text-sm border-b border-slate-200">
-                       <th className="py-3 font-bold">ชื่อ - นามสกุล</th>
-                       <th className="py-3 font-bold">สถานะ</th>
-                       <th className="py-3 font-bold">ไฟล์แนบ</th>
-                       <th className="py-3 font-bold w-24">คะแนน</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {GRADING_LIST.map(student => (
-                       <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50">
-                         <td className="py-4 flex items-center gap-3">
-                           <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold text-slate-500">Std</div>
-                           <span className="font-bold text-slate-700">{student.name}</span>
-                         </td>
-                         <td className="py-4">
-                           <span className={`px-2 py-1 rounded-lg text-xs font-bold ${
-                             student.status === 'submitted' ? 'bg-green-100 text-green-600' :
-                             student.status === 'late' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'
-                           }`}>
-                             {student.status === 'submitted' ? 'ส่งแล้ว' : student.status === 'late' ? 'ส่งช้า' : 'ยังไม่ส่ง'}
-                           </span>
-                         </td>
-                         <td className="py-4">
-                           {student.file ? (
-                             <button className="text-[#BEE1FF] font-bold text-sm hover:underline flex items-center">
-                               <FileText size={16} className="mr-1"/> {student.file}
-                             </button>
-                           ) : (
-                             <span className="text-slate-300 text-sm">-</span>
-                           )}
-                         </td>
-                         <td className="py-4">
-                           <input 
-                              type="text" 
-                              placeholder="-" 
-                              defaultValue={student.score}
-                              className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
-                           />
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
+              <div className="flex-1 overflow-y-auto pr-2">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-slate-400 text-sm border-b border-slate-200">
+                      <th className="py-3 font-bold">ชื่อ - นามสกุล</th>
+                      <th className="py-3 font-bold">สถานะ</th>
+                      <th className="py-3 font-bold">ไฟล์แนบ</th>
+                      <th className="py-3 font-bold w-24">คะแนน</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {GRADING_LIST.map(student => (
+                      <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50">
+                        <td className="py-4 flex items-center gap-3">
+                          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold text-slate-500">Std</div>
+                          <span className="font-bold text-slate-700">{student.name}</span>
+                        </td>
+                        <td className="py-4">
+                          <span className={`px-2 py-1 rounded-lg text-xs font-bold ${student.status === 'submitted' ? 'bg-green-100 text-green-600' :
+                            student.status === 'late' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'
+                            }`}>
+                            {student.status === 'submitted' ? 'ส่งแล้ว' : student.status === 'late' ? 'ส่งช้า' : 'ยังไม่ส่ง'}
+                          </span>
+                        </td>
+                        <td className="py-4">
+                          {student.file ? (
+                            <button className="text-[#BEE1FF] font-bold text-sm hover:underline flex items-center">
+                              <FileText size={16} className="mr-1" /> {student.file}
+                            </button>
+                          ) : (
+                            <span className="text-slate-300 text-sm">-</span>
+                          )}
+                        </td>
+                        <td className="py-4">
+                          <input
+                            type="text"
+                            placeholder="-"
+                            defaultValue={student.score}
+                            className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-               <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
-                 <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
-                 <button onClick={closeModal} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm">บันทึกและคืนคะแนน</button>
-               </div>
+              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
+                <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+                <button onClick={closeModal} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm">บันทึกและคืนคะแนน</button>
+              </div>
             </div>
           )}
         </div>
@@ -806,20 +881,20 @@ export default function SchoolyScootLMS() {
             สวัสดี, {userRole === 'student' ? 'น้องนักเรียน!' : 'คุณครูคนเก่ง!'} 👋
           </h1>
           <p className="text-slate-600">
-            {userRole === 'student' 
-              ? 'วันนี้พร้อมเรียนรู้เรื่องใหม่ๆ หรือยัง? อย่าลืมทำการบ้านนะ!' 
+            {userRole === 'student'
+              ? 'วันนี้พร้อมเรียนรู้เรื่องใหม่ๆ หรือยัง? อย่าลืมทำการบ้านนะ!'
               : 'วันนี้มีคาบสอน 3 วิชา และมีการบ้านรอตรวจ 12 งานครับ'}
           </p>
           <div className="mt-6 flex space-x-3">
-             <button onClick={() => setActiveTab('schedule')} className="bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
-               ดูตารางเรียน
-             </button>
-             <button onClick={() => setActiveTab('assignments')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
-               {userRole === 'student' ? 'การบ้านคงเหลือ' : 'ตรวจการบ้าน'}
-             </button>
+            <button onClick={() => setActiveTab('schedule')} className="bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
+              ดูตารางเรียน
+            </button>
+            <button onClick={() => setActiveTab('assignments')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
+              {userRole === 'student' ? 'การบ้านคงเหลือ' : 'ตรวจการบ้าน'}
+            </button>
           </div>
         </div>
-        
+
         {/* Decorative Mascots with Hover Animation */}
         <div className="absolute right-4 top-1/2 transform -translate-y-1/2 md:right-10 flex space-x-[-20px] items-center">
           <div className="transition-transform duration-300 hover:-translate-y-4 hover:rotate-6 cursor-pointer">
@@ -832,35 +907,35 @@ export default function SchoolyScootLMS() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard 
-          title={userRole === 'student' ? "วิชาเรียน" : "ห้องเรียน"} 
-          value="8" 
-          color="bg-[#FFE787]" 
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard
+          title={userRole === 'student' ? "วิชาเรียน" : "ห้องเรียน"}
+          value="8"
+          color="bg-[#FFE787]"
           icon={<BookOpen size={64} />}
           onClick={() => setActiveTab('courses')}
         />
-        <StatCard 
-          title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"} 
-          value="3" 
-          color="bg-[#FF917B]" 
-          icon={<FileText size={64} />} 
+        <StatCard
+          title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"}
+          value="3"
+          color="bg-[#FF917B]"
+          icon={<FileText size={64} />}
           onClick={() => setActiveTab('assignments')}
         />
-        <StatCard 
-          title={userRole === 'student' ? "แบบทดสอบ" : "สร้างข้อสอบ"} 
-          value="2" 
-          color="bg-[#96C68E]" 
+        <StatCard
+          title={userRole === 'student' ? "แบบทดสอบ" : "สร้างข้อสอบ"}
+          value="2"
+          color="bg-[#96C68E]"
           icon={<ClipboardList size={64} />}
           onClick={() => setActiveTab('exams')}
         />
-        <StatCard 
+        {/* <StatCard 
           title="การแจ้งเตือน" 
           value="5" 
           color="bg-[#BEE1FF]" 
           icon={<Bell size={64} />} 
           onClick={() => setActiveModal('notificationsList')}
-        />
+        /> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -872,36 +947,45 @@ export default function SchoolyScootLMS() {
             <span className="text-sm text-slate-400">8 ม.ค. 2567</span>
           </div>
           <div className="space-y-4">
-             {[
-               { time: '08:30 - 10:20', subject: 'คณิตศาสตร์พื้นฐาน', room: 'ห้อง 401', active: true },
-               { time: '10:30 - 12:00', subject: 'ภาษาไทย', room: 'ห้อง 202', active: false },
-               { time: '13:00 - 15:00', subject: 'วิทยาศาสตร์', room: 'LAB 3', active: false },
-             ].map((slot, idx) => (
-               <div key={idx} className={`flex items-center p-4 rounded-2xl ${slot.active ? 'bg-[#F0FDF4] border border-[#96C68E]' : 'bg-slate-50'}`}>
-                 <div className="w-24 font-bold text-slate-600">{slot.time}</div>
-                 <div className="flex-1 px-4 border-l border-slate-200 ml-4">
-                   <div className="font-bold text-slate-800">{slot.subject}</div>
-                   <div className="text-sm text-slate-500">{slot.room}</div>
-                 </div>
-                 {slot.active && (
-                   <button onClick={() => setActiveModal('video')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d]">
-                     <Video size={16} className="mr-1" /> เข้าเรียน
-                   </button>
-                 )}
-               </div>
-             ))}
+            {[
+              { time: '08:30 - 10:20', subject: 'คณิตศาสตร์พื้นฐาน', room: 'ห้อง 401', active: true },
+              { time: '10:30 - 12:00', subject: 'ภาษาไทย', room: 'ห้อง 202', active: false },
+              { time: '13:00 - 15:00', subject: 'วิทยาศาสตร์', room: 'LAB 3', active: false },
+            ].map((slot, idx) => (
+              <div key={idx} className={`flex items-center p-4 rounded-2xl ${slot.active ? 'bg-[#F0FDF4] border border-[#96C68E]' : 'bg-slate-50'}`}>
+                <div className="w-24 font-bold text-slate-600">{slot.time}</div>
+                <div className="flex-1 px-4 border-l border-slate-200 ml-4">
+                  <div className="font-bold text-slate-800">{slot.subject}</div>
+                  <div className="text-sm text-slate-500">{slot.room}</div>
+                </div>
+                {slot.active && (
+                  <button onClick={() => setActiveModal('video')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d]">
+                    <Video size={16} className="mr-1" /> เข้าเรียน
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-           <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
-             <Bell className="mr-2 text-[#FF917B]" /> การแจ้งเตือน
-           </h2>
-           <div className="space-y-4">
-             {NOTIFICATIONS.map((notif) => (
-               <NotificationItem compact key={notif.id} notif={notif} onClick={() => { setSelectedNotification(notif); setActiveModal('notificationDetail'); }} />
-             ))}
-           </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+            <Bell className="mr-2 text-[#FF917B]" /> การแจ้งเตือน
+          </h2>
+          <div className="space-y-4">
+            {/* ใช้ .slice(0, 3) เพื่อเลือกแค่ 3 รายการแรก */}
+            {NOTIFICATIONS.slice(0, 4).map((notif) => (
+              <NotificationItem
+                compact
+                key={notif.id}
+                notif={notif}
+                onClick={() => {
+                  setSelectedNotification(notif);
+                  setActiveModal('notificationDetail');
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -931,44 +1015,42 @@ export default function SchoolyScootLMS() {
 
   const renderAssignments = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><CheckSquare className="mr-3 text-[#FF917B]"/> {userRole === 'student' ? 'การบ้านของฉัน' : 'งานที่มอบหมาย'}</h1>
-      
+      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><CheckSquare className="mr-3 text-[#FF917B]" /> {userRole === 'student' ? 'การบ้านของฉัน' : 'งานที่มอบหมาย'}</h1>
+
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="space-y-4">
           {ASSIGNMENTS.map((assign) => (
             <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 transition-all cursor-pointer">
-               <div className="flex-1">
-                 <div className="flex items-center gap-2 mb-1">
-                   <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
-                     assign.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                     assign.status === 'submitted' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                   }`}>
-                     {assign.status === 'pending' ? 'รอส่ง' : assign.status === 'submitted' ? 'ส่งแล้ว' : 'เลยกำหนด'}
-                   </span>
-                   <span className="text-xs text-slate-400">{assign.course}</span>
-                 </div>
-                 <h3 className="font-bold text-slate-800 text-lg">{assign.title}</h3>
-                 <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate}</p>
-               </div>
-               
-               <div className="mt-4 md:mt-0 flex items-center gap-4">
-                 {assign.score && (
-                   <div className="text-right">
-                     <div className="text-xs text-slate-400">คะแนน</div>
-                     <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
-                   </div>
-                 )}
-                 <button 
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${assign.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                    assign.status === 'submitted' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                    }`}>
+                    {assign.status === 'pending' ? 'รอส่ง' : assign.status === 'submitted' ? 'ส่งแล้ว' : 'เลยกำหนด'}
+                  </span>
+                  <span className="text-xs text-slate-400">{assign.course}</span>
+                </div>
+                <h3 className="font-bold text-slate-800 text-lg">{assign.title}</h3>
+                <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate}</p>
+              </div>
+
+              <div className="mt-4 md:mt-0 flex items-center gap-4">
+                {assign.score && (
+                  <div className="text-right">
+                    <div className="text-xs text-slate-400">คะแนน</div>
+                    <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
+                  </div>
+                )}
+                <button
                   onClick={() => {
                     setSelectedAssignment(assign);
                     setActiveModal(userRole === 'teacher' ? 'grading' : 'assignmentDetail');
                   }}
-                  className={`px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 ${
-                   userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
-                 }`}>
-                   {userRole === 'teacher' ? 'ตรวจงาน' : 'ดูรายละเอียด'}
-                 </button>
-               </div>
+                  className={`px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 ${userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
+                    }`}>
+                  {userRole === 'teacher' ? 'ตรวจงาน' : 'ดูรายละเอียด'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -979,59 +1061,58 @@ export default function SchoolyScootLMS() {
   const renderExams = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center"><ClipboardList className="mr-3 text-[#96C68E]"/> แบบทดสอบ</h1>
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center"><ClipboardList className="mr-3 text-[#96C68E]" /> แบบทดสอบ</h1>
         {userRole === 'teacher' && (
-            <button 
-                onClick={() => setActiveModal('createExam')}
-                className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]"
-            >
-                <Plus size={20} className="mr-2" /> สร้างแบบทดสอบ
-            </button>
+          <button
+            onClick={() => setActiveModal('createExam')}
+            className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]"
+          >
+            <Plus size={20} className="mr-2" /> สร้างแบบทดสอบ
+          </button>
         )}
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {quizzes.map((quiz) => (
-            <div key={quiz.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                <div className="flex justify-between items-start mb-4">
-                    <div>
-                        <span className="text-xs font-bold text-[#BEE1FF] bg-[#F0F9FF] px-2 py-1 rounded-lg mb-2 inline-block">{quiz.course}</span>
-                        <h3 className="text-xl font-bold text-slate-800">{quiz.title}</h3>
-                    </div>
-                    {quiz.status === 'completed' 
-                        ? <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircle size={24}/></div>
-                        : <div className="bg-yellow-100 text-yellow-600 p-2 rounded-full"><Clock size={24}/></div>
-                    }
-                </div>
-                <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
-                    <span className="flex items-center"><HelpCircle size={16} className="mr-1"/> {quiz.questions} ข้อ</span>
-                    <span className="flex items-center"><Clock size={16} className="mr-1"/> {quiz.time}</span>
-                </div>
-                
-                {quiz.status === 'completed' ? (
-                    <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl">
-                        <span className="font-bold text-slate-600">คะแนนที่ได้</span>
-                        <span className="font-bold text-xl text-[#96C68E]">{quiz.score}</span>
-                    </div>
-                ) : (
-                    <button 
-                        onClick={() => {
-                            if(quiz.items && quiz.items.length > 0) {
-                                setActiveQuiz(quiz);
-                                setActiveModal('takeQuiz');
-                            }
-                        }}
-                        disabled={!quiz.items || quiz.items.length === 0}
-                        className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
-                            quiz.items && quiz.items.length > 0 
-                            ? 'bg-[#96C68E] hover:bg-[#85b57d]' 
-                            : 'bg-slate-300 cursor-not-allowed'
-                        }`}
-                    >
-                        {quiz.items && quiz.items.length > 0 ? 'เริ่มทำข้อสอบ' : 'ยังไม่เปิดให้ทำ'}
-                    </button>
-                )}
+          <div key={quiz.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <span className="text-xs font-bold text-[#BEE1FF] bg-[#F0F9FF] px-2 py-1 rounded-lg mb-2 inline-block">{quiz.course}</span>
+                <h3 className="text-xl font-bold text-slate-800">{quiz.title}</h3>
+              </div>
+              {quiz.status === 'completed'
+                ? <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircle size={24} /></div>
+                : <div className="bg-yellow-100 text-yellow-600 p-2 rounded-full"><Clock size={24} /></div>
+              }
             </div>
+            <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
+              <span className="flex items-center"><HelpCircle size={16} className="mr-1" /> {quiz.questions} ข้อ</span>
+              <span className="flex items-center"><Clock size={16} className="mr-1" /> {quiz.time}</span>
+            </div>
+
+            {quiz.status === 'completed' ? (
+              <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl">
+                <span className="font-bold text-slate-600">คะแนนที่ได้</span>
+                <span className="font-bold text-xl text-[#96C68E]">{quiz.score}</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  if (quiz.items && quiz.items.length > 0) {
+                    setActiveQuiz(quiz);
+                    setActiveModal('takeQuiz');
+                  }
+                }}
+                disabled={!quiz.items || quiz.items.length === 0}
+                className={`w-full py-3 rounded-xl font-bold text-white transition-all ${quiz.items && quiz.items.length > 0
+                  ? 'bg-[#96C68E] hover:bg-[#85b57d]'
+                  : 'bg-slate-300 cursor-not-allowed'
+                  }`}
+              >
+                {quiz.items && quiz.items.length > 0 ? 'เริ่มทำข้อสอบ' : 'ยังไม่เปิดให้ทำ'}
+              </button>
+            )}
+          </div>
         ))}
       </div>
     </div>
@@ -1039,33 +1120,32 @@ export default function SchoolyScootLMS() {
 
   const renderSchedule = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><Calendar className="mr-3 text-[#96C68E]"/> ตารางเรียน/สอน</h1>
+      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><Calendar className="mr-3 text-[#96C68E]" /> ตารางเรียน/สอน</h1>
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-         <div className="flex justify-between items-center mb-6">
-           <h2 className="text-lg font-bold text-slate-700">มกราคม 2567</h2>
-           <div className="flex gap-2">
-             <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight className="rotate-180" size={20}/></button>
-             <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight size={20}/></button>
-           </div>
-         </div>
-         {/* Simple Mock Weekly View */}
-         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-           {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => (
-             <div key={day} className="space-y-3">
-                <div className="text-center font-bold text-slate-500 mb-2">{day}</div>
-                {[1, 2, 3].map((slot) => (
-                   <div key={slot} className={`p-3 rounded-xl text-sm ${
-                     (i + slot) % 3 === 0 ? 'bg-[#F0FDF4] border border-[#96C68E]' : 
-                     (i + slot) % 4 === 0 ? 'bg-[#FFF7ED] border border-[#FF917B]' : 'bg-slate-50 border border-slate-100'
-                   }`}>
-                     <div className="font-bold text-slate-800">09:00 - 10:30</div>
-                     <div className="text-slate-600">{(i+slot) % 3 === 0 ? 'คณิตศาสตร์' : (i+slot)%4 === 0 ? 'ภาษาไทย' : 'ว่าง'}</div>
-                     {(i+slot)%3 === 0 && <div className="mt-2 text-xs text-[#96C68E] font-bold">● กำลังสอน</div>}
-                   </div>
-                ))}
-             </div>
-           ))}
-         </div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-bold text-slate-700">มกราคม 2567</h2>
+          <div className="flex gap-2">
+            <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight className="rotate-180" size={20} /></button>
+            <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight size={20} /></button>
+          </div>
+        </div>
+        {/* Simple Mock Weekly View */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => (
+            <div key={day} className="space-y-3">
+              <div className="text-center font-bold text-slate-500 mb-2">{day}</div>
+              {[1, 2, 3].map((slot) => (
+                <div key={slot} className={`p-3 rounded-xl text-sm ${(i + slot) % 3 === 0 ? 'bg-[#F0FDF4] border border-[#96C68E]' :
+                  (i + slot) % 4 === 0 ? 'bg-[#FFF7ED] border border-[#FF917B]' : 'bg-slate-50 border border-slate-100'
+                  }`}>
+                  <div className="font-bold text-slate-800">09:00 - 10:30</div>
+                  <div className="text-slate-600">{(i + slot) % 3 === 0 ? 'คณิตศาสตร์' : (i + slot) % 4 === 0 ? 'ภาษาไทย' : 'ว่าง'}</div>
+                  {(i + slot) % 3 === 0 && <div className="mt-2 text-xs text-[#96C68E] font-bold">● กำลังสอน</div>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1075,132 +1155,130 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="space-y-6 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
-         <h1 className="text-2xl font-bold text-slate-800 flex items-center"><MessageSquare className="mr-3 text-[#BEE1FF]"/> ข้อความ</h1>
-         <div className="flex-1 bg-white rounded-3xl shadow-sm border border-slate-100 flex overflow-hidden">
-           {/* Chat List */}
-           <div className={`w-full md:w-1/3 border-r border-slate-100 overflow-y-auto ${activeChatId ? 'hidden md:block' : 'block'}`}>
-             <div className="p-4 border-b border-slate-100 bg-slate-50">
-               <div className="relative">
-                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16}/>
-                 <input 
-                  type="text" 
-                  placeholder="ค้นหาแชท..." 
+        <h1 className="text-2xl font-bold text-slate-800 flex items-center"><MessageSquare className="mr-3 text-[#BEE1FF]" /> ข้อความ</h1>
+        <div className="flex-1 bg-white rounded-3xl shadow-sm border border-slate-100 flex overflow-hidden">
+          {/* Chat List */}
+          <div className={`w-full md:w-1/3 border-r border-slate-100 overflow-y-auto ${activeChatId ? 'hidden md:block' : 'block'}`}>
+            <div className="p-4 border-b border-slate-100 bg-slate-50">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="ค้นหาแชท..."
                   className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#BEE1FF] text-sm"
-                 />
-               </div>
-             </div>
-             {chats.map(chat => (
-               <div 
-                 key={chat.id} 
-                 onClick={() => setActiveChatId(chat.id)}
-                 className={`p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex gap-3 transition-colors ${activeChatId === chat.id ? 'bg-[#F0F9FF]' : ''}`}
-               >
-                 <div className={`w-12 h-12 rounded-full ${chat.avatar} flex-shrink-0 flex items-center justify-center text-slate-700 font-bold text-lg`}>
-                   {chat.name.charAt(0)}
-                 </div>
-                 <div className="flex-1 min-w-0">
-                   <div className="flex justify-between items-start mb-1">
-                     <h4 className={`font-bold truncate ${activeChatId === chat.id ? 'text-[#96C68E]' : 'text-slate-800'}`}>{chat.name}</h4>
-                     <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{chat.time}</span>
-                   </div>
-                   <p className="text-sm text-slate-500 truncate">{chat.lastMessage}</p>
-                 </div>
-                 {chat.unread > 0 && (
-                   <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold self-center">
-                     {chat.unread}
-                   </div>
-                 )}
-               </div>
-             ))}
-           </div>
-           
-           {/* Chat Detail */}
-           <div className={`flex-1 flex flex-col ${!activeChatId ? 'hidden md:flex' : 'flex'}`}>
-             {activeChat ? (
-               <>
-                 {/* Chat Header */}
-                 <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
-                   <div className="flex items-center gap-3">
-                     <button onClick={() => setActiveChatId(null)} className="md:hidden p-2 -ml-2 text-slate-500">
-                       <ChevronRight className="rotate-180"/>
-                     </button>
-                     <div className={`w-10 h-10 rounded-full ${activeChat.avatar} flex items-center justify-center text-slate-700 font-bold`}>
-                       {activeChat.name.charAt(0)}
-                     </div>
-                     <div>
-                       <h4 className="font-bold text-slate-800">{activeChat.name}</h4>
-                       <p className="text-xs text-slate-500">{activeChat.role}</p>
-                     </div>
-                   </div>
-                   <div className="flex gap-2 text-slate-400">
-                     <button className="p-2 hover:bg-slate-50 rounded-full"><Video size={20}/></button>
-                     <button className="p-2 hover:bg-slate-50 rounded-full"><Info size={20}/></button>
-                   </div>
-                 </div>
-
-                 {/* Messages Area */}
-                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8FAFC]">
-                   {activeChat.messages.map(msg => {
-                     const isMe = msg.sender === 'me';
-                     return (
-                       <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                         <div className={`max-w-[70%] ${isMe ? 'order-2' : 'order-1'}`}>
-                           {msg.sender !== 'me' && msg.name && <p className="text-xs text-slate-400 mb-1 ml-1">{msg.name}</p>}
-                           <div className={`p-3 rounded-2xl text-sm ${
-                             isMe 
-                               ? 'bg-[#BEE1FF] text-slate-800 rounded-br-none' 
-                               : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'
-                           }`}>
-                             {msg.text}
-                           </div>
-                           <p className={`text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'}`}>
-                             {msg.time}
-                           </p>
-                         </div>
-                       </div>
-                     );
-                   })}
-                   <div ref={chatEndRef} />
-                 </div>
-
-                 {/* Input Area */}
-                 <div className="p-4 bg-white border-t border-slate-100">
-                   <form onSubmit={handleSendMessage} className="flex gap-2">
-                     <button type="button" className="p-3 text-slate-400 hover:bg-slate-50 rounded-xl">
-                       <Plus size={20}/>
-                     </button>
-                     <input 
-                       type="text" 
-                       value={chatInput}
-                       onChange={(e) => setChatInput(e.target.value)}
-                       placeholder="พิมพ์ข้อความ..." 
-                       className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:border-[#96C68E] transition-colors"
-                     />
-                     <button 
-                       type="submit" 
-                       disabled={!chatInput.trim()}
-                       className={`p-3 rounded-xl transition-all ${
-                         chatInput.trim() 
-                           ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-sm' 
-                           : 'bg-slate-100 text-slate-300'
-                       }`}
-                     >
-                       <Send size={20}/>
-                     </button>
-                   </form>
-                 </div>
-               </>
-             ) : (
-               <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 text-slate-400 p-8 text-center">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <MessageSquare size={32} className="opacity-50"/>
+                />
+              </div>
+            </div>
+            {chats.map(chat => (
+              <div
+                key={chat.id}
+                onClick={() => setActiveChatId(chat.id)}
+                className={`p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex gap-3 transition-colors ${activeChatId === chat.id ? 'bg-[#F0F9FF]' : ''}`}
+              >
+                <div className={`w-12 h-12 rounded-full ${chat.avatar} flex-shrink-0 flex items-center justify-center text-slate-700 font-bold text-lg`}>
+                  {chat.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className={`font-bold truncate ${activeChatId === chat.id ? 'text-[#96C68E]' : 'text-slate-800'}`}>{chat.name}</h4>
+                    <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{chat.time}</span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-600 mb-2">ยังไม่ได้เลือกแชท</h3>
-                  <p className="max-w-xs">เลือกรายชื่อเพื่อนหรือคุณครูจากเมนูด้านซ้ายเพื่อเริ่มการสนทนาได้เลย!</p>
-               </div>
-             )}
-           </div>
-         </div>
+                  <p className="text-sm text-slate-500 truncate">{chat.lastMessage}</p>
+                </div>
+                {chat.unread > 0 && (
+                  <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold self-center">
+                    {chat.unread}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Chat Detail */}
+          <div className={`flex-1 flex flex-col ${!activeChatId ? 'hidden md:flex' : 'flex'}`}>
+            {activeChat ? (
+              <>
+                {/* Chat Header */}
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setActiveChatId(null)} className="md:hidden p-2 -ml-2 text-slate-500">
+                      <ChevronRight className="rotate-180" />
+                    </button>
+                    <div className={`w-10 h-10 rounded-full ${activeChat.avatar} flex items-center justify-center text-slate-700 font-bold`}>
+                      {activeChat.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800">{activeChat.name}</h4>
+                      <p className="text-xs text-slate-500">{activeChat.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 text-slate-400">
+                    <button className="p-2 hover:bg-slate-50 rounded-full"><Video size={20} /></button>
+                    <button className="p-2 hover:bg-slate-50 rounded-full"><Info size={20} /></button>
+                  </div>
+                </div>
+
+                {/* Messages Area */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8FAFC]">
+                  {activeChat.messages.map(msg => {
+                    const isMe = msg.sender === 'me';
+                    return (
+                      <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[70%] ${isMe ? 'order-2' : 'order-1'}`}>
+                          {msg.sender !== 'me' && msg.name && <p className="text-xs text-slate-400 mb-1 ml-1">{msg.name}</p>}
+                          <div className={`p-3 rounded-2xl text-sm ${isMe
+                            ? 'bg-[#BEE1FF] text-slate-800 rounded-br-none'
+                            : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'
+                            }`}>
+                            {msg.text}
+                          </div>
+                          <p className={`text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'}`}>
+                            {msg.time}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Input Area */}
+                <div className="p-4 bg-white border-t border-slate-100">
+                  <form onSubmit={handleSendMessage} className="flex gap-2">
+                    <button type="button" className="p-3 text-slate-400 hover:bg-slate-50 rounded-xl">
+                      <Plus size={20} />
+                    </button>
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="พิมพ์ข้อความ..."
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:border-[#96C68E] transition-colors"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!chatInput.trim()}
+                      className={`p-3 rounded-xl transition-all ${chatInput.trim()
+                        ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-sm'
+                        : 'bg-slate-100 text-slate-300'
+                        }`}
+                    >
+                      <Send size={20} />
+                    </button>
+                  </form>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 text-slate-400 p-8 text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <MessageSquare size={32} className="opacity-50" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-600 mb-2">ยังไม่ได้เลือกแชท</h3>
+                <p className="max-w-xs">เลือกรายชื่อเพื่อนหรือคุณครูจากเมนูด้านซ้ายเพื่อเริ่มการสนทนาได้เลย!</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
@@ -1208,55 +1286,55 @@ export default function SchoolyScootLMS() {
   const renderCourseDetail = () => {
     // Helper to render content based on active sub-tab
     const renderSubTabContent = () => {
-      switch(courseTab) {
+      switch (courseTab) {
         case 'work':
           return (
-             <div className="space-y-4">
-               <button className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E] transition-all">
-                 + เพิ่มงาน (เฉพาะครู) หรือ ส่งงาน (เฉพาะนักเรียน)
-               </button>
-               {ASSIGNMENTS.filter(a => a.course === selectedCourse.name).length > 0 ? (
-                 ASSIGNMENTS.filter(a => a.course === selectedCourse.name).map(a => (
-                   <div key={a.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center">
-                      <div>
-                        <h4 className="font-bold text-slate-800">{a.title}</h4>
-                        <p className="text-sm text-slate-500">ครบกำหนด: {a.dueDate}</p>
-                      </div>
-                      <span className="text-sm px-3 py-1 bg-slate-100 rounded-lg text-slate-600">10 คะแนน</span>
-                   </div>
-                 ))
-               ) : (
-                 <p className="text-center text-slate-400 py-10">ยังไม่มีงานในวิชานี้</p>
-               )}
-             </div>
+            <div className="space-y-4">
+              <button className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E] transition-all">
+                + เพิ่มงาน (เฉพาะครู) หรือ ส่งงาน (เฉพาะนักเรียน)
+              </button>
+              {ASSIGNMENTS.filter(a => a.course === selectedCourse.name).length > 0 ? (
+                ASSIGNMENTS.filter(a => a.course === selectedCourse.name).map(a => (
+                  <div key={a.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center">
+                    <div>
+                      <h4 className="font-bold text-slate-800">{a.title}</h4>
+                      <p className="text-sm text-slate-500">ครบกำหนด: {a.dueDate}</p>
+                    </div>
+                    <span className="text-sm px-3 py-1 bg-slate-100 rounded-lg text-slate-600">10 คะแนน</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-slate-400 py-10">ยังไม่มีงานในวิชานี้</p>
+              )}
+            </div>
           );
         case 'people':
           return (
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-               <h3 className="font-bold text-[#FF917B] mb-4 text-lg border-b border-slate-100 pb-2">ครูผู้สอน</h3>
-               <div className="flex items-center gap-4 mb-8">
-                 <div className="w-10 h-10 rounded-full bg-[#FF917B] flex items-center justify-center text-white font-bold">T</div>
-                 <span className="font-bold text-slate-700">{selectedCourse.teacher}</span>
-               </div>
+              <h3 className="font-bold text-[#FF917B] mb-4 text-lg border-b border-slate-100 pb-2">ครูผู้สอน</h3>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-10 h-10 rounded-full bg-[#FF917B] flex items-center justify-center text-white font-bold">T</div>
+                <span className="font-bold text-slate-700">{selectedCourse.teacher}</span>
+              </div>
 
-               <h3 className="font-bold text-[#96C68E] mb-4 text-lg border-b border-slate-100 pb-2">เพื่อนร่วมชั้น ({MEMBERS.length} คน)</h3>
-               <div className="space-y-3">
-                 {MEMBERS.map(m => (
-                   <div key={m.id} className="flex items-center gap-4">
-                     <div className={`w-10 h-10 rounded-full ${m.avatar} flex items-center justify-center text-slate-700 text-xs`}>Std</div>
-                     <span className="font-medium text-slate-700">{m.name}</span>
-                   </div>
-                 ))}
-               </div>
+              <h3 className="font-bold text-[#96C68E] mb-4 text-lg border-b border-slate-100 pb-2">เพื่อนร่วมชั้น ({MEMBERS.length} คน)</h3>
+              <div className="space-y-3">
+                {MEMBERS.map(m => (
+                  <div key={m.id} className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full ${m.avatar} flex items-center justify-center text-slate-700 text-xs`}>Std</div>
+                    <span className="font-medium text-slate-700">{m.name}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         case 'grades':
           return (
-             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center py-20">
-               <PieChart size={64} className="mx-auto text-slate-200 mb-4"/>
-               <h3 className="font-bold text-slate-600 text-lg">คะแนนยังไม่ประกาศ</h3>
-               <p className="text-slate-400">คุณครูยังไม่ได้กรอกคะแนนสำหรับวิชานี้</p>
-             </div>
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center py-20">
+              <PieChart size={64} className="mx-auto text-slate-200 mb-4" />
+              <h3 className="font-bold text-slate-600 text-lg">คะแนนยังไม่ประกาศ</h3>
+              <p className="text-slate-400">คุณครูยังไม่ได้กรอกคะแนนสำหรับวิชานี้</p>
+            </div>
           );
         default: // 'home' (Feed)
           return (
@@ -1265,18 +1343,33 @@ export default function SchoolyScootLMS() {
                 <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                   <h3 className="font-bold text-slate-700 mb-2">เกี่ยวกับรายวิชา</h3>
                   <p className="text-sm text-slate-500 mb-4">{selectedCourse.description}</p>
-                  
+
                   <div className="pt-4 border-t border-slate-100">
                     <h3 className="font-bold text-slate-700 mb-2">รหัสเข้าห้องเรียน</h3>
-                    <div className="text-2xl font-mono text-[#96C68E] font-bold tracking-widest">X7K-9P2</div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-2xl font-mono text-[#96C68E] font-bold tracking-widest">
+                        X7K-9P2
+                      </div>
+
+                      <button
+                        onClick={() => navigator.clipboard.writeText('X7K-9P2')}
+                        className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-slate-500 bg-slate-50 hover:bg-[#96C68E] hover:text-white rounded-md transition-colors border border-slate-200"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+
+                      </button>
+                    </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                   <h3 className="font-bold text-slate-700 mb-2">งานที่ใกล้ถึงกำหนด</h3>
                   <p className="text-sm text-slate-500">ไม่มีงานที่ต้องส่งเร็วๆ นี้</p>
                   <div className="flex justify-end mt-2">
-                      <button className="text-xs text-[#FF917B] font-bold" onClick={() => setCourseTab('work')}>ดูทั้งหมด</button>
+                    <button className="text-xs text-[#FF917B] font-bold" onClick={() => setCourseTab('work')}>ดูทั้งหมด</button>
                   </div>
                 </div>
               </div>
@@ -1284,13 +1377,13 @@ export default function SchoolyScootLMS() {
               <div className="lg:col-span-3 space-y-4">
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                    <User size={20} className="text-slate-500"/>
+                    <User size={20} className="text-slate-500" />
                   </div>
                   <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3 text-slate-400 text-sm cursor-text hover:bg-slate-100 transition-colors">
                     ประกาศบางอย่างให้กับชั้นเรียน...
                   </div>
                   <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
-                    <Upload size={20}/>
+                    <Upload size={20} />
                   </button>
                 </div>
 
@@ -1300,14 +1393,14 @@ export default function SchoolyScootLMS() {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full ${selectedCourse.color} flex items-center justify-center`}>
-                            <FileText size={20} className="opacity-50"/>
+                            <FileText size={20} className="opacity-50" />
                           </div>
                           <div>
                             <h4 className="font-bold text-slate-800 text-sm">ครู{selectedCourse.teacher}</h4>
                             <p className="text-xs text-slate-400">โพสต์เมื่อ {post.date}</p>
                           </div>
                         </div>
-                        <button><MoreVertical size={20} className="text-slate-300"/></button>
+                        <button><MoreVertical size={20} className="text-slate-300" /></button>
                       </div>
                       <p className="text-slate-600 text-sm mb-4">
                         {post.text}
@@ -1315,11 +1408,11 @@ export default function SchoolyScootLMS() {
                       {post.file && (
                         <div className="flex gap-2">
                           <div className="border border-slate-200 rounded-xl p-3 flex items-center gap-3 w-1/2 hover:bg-slate-50 cursor-pointer">
-                              <div className="bg-red-100 p-2 rounded-lg"><FileText size={20} className="text-red-500"/></div>
-                              <div className="overflow-hidden">
-                                <div className="text-sm font-bold text-slate-700 truncate">{post.file}</div>
-                                <div className="text-xs text-slate-400">เอกสารประกอบ</div>
-                              </div>
+                            <div className="bg-red-100 p-2 rounded-lg"><FileText size={20} className="text-red-500" /></div>
+                            <div className="overflow-hidden">
+                              <div className="text-sm font-bold text-slate-700 truncate">{post.file}</div>
+                              <div className="text-xs text-slate-400">เอกสารประกอบ</div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1338,7 +1431,7 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="space-y-6 animate-in zoom-in duration-300">
-        <button 
+        <button
           onClick={() => setSelectedCourse(null)}
           className="text-slate-500 hover:text-slate-800 flex items-center text-sm font-bold mb-4"
         >
@@ -1347,11 +1440,11 @@ export default function SchoolyScootLMS() {
 
         <div className={`${selectedCourse.color} rounded-3xl p-8 relative overflow-hidden text-slate-800`}>
           <div className="relative z-10">
-             <h1 className="text-3xl font-bold mb-2">{selectedCourse.name}</h1>
-             <p className="opacity-80 text-lg">{selectedCourse.code} • {selectedCourse.teacher}</p>
+            <h1 className="text-3xl font-bold mb-2">{selectedCourse.name}</h1>
+            <p className="opacity-80 text-lg">{selectedCourse.code} • {selectedCourse.teacher}</p>
           </div>
           <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-20 scale-150">
-             {selectedCourse.icon}
+            {selectedCourse.icon}
           </div>
         </div>
 
@@ -1363,14 +1456,13 @@ export default function SchoolyScootLMS() {
             { id: 'people', label: 'สมาชิก' },
             { id: 'grades', label: 'คะแนน' }
           ].map((tab) => (
-            <button 
-              key={tab.id} 
+            <button
+              key={tab.id}
               onClick={() => setCourseTab(tab.id)}
-              className={`pb-3 font-bold text-sm whitespace-nowrap transition-colors ${
-                courseTab === tab.id 
-                  ? 'text-[#FF917B] border-b-2 border-[#FF917B]' 
-                  : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className={`pb-3 font-bold text-sm whitespace-nowrap transition-colors ${courseTab === tab.id
+                ? 'text-[#FF917B] border-b-2 border-[#FF917B]'
+                : 'text-slate-400 hover:text-slate-600'
+                }`}
             >
               {tab.label}
             </button>
@@ -1416,7 +1508,7 @@ export default function SchoolyScootLMS() {
           <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="exams" label="แบบทดสอบ" icon={ClipboardList} activeTab={activeTab} onSelect={() => { setActiveTab('exams'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          
+
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 mt-6 tracking-wider">อื่นๆ</p>
           <SidebarItem id="messages" label="ข้อความ" icon={MessageSquare} activeTab={activeTab} onSelect={() => { setActiveTab('messages'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="settings" label="ตั้งค่า" icon={Settings} activeTab={activeTab} onSelect={() => { setActiveTab('settings'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
@@ -1425,7 +1517,7 @@ export default function SchoolyScootLMS() {
         <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-               <User className="text-slate-400" />
+              <User className="text-slate-400" />
             </div>
             <div className="ml-3 flex-1 overflow-hidden">
               <p className="text-sm font-bold text-slate-800 truncate">
@@ -1442,10 +1534,10 @@ export default function SchoolyScootLMS() {
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <header className="md:hidden bg-white p-4 flex items-center justify-between shadow-sm z-10">
           <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-600">
-             <Menu />
+            <Menu />
           </button>
           <span className="font-bold text-slate-800">Schooly Scoot</span>
-          <button 
+          <button
             onClick={() => setActiveModal('notificationsList')}
             className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center relative"
           >
@@ -1457,30 +1549,30 @@ export default function SchoolyScootLMS() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
             <div className="hidden md:flex justify-between items-center mb-8">
-               <h2 className="text-2xl font-bold text-slate-800">
-                 {activeTab === 'dashboard' ? 'ภาพรวม' : 
-                  activeTab === 'courses' ? 'ห้องเรียน' : 
-                  activeTab === 'assignments' ? (userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน') : 
-                  activeTab === 'exams' ? 'แบบทดสอบ' :
-                  activeTab === 'schedule' ? 'ตารางเรียน' :
-                  activeTab === 'messages' ? 'ข้อความ' : 'ตั้งค่า'}
-               </h2>
-               <div className="flex items-center gap-4">
-                 <div className="relative">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
-                   <input 
-                    type="text" 
-                    placeholder="ค้นหา..." 
+              <h2 className="text-2xl font-bold text-slate-800">
+                {activeTab === 'dashboard' ? 'ภาพรวม' :
+                  activeTab === 'courses' ? 'ห้องเรียน' :
+                    activeTab === 'assignments' ? (userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน') :
+                      activeTab === 'exams' ? 'แบบทดสอบ' :
+                        activeTab === 'schedule' ? 'ตารางเรียน' :
+                          activeTab === 'messages' ? 'ข้อความ' : 'ตั้งค่า'}
+              </h2>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="text"
+                    placeholder="ค้นหา..."
                     className="pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#BEE1FF] w-64 text-sm"
-                   />
-                 </div>
-                 <button 
+                  />
+                </div>
+                <button
                   onClick={() => setActiveModal('notificationsList')}
                   className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center relative hover:bg-slate-50">
-                    <Bell size={20} className="text-slate-600" />
-                    <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>
-                 </button>
-               </div>
+                  <Bell size={20} className="text-slate-600" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>
+                </button>
+              </div>
             </div>
 
             {selectedCourse ? renderCourseDetail() : (
@@ -1494,17 +1586,17 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'settings' && <SettingsView profile={profile} onSave={setProfile} badges={BADGES} />}
               </>
             )}
-            
+
             <div className="h-20"></div>
           </div>
         </div>
 
         <div className="fixed bottom-6 right-6 z-40">
-          <button 
+          <button
             onClick={toggleRole}
             className="bg-slate-800 text-white px-5 py-3 rounded-full shadow-lg font-bold flex items-center hover:scale-105 transition-transform"
           >
-            <User size={18} className="mr-2"/>
+            <User size={18} className="mr-2" />
             สลับมุมมอง: {userRole === 'student' ? 'นักเรียน' : 'ครูผู้สอน'}
           </button>
         </div>
