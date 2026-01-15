@@ -345,7 +345,7 @@ const [newAssignment, setNewAssignment] = useState({
   const [activeModal, setActiveModal] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
-  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadFile, setUploadFile] = useState([]);
 
   // Notifications state
   const [notifications, setNotifications] = useState(DEFAULT_NOTIFICATIONS);
@@ -393,9 +393,14 @@ const [newAssignment, setNewAssignment] = useState({
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) setUploadFile(file);
-  };
+  const files = Array.from(e.target.files); // แปลง FileList เป็น Array
+  if (files.length > 0) {
+    setUploadFile(prev => [...prev, ...files]); // เพิ่มไฟล์ใหม่เข้าไปในลิสต์เดิม
+  }
+};
+const removeFile = (index) => {
+  setUploadFile(prev => prev.filter((_, i) => i !== index));
+};
 
   const handleLogin = (role) => {
     setIsLoggedIn(true);
@@ -478,22 +483,34 @@ const [newAssignment, setNewAssignment] = useState({
     });
   };
 
-  // --- SUB-COMPONENTS (Internal) ---
+  // ฟังก์ชันยืนยันการส่งงานและบันทึกไฟล์ลงใน State หลัก
+  const handleConfirmSubmit = (assignmentId) => {
+    setAssignments(prev => prev.map(assign => {
+      if (assign.id === assignmentId) {
+        return {
+          ...assign,
+          status: 'submitted',
+          submittedFiles: uploadFile // เก็บไฟล์ที่เลือกไว้ลงในตัวแปรใหม่
+        };
+      }
+      return assign;
+    }));
 
-
-
-
-
-  // --- MODALS ---
+    // เคลียร์ค่าและปิด Modal
+    setUploadFile([]);
+    setActiveModal(null);
+    setSelectedAssignment(null);
+  };
 
   const renderModal = () => {
     if (!activeModal) return null;
+    const currentAssignmentData = assignments.find(a => a.id === selectedAssignment?.id);
 
     const closeModal = () => {
       setActiveModal(null);
-      setSelectedAssignment(null);
-      setSelectedNotification(null);
-      setUploadFile(null);
+      // setSelectedAssignment(null);
+      // setSelectedNotification(null);
+      setUploadFile([]);
       setActiveQuiz(null);
       setQuizAnswers({});
       setQuizResult(null);
@@ -778,63 +795,97 @@ const [newAssignment, setNewAssignment] = useState({
 
             </div>
           )}
-
-          {/* ASSIGNMENT DETAIL MODAL */}
-          {activeModal === 'assignmentDetail' && selectedAssignment && (
+          {activeModal === 'assignmentDetail' && currentAssignmentData && (
             <div className="p-8">
               <div className="flex items-start gap-4 mb-6">
                 <div className="bg-[#FFE787] p-3 rounded-2xl">
                   <FileText size={32} className="text-slate-700" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-800">{selectedAssignment.title}</h2>
-                  <p className="text-slate-500">{selectedAssignment.course} • ครบกำหนด {selectedAssignment.dueDate}</p>
+                  <h2 className="text-2xl font-bold text-slate-800">{currentAssignmentData.title}</h2>
+                  <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate}</p>
                 </div>
               </div>
 
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
                 <h3 className="font-bold text-slate-700 mb-2">คำชี้แจง</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{selectedAssignment.description}</p>
+                <p className="text-slate-600 text-sm leading-relaxed">{currentAssignmentData.description}</p>
               </div>
 
               <div className="border-t border-slate-100 pt-6">
                 <h3 className="font-bold text-slate-800 mb-4">งานของคุณ</h3>
-                <div className="relative">
-                  <input
-                    type="file"
-                    onChange={handleFileUpload}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  />
-                  <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${uploadFile
-                    ? 'border-[#96C68E] bg-[#F0FDF4]'
-                    : 'border-slate-300 hover:bg-slate-50 hover:border-[#96C68E]'
-                    }`}>
-                    {uploadFile ? (
-                      <div>
-                        <CheckCircle size={32} className="mx-auto text-[#96C68E] mb-2" />
-                        <p className="text-slate-800 font-bold">{uploadFile.name}</p>
-                        <p className="text-xs text-slate-500 mt-1">{(uploadFile.size / 1024).toFixed(2)} KB • พร้อมส่ง</p>
-                      </div>
-                    ) : (
-                      <div>
+                
+                {/* ตรวจสอบสถานะจาก currentAssignmentData ที่เราดึงมาใหม่ */}
+                {currentAssignmentData.status === 'submitted' ? (
+                  <div className="space-y-3 animate-in fade-in">
+                    <div className="bg-[#F0FDF4] border border-[#96C68E] p-4 rounded-2xl flex items-center gap-3">
+                      <CheckCircle className="text-[#96C68E]" />
+                      <span className="text-slate-700 font-bold">ส่งงานเรียบร้อยแล้ว</span>
+                    </div>
+                    <div className="space-y-2">
+                      {/* ดึงไฟล์จาก submittedFiles ใน State หลักมาโชว์ */}
+                      {currentAssignmentData.submittedFiles?.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl">
+                          <FileText size={18} className="text-[#96C68E]" />
+                          <span className="text-sm font-medium text-slate-700">{file.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* ปุ่มสำหรับยกเลิกการส่งเพื่อส่งใหม่ */}
+                    <button 
+                      onClick={() => {
+                        setAssignments(prev => prev.map(a => a.id === currentAssignmentData.id ? {...a, status: 'pending', submittedFiles: []} : a));
+                      }}
+                      className="text-sm text-red-400 hover:underline mt-2"
+                    >
+                      ยกเลิกการส่งเพื่อแก้ไข
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${
+                        uploadFile.length > 0 ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-300 hover:bg-slate-50'
+                      }`}>
                         <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-                        <p className="text-slate-500 font-bold">ลากไฟล์มาวาง หรือ คลิกเพื่ออัพโหลด</p>
-                        <p className="text-xs text-slate-400 mt-1">รองรับไฟล์ PDF, JPG, PNG</p>
+                        <p className="text-slate-500 font-bold">คลิกเพื่ออัพโหลดหลายไฟล์</p>
+                        <p className="text-xs text-slate-400 mt-1">รองรับ PDF, JPG, PNG</p>
+                      </div>
+                    </div>
+
+                    {uploadFile.length > 0 && (
+                      <div className="space-y-2 mb-4">
+                        {uploadFile.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl animate-in slide-in-from-bottom-2">
+                            <div className="flex items-center gap-3">
+                              <FileText size={18} className="text-[#96C68E]" />
+                              <span className="text-sm font-medium text-slate-700 truncate max-w-[200px]">{file.name}</span>
+                            </div>
+                            <button onClick={() => removeFile(index)} className="text-red-400 hover:text-red-600">
+                              <Trash size={16} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
-                  </div>
-                </div>
 
-                <button
-                  onClick={closeModal}
-                  disabled={!uploadFile}
-                  className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${uploadFile
-                    ? 'bg-[#96C68E] text-white hover:bg-[#85b57d]'
-                    : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    }`}
-                >
-                  <CheckCircle className="mr-2" /> ส่งการบ้าน
-                </button>
+                    <button
+                      onClick={() => handleConfirmSubmit(currentAssignmentData.id)}
+                      disabled={uploadFile.length === 0}
+                      className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${
+                        uploadFile.length > 0 ? 'bg-[#96C68E] text-white hover:scale-[1.02]' : 'bg-slate-200 text-slate-400'
+                      }`}
+                    >
+                      <CheckCircle className="mr-2" /> ส่งการบ้าน ({uploadFile.length} ไฟล์)
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -856,7 +907,6 @@ const [newAssignment, setNewAssignment] = useState({
           setNewAssignment({ ...newAssignment, title: e.target.value })
         }
       />
-
       <div>
   <label className="block text-sm font-bold text-slate-600 mb-1">
     กำหนดส่ง
@@ -1199,7 +1249,7 @@ const [newAssignment, setNewAssignment] = useState({
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
         <div className="space-y-4">
-          {ASSIGNMENTS.map((assign) => (
+          {assignments.map((assign) => (
             <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 transition-all cursor-pointer">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -1842,7 +1892,6 @@ const [newAssignment, setNewAssignment] = useState({
             <div className="h-20"></div>
           </div>
         </div>
-
         <div className="fixed bottom-6 right-6 z-40">
           <button
             onClick={toggleRole}
