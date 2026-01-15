@@ -857,15 +857,36 @@ const [newAssignment, setNewAssignment] = useState({
         }
       />
 
-      <input
-        type="text"
-        placeholder="กำหนดส่ง"
-        className="w-full p-3 rounded-xl border"
-        value={newAssignment.dueDate}
-        onChange={(e) =>
-          setNewAssignment({ ...newAssignment, dueDate: e.target.value })
-        }
-      />
+      <div>
+  <label className="block text-sm font-bold text-slate-600 mb-1">
+    กำหนดส่ง
+  </label>
+
+  <input
+    type="datetime-local"
+    className="
+      w-full p-3 rounded-xl
+      border border-slate-200
+      bg-white text-slate-700
+      focus:outline-none
+      focus:border-[#96C68E]
+      focus:ring-1 focus:ring-[#96C68E]/30
+    "
+    value={newAssignment.dueDate}
+    onChange={(e) =>
+      setNewAssignment({
+        ...newAssignment,
+        dueDate: e.target.value,
+      })
+    }
+  />
+
+  <p className="text-xs text-slate-400 mt-1">
+    เลือกวันและเวลาที่ต้องการให้ส่งงาน
+  </p>
+</div>
+
+
 
       <textarea
         placeholder="คำอธิบายงาน"
@@ -1778,6 +1799,7 @@ const [newAssignment, setNewAssignment] = useState({
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
+           
             <div className="hidden md:flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-slate-800">
                 {activeTab === 'dashboard' ? 'ภาพรวม' :
