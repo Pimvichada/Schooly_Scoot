@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, logoutUser } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
-import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus } from './services/assignmentService';
+import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead } from './services/notificationService';
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
@@ -487,24 +487,47 @@ export default function SchoolyScootLMS() {
   }
 
   // ฟังก์ชันยืนยันการส่งงานและบันทึกไฟล์ลงใน State หลัก
-  const handleConfirmSubmit = (assignmentId) => {
-    setAssignments(prev => prev.map(assign => {
-      if (assign.id === assignmentId) {
-        return {
-          ...assign,
-          status: 'submitted',
-          submittedFiles: uploadFile // เก็บไฟล์ที่เลือกไว้ลงในตัวแปรใหม่
-        };
-      }
-      return assign;
-    }));
+  const handleConfirmSubmit = async (assignmentId) => {
+    try {
+      if (!auth.currentUser) return;
 
-    // เคลียร์ค่าและปิด Modal
-    setUploadFile([]);
-    setActiveModal(null);
-    setSelectedAssignment(null);
-    setActiveModal(null);
-    setSelectedAssignment(null);
+      // Find the assignment to get the proper ID (firestoreId preferred)
+      const assignment = assignments.find(a => a.id === assignmentId);
+      const targetId = assignment.firestoreId || assignment.id; // Fallback only if legacy local data
+
+      // Prepare file data (names only for now as we don't have Storage)
+      const fileData = uploadFile.map(f => ({ name: f.name, size: f.size }));
+
+      // Call Service
+      await submitAssignment(
+        targetId,
+        auth.currentUser.uid,
+        `${profile.firstName} ${profile.lastName}`,
+        fileData
+      );
+
+      // Update Local State
+      setAssignments(prev => prev.map(assign => {
+        if (assign.id === assignmentId) {
+          return {
+            ...assign,
+            status: 'submitted',
+            submittedFiles: uploadFile // Keep local file objects for UI display
+          };
+        }
+        return assign;
+      }));
+
+      // Clear Modal
+      setUploadFile([]);
+      setActiveModal(null);
+      setSelectedAssignment(null);
+      alert('ส่งงานเรียบร้อยแล้ว!');
+
+    } catch (error) {
+      console.error("Error submitting assignment:", error);
+      alert('เกิดข้อผิดพลาดในการส่งงาน: ' + error.message);
+    }
   };
 
   // Sync editingCourse state when entering settings or changing course
@@ -1238,36 +1261,49 @@ export default function SchoolyScootLMS() {
 
 
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!newAssignment.title) {
                       alert('กรุณากรอกชื่องาน');
                       return;
                     }
 
-                    setAssignments(prev => [
-                      ...prev,
-                      {
-                        id: Date.now(),
+                    try {
+                      // Prepare data for Firestore
+                      const assignmentPayload = {
                         title: newAssignment.title,
                         course: newAssignment.course,
                         dueDate: newAssignment.dueDate,
                         description: newAssignment.description,
-                        file: newAssignment.file, // ✅ เพิ่มตรงนี้
+                        // Note: Storing File object directly causes errors in Firestore. 
+                        // We store the name for reference. Actual file storage would require Firebase Storage.
+                        fileName: newAssignment.file ? newAssignment.file.name : null,
                         status: 'pending',
                         score: null,
-                      },
-                    ]);
+                        createdAt: new Date().toISOString(),
+                        ownerId: auth.currentUser?.uid // Track who created it
+                      };
 
-                    setNewAssignment({
-                      title: '',
-                      course: '',
-                      dueDate: '',
-                      description: '',
-                      file: null,
-                    });
+                      // 1. Save to Database
+                      const createdAssign = await createAssignment(assignmentPayload);
 
+                      // 2. Update Local State (so it shows up immediately)
+                      setAssignments(prev => [...prev, createdAssign]);
 
-                    setActiveModal(null);
+                      // 3. Reset Form
+                      setNewAssignment({
+                        title: '',
+                        course: '',
+                        dueDate: '',
+                        description: '',
+                        file: null,
+                      });
+
+                      setActiveModal(null);
+                      alert('มอบหมายงานเรียบร้อยแล้ว (บันทึกลงฐานข้อมูล)');
+                    } catch (error) {
+                      console.error("Error creating assignment:", error);
+                      alert('เกิดข้อผิดพลาดในการบันทึกงาน: ' + error.message);
+                    }
                   }}
                   className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold"
                 >
@@ -1502,10 +1538,17 @@ export default function SchoolyScootLMS() {
   const renderAssignments = () => {
     // กรองข้อมูลตาม Filter และบทบาท
     const filteredAssignments = assignments.filter(assign => {
-      if (assignmentFilter === 'all') return true; // ถ้าเป็น all ให้คืนค่าทั้งหมด
+      // 1. Filter by Course Enrollment (Student only needs to see their own courses' work)
+      if (userRole === 'student') {
+        const isEnrolled = courses.some(c => c.name === assign.course);
+        if (!isEnrolled) return false;
+      }
+
+      // 2. Filter by Status Tab
+      if (assignmentFilter === 'all') return true;
       if (assignmentFilter === 'pending') {
         return assign.status === 'pending' || assign.status === 'late';
-      } else {
+      } else { // submitted
         return assign.status === 'submitted';
       }
     });
