@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { auth } from '../firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserProfile, logoutUser } from './services/authService';
 import {
   BookOpen,
   Calendar,
@@ -111,9 +114,9 @@ const COURSES = [
 ];
 
 const ASSIGNMENTS = [
-  { id: 1, title: 'แบบฝึกหัดบทที่ 1', course: 'คณิตศาสตร์พื้นฐาน', dueDate: 'พรุ่งนี้, 16:00', status: 'pending',  },
-  { id: 2, title: 'รายงานการทดลอง', course: 'วิทยาศาสตร์ทั่วไป', dueDate: '15 ม.ค. 67', status: 'submitted',  },
-  { id: 3, title: 'แต่งกลอนสุภาพ', course: 'ภาษาไทยเพื่อการสื่อสาร', dueDate: '20 ม.ค. 67', status: 'pending',  },
+  { id: 1, title: 'แบบฝึกหัดบทที่ 1', course: 'คณิตศาสตร์พื้นฐาน', dueDate: 'พรุ่งนี้, 16:00', status: 'pending', },
+  { id: 2, title: 'รายงานการทดลอง', course: 'วิทยาศาสตร์ทั่วไป', dueDate: '15 ม.ค. 67', status: 'submitted', },
+  { id: 3, title: 'แต่งกลอนสุภาพ', course: 'ภาษาไทยเพื่อการสื่อสาร', dueDate: '20 ม.ค. 67', status: 'pending', },
 ];
 
 const INITIAL_QUIZZES = [
@@ -226,7 +229,7 @@ const DEFAULT_NOTIFICATIONS = [
     read: true,
     detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
   },
-   {
+  {
     id: 13,
     type: 'user',
     message: 'แจ้งเตือน: ',
@@ -234,7 +237,7 @@ const DEFAULT_NOTIFICATIONS = [
     read: true,
     detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
   }
-  
+
 ];
 
 const INITIAL_CHATS = [
@@ -297,17 +300,58 @@ export default function SchoolyScootLMS() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [workView, setWorkView] = useState('current');
   const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
+  const [authLoading, setAuthLoading] = useState(true);
 
 
   // Profile State
   const [profile, setProfile] = useState({
-    firstName: 'รักเรียน',
-    lastName: 'ขยันยิ่ง',
-    email: 'student@schoolyscoot.ac.th',
-    roleLabel: 'นักเรียน',
-    level: 5,
-    xp: 75
+    firstName: '',
+    lastName: '',
+    email: '',
+    roleLabel: '',
+    level: 1,
+    xp: 0
   });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Fetch user profile from Firestore
+          const userProfile = await getUserProfile(user.uid);
+
+          if (userProfile) {
+            setUserRole(userProfile.role);
+            setProfile({
+              firstName: userProfile.fullName.split(' ')[0] || 'User',
+              lastName: userProfile.fullName.split(' ').slice(1).join(' ') || '',
+              email: user.email,
+              roleLabel: userProfile.role === 'student' ? 'นักเรียน' : 'ครูผู้สอน',
+              level: userProfile.level || 1,
+              xp: userProfile.xp || 0
+            });
+            setIsLoggedIn(true);
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+        }
+      } else {
+        setIsLoggedIn(false);
+        setProfile({
+          firstName: '',
+          lastName: '',
+          email: '',
+          roleLabel: '',
+          level: 1,
+          xp: 0
+        });
+      }
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
 
   // Chat State
   const [chats, setChats] = useState(INITIAL_CHATS);
@@ -328,15 +372,15 @@ export default function SchoolyScootLMS() {
 
   //  Assignment State (สำคัญมาก)
   const [assignments, setAssignments] = useState(ASSIGNMENTS);
-const [assignmentFilter, setAssignmentFilter] = useState('pending');
+  const [assignmentFilter, setAssignmentFilter] = useState('pending');
   // ฟอร์มสร้างงาน
-const [newAssignment, setNewAssignment] = useState({
-  title: '',
-  course: '',
-  dueDate: '',
-  description: '',
-  files: [],
-});
+  const [newAssignment, setNewAssignment] = useState({
+    title: '',
+    course: '',
+    dueDate: '',
+    description: '',
+    files: [],
+  });
 
   // Create Exam State
   const [newExam, setNewExam] = useState({
@@ -398,29 +442,29 @@ const [newAssignment, setNewAssignment] = useState({
   };
 
   const handleFileUpload = (e) => {
-  const files = Array.from(e.target.files); // แปลง FileList เป็น Array
-  if (files.length > 0) {
-    setUploadFile(prev => [...prev, ...files]); // เพิ่มไฟล์ใหม่เข้าไปในลิสต์เดิม
-  }
-};
-const removeFile = (index) => {
-  setUploadFile(prev => prev.filter((_, i) => i !== index));
-};
-
-  const handleLogin = (role) => {
-    setIsLoggedIn(true);
-    setUserRole(role);
-    setProfile({
-      firstName: role === 'student' ? 'รักเรียน' : 'สมชาย',
-      lastName: role === 'student' ? 'ขยันยิ่ง' : 'ใจดี',
-      email: role === 'student' ? 'student@schoolyscoot.ac.th' : 'teacher@schoolyscoot.ac.th',
-      roleLabel: role === 'student' ? 'นักเรียน' : 'ครูผู้สอน'
-    });
+    const files = Array.from(e.target.files); // แปลง FileList เป็น Array
+    if (files.length > 0) {
+      setUploadFile(prev => [...prev, ...files]); // เพิ่มไฟล์ใหม่เข้าไปในลิสต์เดิม
+    }
+  };
+  const removeFile = (index) => {
+    setUploadFile(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setActiveTab('dashboard');
+  const handleLogin = (role) => {
+    // This function is now mainly a placeholder or can be used for UI updates if needed
+    // actual login happens in LoginPage component via firebase auth
+    // The useEffect above handles the state update when auth state changes
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      // State updates handled by onAuthStateChanged
+      setActiveTab('dashboard');
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   // Quiz Taking Logic
@@ -506,6 +550,13 @@ const removeFile = (index) => {
     setActiveModal(null);
     setSelectedAssignment(null);
   };
+
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#96C68E]"></div>
+    </div>;
+  }
 
   const renderModal = () => {
     if (!activeModal) return null;
@@ -801,134 +852,132 @@ const removeFile = (index) => {
             </div>
           )}
           {activeModal === 'assignmentDetail' && currentAssignmentData && (
-  <div className="p-8">
-    <div className="flex items-start gap-4 mb-6">
-      <div className="bg-[#FFE787] p-3 rounded-2xl">
-        <FileText size={32} className="text-slate-700" />
-      </div>
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">{currentAssignmentData.title}</h2>
-        <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate}</p>
-      </div>
-    </div>
-
-    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
-      <h3 className="font-bold text-slate-700 mb-2">คำชี้แจง</h3>
-      <p className="text-slate-600 text-sm leading-relaxed">{currentAssignmentData.description}</p>
-    </div>
-
-    <div className="border-t border-slate-100 pt-6">
-      <h3 className="font-bold text-slate-800 mb-4">งานของคุณ</h3>
-      
-      {/* 1. กรณีส่งงานเรียบร้อยแล้ว */}
-      {currentAssignmentData.status === 'submitted' ? (
-        <div className="space-y-3 animate-in fade-in">
-          <div className="bg-[#F0FDF4] border border-[#96C68E] p-4 rounded-2xl flex items-center gap-3">
-            <CheckCircle className="text-[#96C68E]" />
-            <span className="text-slate-700 font-bold">ส่งงานเรียบร้อยแล้ว</span>
-          </div>
-
-          <div className="space-y-2">
-            {currentAssignmentData.submittedFiles?.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl group hover:border-[#96C68E] transition-colors">
-                <div className="flex items-center gap-3">
-                  <FileText size={18} className="text-[#96C68E]" />
-                  <span className="text-sm font-medium text-slate-700">{file.name}</span>
+            <div className="p-8">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="bg-[#FFE787] p-3 rounded-2xl">
+                  <FileText size={32} className="text-slate-700" />
                 </div>
-                <button 
-                  onClick={() => window.open(URL.createObjectURL(file), '_blank')}
-                  className="text-xs font-bold text-[#96C68E] bg-[#F0FDF4] px-3 py-1.5 rounded-lg hover:bg-[#96C68E] hover:text-white transition-all"
-                >
-                  เปิดดูไฟล์
-                </button>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">{currentAssignmentData.title}</h2>
+                  <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate}</p>
+                </div>
               </div>
-            ))}
-          </div>
 
-          <button 
-            onClick={() => {
-              setAssignments(prev => prev.map(a => a.id === currentAssignmentData.id ? {...a, status: 'pending', submittedFiles: []} : a));
-            }}
-            className="text-sm text-red-400 hover:underline mt-2"
-          >
-            ยกเลิกการส่งเพื่อแก้ไข
-          </button>
-        </div>
-      ) : (
-        /* 2. กรณีรอส่งงาน (UI สำหรับอัปโหลด) */
-        <>
-          <div className="relative">
-            <input
-              type="file"
-              multiple
-              onChange={handleFileUpload}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-            />
-            <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${
-              uploadFile.length > 0 ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-300 hover:bg-slate-50'
-            }`}>
-              <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-              <p className="text-slate-500 font-bold">คลิกเพื่ออัพโหลดไฟล์งาน</p>
-              <p className="text-xs text-slate-400 mt-1">สามารถเลือกได้หลายไฟล์ (PDF, JPG, PNG)</p>
-            </div>
-          </div>
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
+                <h3 className="font-bold text-slate-700 mb-2">คำชี้แจง</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{currentAssignmentData.description}</p>
+              </div>
 
-          {uploadFile.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {uploadFile.map((file, index) => (
-                <div key={index} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl animate-in slide-in-from-bottom-2">
-                  <div className="flex items-center gap-3">
-                    <FileText size={18} className="text-[#96C68E]" />
-                    <span className="text-sm font-medium text-slate-700 truncate max-w-[200px]">{file.name}</span>
+              <div className="border-t border-slate-100 pt-6">
+                <h3 className="font-bold text-slate-800 mb-4">งานของคุณ</h3>
+
+                {/* 1. กรณีส่งงานเรียบร้อยแล้ว */}
+                {currentAssignmentData.status === 'submitted' ? (
+                  <div className="space-y-3 animate-in fade-in">
+                    <div className="bg-[#F0FDF4] border border-[#96C68E] p-4 rounded-2xl flex items-center gap-3">
+                      <CheckCircle className="text-[#96C68E]" />
+                      <span className="text-slate-700 font-bold">ส่งงานเรียบร้อยแล้ว</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {currentAssignmentData.submittedFiles?.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl group hover:border-[#96C68E] transition-colors">
+                          <div className="flex items-center gap-3">
+                            <FileText size={18} className="text-[#96C68E]" />
+                            <span className="text-sm font-medium text-slate-700">{file.name}</span>
+                          </div>
+                          <button
+                            onClick={() => window.open(URL.createObjectURL(file), '_blank')}
+                            className="text-xs font-bold text-[#96C68E] bg-[#F0FDF4] px-3 py-1.5 rounded-lg hover:bg-[#96C68E] hover:text-white transition-all"
+                          >
+                            เปิดดูไฟล์
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setAssignments(prev => prev.map(a => a.id === currentAssignmentData.id ? { ...a, status: 'pending', submittedFiles: [] } : a));
+                      }}
+                      className="text-sm text-red-400 hover:underline mt-2"
+                    >
+                      ยกเลิกการส่งเพื่อแก้ไข
+                    </button>
                   </div>
-                  <button onClick={() => removeFile(index)} className="text-red-400 hover:text-red-600">
-                    <Trash size={16} />
-                  </button>
-                </div>
-              ))}
+                ) : (
+                  /* 2. กรณีรอส่งงาน (UI สำหรับอัปโหลด) */
+                  <>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${uploadFile.length > 0 ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-300 hover:bg-slate-50'
+                        }`}>
+                        <Upload size={32} className="mx-auto text-slate-400 mb-2" />
+                        <p className="text-slate-500 font-bold">คลิกเพื่ออัพโหลดไฟล์งาน</p>
+                        <p className="text-xs text-slate-400 mt-1">สามารถเลือกได้หลายไฟล์ (PDF, JPG, PNG)</p>
+                      </div>
+                    </div>
+
+                    {uploadFile.length > 0 && (
+                      <div className="space-y-2 mb-4">
+                        {uploadFile.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl animate-in slide-in-from-bottom-2">
+                            <div className="flex items-center gap-3">
+                              <FileText size={18} className="text-[#96C68E]" />
+                              <span className="text-sm font-medium text-slate-700 truncate max-w-[200px]">{file.name}</span>
+                            </div>
+                            <button onClick={() => removeFile(index)} className="text-red-400 hover:text-red-600">
+                              <Trash size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => handleConfirmSubmit(currentAssignmentData.id)}
+                      disabled={uploadFile.length === 0}
+                      className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${uploadFile.length > 0 ? 'bg-[#96C68E] text-white hover:scale-[1.02]' : 'bg-slate-200 text-slate-400'
+                        }`}
+                    >
+                      <CheckCircle className="mr-2" /> ส่งการบ้าน {uploadFile.length > 0 && `(${uploadFile.length} ไฟล์)`}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
-          <button
-            onClick={() => handleConfirmSubmit(currentAssignmentData.id)}
-            disabled={uploadFile.length === 0}
-            className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${
-              uploadFile.length > 0 ? 'bg-[#96C68E] text-white hover:scale-[1.02]' : 'bg-slate-200 text-slate-400'
-            }`}
-          >
-            <CheckCircle className="mr-2" /> ส่งการบ้าน {uploadFile.length > 0 && `(${uploadFile.length} ไฟล์)`}
-          </button>
-        </>
-      )}
-    </div>
-  </div>
-)}
-
           {/* CREATE ASSIGNMENT MODAL (TEACHER) */}
-{activeModal === 'createAssignment' && (
-  <div className="p-8">
-    <h2 className="text-2xl font-bold text-slate-800 mb-6">
-      เพิ่มงานในชั้นเรียน
-    </h2>
+          {activeModal === 'createAssignment' && (
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6">
+                เพิ่มงานในชั้นเรียน
+              </h2>
 
-    <div className="space-y-4">
-      <input
-        type="text"
-        placeholder="ชื่องาน"
-        className="w-full p-3 rounded-xl border"
-        value={newAssignment.title}
-        onChange={(e) =>
-          setNewAssignment({ ...newAssignment, title: e.target.value })
-        }
-      />
-      <div>
-  <label className="block text-sm font-bold text-slate-600 mb-1">
-    กำหนดส่ง
-  </label>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="ชื่องาน"
+                  className="w-full p-3 rounded-xl border"
+                  value={newAssignment.title}
+                  onChange={(e) =>
+                    setNewAssignment({ ...newAssignment, title: e.target.value })
+                  }
+                />
+                <div>
+                  <label className="block text-sm font-bold text-slate-600 mb-1">
+                    กำหนดส่ง
+                  </label>
 
-  <input
-    type="datetime-local"
-    className="
+                  <input
+                    type="datetime-local"
+                    className="
       w-full p-3 rounded-xl
       border border-slate-200
       bg-white text-slate-700
@@ -936,109 +985,109 @@ const removeFile = (index) => {
       focus:border-[#96C68E]
       focus:ring-1 focus:ring-[#96C68E]/30
     "
-    value={newAssignment.dueDate}
-    onChange={(e) =>
-      setNewAssignment({
-        ...newAssignment,
-        dueDate: e.target.value,
-      })
-    }
-  />
+                    value={newAssignment.dueDate}
+                    onChange={(e) =>
+                      setNewAssignment({
+                        ...newAssignment,
+                        dueDate: e.target.value,
+                      })
+                    }
+                  />
 
-  <p className="text-xs text-slate-400 mt-1">
-    เลือกวันและเวลาที่ต้องการให้ส่งงาน
-  </p>
-</div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    เลือกวันและเวลาที่ต้องการให้ส่งงาน
+                  </p>
+                </div>
 
 
 
-      <textarea
-        placeholder="คำอธิบายงาน"
-        rows={4}
-        className="w-full p-3 rounded-xl border"
-        value={newAssignment.description}
-        onChange={(e) =>
-          setNewAssignment({ ...newAssignment, description: e.target.value })
-        }
-      />
-        
-       {/* แนบไฟล์สำหรับงานที่กำลังสร้าง */}
-<div>
-  <label className="block text-sm font-bold text-slate-600 mb-1">
-    แนบไฟล์ (ถ้ามี)
-  </label>
+                <textarea
+                  placeholder="คำอธิบายงาน"
+                  rows={4}
+                  className="w-full p-3 rounded-xl border"
+                  value={newAssignment.description}
+                  onChange={(e) =>
+                    setNewAssignment({ ...newAssignment, description: e.target.value })
+                  }
+                />
 
-  <input
-    type="file"
-    onChange={(e) =>
-      setNewAssignment({
-        ...newAssignment,
-        file: e.target.files[0],
-      })
-    }
-    className="block w-full text-sm text-slate-500
+                {/* แนบไฟล์สำหรับงานที่กำลังสร้าง */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-600 mb-1">
+                    แนบไฟล์ (ถ้ามี)
+                  </label>
+
+                  <input
+                    type="file"
+                    onChange={(e) =>
+                      setNewAssignment({
+                        ...newAssignment,
+                        file: e.target.files[0],
+                      })
+                    }
+                    className="block w-full text-sm text-slate-500
                file:mr-4 file:py-2 file:px-4
                file:rounded-xl file:border-0
                file:text-sm file:font-bold
                file:bg-[#F0FDF4] file:text-[#96C68E]
                hover:file:bg-[#E6F7EC]"
-  />
+                  />
 
-  {newAssignment.file && (
-    <div className="mt-3 flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3">
-      <FileText className="text-[#96C68E]" />
-      <div>
-        <p className="text-sm font-bold text-slate-700">
-          {newAssignment.file.name}
-        </p>
-        <p className="text-xs text-slate-400">
-          ไฟล์ที่แนบ
-        </p>
-      </div>
-    </div>
-  )}
-</div>
-
-
-      <button
-        onClick={() => {
-          if (!newAssignment.title) {
-            alert('กรุณากรอกชื่องาน');
-            return;
-          }
-
-          setAssignments(prev => [
-  ...prev,
-  {
-    id: Date.now(),
-    title: newAssignment.title,
-    course: newAssignment.course,
-    dueDate: newAssignment.dueDate,
-    description: newAssignment.description,
-    file: newAssignment.file, // ✅ เพิ่มตรงนี้
-    status: 'pending',
-    score: null,
-  },
-]);
-
-          setNewAssignment({
-  title: '',
-  course: '',
-  dueDate: '',
-  description: '',
-  file: null,
-});
+                  {newAssignment.file && (
+                    <div className="mt-3 flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3">
+                      <FileText className="text-[#96C68E]" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-700">
+                          {newAssignment.file.name}
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          ไฟล์ที่แนบ
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
 
-          setActiveModal(null);
-        }}
-        className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold"
-      >
-        บันทึกงาน
-      </button>
-    </div>
-  </div>
-)}
+                <button
+                  onClick={() => {
+                    if (!newAssignment.title) {
+                      alert('กรุณากรอกชื่องาน');
+                      return;
+                    }
+
+                    setAssignments(prev => [
+                      ...prev,
+                      {
+                        id: Date.now(),
+                        title: newAssignment.title,
+                        course: newAssignment.course,
+                        dueDate: newAssignment.dueDate,
+                        description: newAssignment.description,
+                        file: newAssignment.file, // ✅ เพิ่มตรงนี้
+                        status: 'pending',
+                        score: null,
+                      },
+                    ]);
+
+                    setNewAssignment({
+                      title: '',
+                      course: '',
+                      dueDate: '',
+                      description: '',
+                      file: null,
+                    });
+
+
+                    setActiveModal(null);
+                  }}
+                  className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold"
+                >
+                  บันทึกงาน
+                </button>
+              </div>
+            </div>
+          )}
 
 
           {/* TEACHER GRADING MODAL */}
@@ -1257,107 +1306,104 @@ const removeFile = (index) => {
     </div>
   );
 
-  
 
-const renderAssignments = () => {
-  // กรองข้อมูลตาม Filter และบทบาท
-  const filteredAssignments = assignments.filter(assign => {
-  if (assignmentFilter === 'all') return true; // ถ้าเป็น all ให้คืนค่าทั้งหมด
-  if (assignmentFilter === 'pending') {
-    return assign.status === 'pending' || assign.status === 'late';
-  } else {
-    return assign.status === 'submitted';
-  }
-});
 
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center">
-          <CheckSquare className="mr-3 text-[#FF917B]" /> 
-          {userRole === 'student' ? 'การบ้านของฉัน' : 'งานที่มอบหมาย'}
-        </h1>
-        
-        {/* Tab Switcher */}
-        <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-          {/* เพิ่มปุ่ม "ทั้งหมด" ตรงนี้ */}
-          <button 
-            onClick={() => setAssignmentFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-              assignmentFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            ทั้งหมด ({assignments.length})
-          </button>
-        <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-          <button 
-            onClick={() => setAssignmentFilter('pending')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            ยังไม่ส่ง ({assignments.filter(a => a.status !== 'submitted').length})
-          </button>
-          <button 
-            onClick={() => setAssignmentFilter('submitted')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-          >
-            ส่งแล้ว ({assignments.filter(a => a.status === 'submitted').length})
-          </button>
-        </div>
-      </div>
-      </div>
+  const renderAssignments = () => {
+    // กรองข้อมูลตาม Filter และบทบาท
+    const filteredAssignments = assignments.filter(assign => {
+      if (assignmentFilter === 'all') return true; // ถ้าเป็น all ให้คืนค่าทั้งหมด
+      if (assignmentFilter === 'pending') {
+        return assign.status === 'pending' || assign.status === 'late';
+      } else {
+        return assign.status === 'submitted';
+      }
+    });
 
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="space-y-4">
-          {filteredAssignments.length > 0 ? (
-            filteredAssignments.map((assign) => (
-              <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 transition-all cursor-pointer">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${
-                      assign.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                      assign.status === 'submitted' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                    }`}>
-                      {assign.status === 'pending' ? 'รอส่ง' : assign.status === 'submitted' ? 'ส่งแล้ว' : 'เลยกำหนด'}
-                    </span>
-                    <span className="text-xs text-slate-400">{assign.course}</span>
-                  </div>
-                  <h3 className="font-bold text-slate-800 text-lg">{assign.title}</h3>
-                  <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate}</p>
-                </div>
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+            <CheckSquare className="mr-3 text-[#FF917B]" />
+            {userRole === 'student' ? 'การบ้านของฉัน' : 'งานที่มอบหมาย'}
+          </h1>
 
-                <div className="mt-4 md:mt-0 flex items-center gap-4">
-                  {assign.score && (
-                    <div className="text-right">
-                      <div className="text-xs text-slate-400">คะแนน</div>
-                      <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
-                    </div>
-                  )}
-                  <button
-                    onClick={() => {
-                      setSelectedAssignment(assign);
-                      setActiveModal(userRole === 'teacher' ? 'grading' : 'assignmentDetail');
-                    }}
-                    className={`px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 ${
-                      userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
-                    }`}>
-                    {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="text-slate-300" size={32} />
-              </div>
-              <p className="text-slate-500 font-medium">ไม่มีรายการการบ้านในหมวดนี้</p>
+          {/* Tab Switcher */}
+          <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+            {/* เพิ่มปุ่ม "ทั้งหมด" ตรงนี้ */}
+            <button
+              onClick={() => setAssignmentFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              ทั้งหมด ({assignments.length})
+            </button>
+            <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+              <button
+                onClick={() => setAssignmentFilter('pending')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                ยังไม่ส่ง ({assignments.filter(a => a.status !== 'submitted').length})
+              </button>
+              <button
+                onClick={() => setAssignmentFilter('submitted')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                ส่งแล้ว ({assignments.filter(a => a.status === 'submitted').length})
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+          <div className="space-y-4">
+            {filteredAssignments.length > 0 ? (
+              filteredAssignments.map((assign) => (
+                <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 transition-all cursor-pointer">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${assign.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
+                        assign.status === 'submitted' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                        }`}>
+                        {assign.status === 'pending' ? 'รอส่ง' : assign.status === 'submitted' ? 'ส่งแล้ว' : 'เลยกำหนด'}
+                      </span>
+                      <span className="text-xs text-slate-400">{assign.course}</span>
+                    </div>
+                    <h3 className="font-bold text-slate-800 text-lg">{assign.title}</h3>
+                    <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate}</p>
+                  </div>
+
+                  <div className="mt-4 md:mt-0 flex items-center gap-4">
+                    {assign.score && (
+                      <div className="text-right">
+                        <div className="text-xs text-slate-400">คะแนน</div>
+                        <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedAssignment(assign);
+                        setActiveModal(userRole === 'teacher' ? 'grading' : 'assignmentDetail');
+                      }}
+                      className={`px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 ${userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
+                        }`}>
+                      {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="text-slate-300" size={32} />
+                </div>
+                <p className="text-slate-500 font-medium">ไม่มีรายการการบ้านในหมวดนี้</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const renderExams = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -1588,132 +1634,128 @@ const renderAssignments = () => {
     // Helper to render content based on active sub-tab
     const renderSubTabContent = () => {
       switch (courseTab) {
-  case 'work': {
-  // กรองงานเฉพาะของวิชานี้
-  const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
-  const pendingWork = courseAssignments.filter(a => a.status !== 'submitted');
-  const submittedWork = courseAssignments.filter(a => a.status === 'submitted');
+        case 'work': {
+          // กรองงานเฉพาะของวิชานี้
+          const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
+          const pendingWork = courseAssignments.filter(a => a.status !== 'submitted');
+          const submittedWork = courseAssignments.filter(a => a.status === 'submitted');
 
-  // สร้างฟังก์ชันช่วยวาดการ์ดงาน (เพื่อประหยัดพื้นที่โค้ดและลดความผิดพลาด)
-  const renderCard = (data) => {
-    const isDone = data.status === 'submitted';
-    return (
-      <div key={data.id} className={`p-4 rounded-2xl border transition-all flex items-center justify-between group ${
-        isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
-      }`}>
-        <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-xl ${isDone ? 'bg-green-50' : 'bg-yellow-50'}`}>
-            {isDone ? <CheckCircle className="text-green-600" size={20} /> : <FileText className="text-yellow-600" size={20} />}
-          </div>
-          <div>
-            <h4 className={`font-bold ${isDone ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{data.title}</h4>
-            <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
-              {isDone ? 'ส่งเรียบร้อยแล้ว' : `กำหนดส่ง: ${data.dueDate}`}
-            </p>
-          </div>
-        </div>
-        <button 
-          onClick={() => { 
-            setSelectedAssignment(data); 
-            setActiveModal(userRole === 'teacher' ? 'grading' : 'assignmentDetail'); 
-          }}
-          className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-            isDone ? 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50' : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#a5d5ff]'
-          }`}
-        >
-          {userRole === 'teacher' ? 'ตรวจงาน' : (isDone ? 'ดูงานที่ส่ง' : 'ส่งงาน')}
-        </button>
-      </div>
-    );
-  };
+          // สร้างฟังก์ชันช่วยวาดการ์ดงาน (เพื่อประหยัดพื้นที่โค้ดและลดความผิดพลาด)
+          const renderCard = (data) => {
+            const isDone = data.status === 'submitted';
+            return (
+              <div key={data.id} className={`p-4 rounded-2xl border transition-all flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
+                }`}>
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl ${isDone ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                    {isDone ? <CheckCircle className="text-green-600" size={20} /> : <FileText className="text-yellow-600" size={20} />}
+                  </div>
+                  <div>
+                    <h4 className={`font-bold ${isDone ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{data.title}</h4>
+                    <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
+                      {isDone ? 'ส่งเรียบร้อยแล้ว' : `กำหนดส่ง: ${data.dueDate}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setSelectedAssignment(data);
+                    setActiveModal(userRole === 'teacher' ? 'grading' : 'assignmentDetail');
+                  }}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isDone ? 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50' : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#a5d5ff]'
+                    }`}
+                >
+                  {userRole === 'teacher' ? 'ตรวจงาน' : (isDone ? 'ดูงานที่ส่ง' : 'ส่งงาน')}
+                </button>
+              </div>
+            );
+          };
 
-  return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      
-      {/* ส่วนควบคุม: หัวข้อ และ ปุ่มสลับ (Toggle) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">ภารกิจในวิชา</h2>
-          <p className="text-xs text-slate-400">จัดการงานและการบ้านของคุณ</p>
-        </div>
+          return (
+            <div className="space-y-6 animate-in fade-in duration-300">
 
-        {/* ปุ่ม Toggle สลับโหมดการดู */}
-        <div className="flex bg-slate-100 p-1 rounded-xl">
-          <button 
-            onClick={() => setWorkView('current')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-              workView === 'current' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            งานปัจจุบัน
-          </button>
-          <button 
-            onClick={() => setWorkView('all')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-              workView === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-            }`}
-          >
-            งานทั้งหมด ({courseAssignments.length})
-          </button>
-        </div>
-      </div>
+              {/* ส่วนควบคุม: หัวข้อ และ ปุ่มสลับ (Toggle) */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">ภารกิจในวิชา</h2>
+                  <p className="text-xs text-slate-400">จัดการงานและการบ้านของคุณ</p>
+                </div>
 
-      {/* ปุ่มเพิ่มงานสำหรับครู */}
-      {userRole === 'teacher' && (
-        <button
-          onClick={() => {
-            setNewAssignment(prev => ({ ...prev, course: selectedCourse.name }));
-            setActiveModal('createAssignment');
-          }}
-          className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E] transition-all bg-white/50"
-        >
-          + มอบหมายงานใหม่
-        </button>
-      )}
+                {/* ปุ่ม Toggle สลับโหมดการดู */}
+                <div className="flex bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setWorkView('current')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${workView === 'current' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
+                      }`}
+                  >
+                    งานปัจจุบัน
+                  </button>
+                  <button
+                    onClick={() => setWorkView('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${workView === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
+                      }`}
+                  >
+                    งานทั้งหมด ({courseAssignments.length})
+                  </button>
+                </div>
+              </div>
 
-      {/* การแสดงผลรายการงาน */}
-      {workView === 'current' ? (
-        <div className="space-y-6">
-          <section>
-            <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
-              <Clock className="mr-2 text-yellow-500" size={18} /> งานที่ต้องทำ ({pendingWork.length})
-            </h3>
-            <div className="space-y-3">
-              {pendingWork.length > 0 ? pendingWork.map(renderCard) : (
-                <div className="p-8 bg-slate-50 rounded-2xl text-center text-slate-400 border border-slate-200">
-                  ไม่มีงานค้าง ดีมาก! ✨
+              {/* ปุ่มเพิ่มงานสำหรับครู */}
+              {userRole === 'teacher' && (
+                <button
+                  onClick={() => {
+                    setNewAssignment(prev => ({ ...prev, course: selectedCourse.name }));
+                    setActiveModal('createAssignment');
+                  }}
+                  className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E] transition-all bg-white/50"
+                >
+                  + มอบหมายงานใหม่
+                </button>
+              )}
+
+              {/* การแสดงผลรายการงาน */}
+              {workView === 'current' ? (
+                <div className="space-y-6">
+                  <section>
+                    <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
+                      <Clock className="mr-2 text-yellow-500" size={18} /> งานที่ต้องทำ ({pendingWork.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {pendingWork.length > 0 ? pendingWork.map(renderCard) : (
+                        <div className="p-8 bg-slate-50 rounded-2xl text-center text-slate-400 border border-slate-200">
+                          ไม่มีงานค้าง ดีมาก! ✨
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {submittedWork.length > 0 && (
+                    <section className="pt-4 border-t border-slate-100">
+                      <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
+                        <CheckCircle className="mr-2 text-green-500" size={18} /> ส่งแล้ว ({submittedWork.length})
+                      </h3>
+                      <div className="space-y-3">
+                        {submittedWork.map(renderCard)}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              ) : (
+                /* แสดงงานทั้งหมดแบบรวมกัน */
+                <div className="space-y-3 animate-in slide-in-from-bottom-2">
+                  {courseAssignments.length > 0 ? (
+                    courseAssignments.map(renderCard)
+                  ) : (
+                    <div className="p-20 text-center text-slate-400">ยังไม่มีข้อมูลงาน</div>
+                  )}
                 </div>
               )}
             </div>
-          </section>
-
-          {submittedWork.length > 0 && (
-            <section className="pt-4 border-t border-slate-100">
-              <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
-                <CheckCircle className="mr-2 text-green-500" size={18} /> ส่งแล้ว ({submittedWork.length})
-              </h3>
-              <div className="space-y-3">
-                {submittedWork.map(renderCard)}
-              </div>
-            </section>
-          )}
-        </div>
-      ) : (
-        /* แสดงงานทั้งหมดแบบรวมกัน */
-        <div className="space-y-3 animate-in slide-in-from-bottom-2">
-          {courseAssignments.length > 0 ? (
-            courseAssignments.map(renderCard)
-          ) : (
-            <div className="p-20 text-center text-slate-400">ยังไม่มีข้อมูลงาน</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+          );
+        }
 
 
-                  
+
         case 'people':
           return (
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
@@ -1886,36 +1928,19 @@ const renderAssignments = () => {
   if (!isLoggedIn) {
     if (currentView === 'login') {
       return (
-        <LoginPage 
-          onLogin={handleLogin} 
-          onNavigateToRegister={() => setCurrentView('register')} 
+        <LoginPage
+          onLogin={handleLogin}
+          onNavigateToRegister={() => setCurrentView('register')}
         />
       );
     } else {
       return (
-        <RegisterPage 
-          onRegister={async (data) => {
-            try {
-              const response = await fetch('http://localhost:5000/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-              });
-
-              const result = await response.json();
-
-              if (response.ok) {
-                alert("สมัครสมาชิกสำเร็จ!");
-                setCurrentView('login');
-              } else {
-                alert("สมัครไม่สำเร็จ: " + (result.message || "เกิดข้อผิดพลาด"));
-              }
-            } catch (error) {
-              console.error("API Error:", error);
-              alert("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่ารัน API หรือยัง?");
-            }
-          }} 
-          onBackToLogin={() => setCurrentView('login')} 
+        <RegisterPage
+          onRegister={(data) => {
+            console.log("Registration successful", data);
+            // Auth state change will handle navigation to dashboard
+          }}
+          onBackToLogin={() => setCurrentView('login')}
         />
       );
     }
@@ -1952,7 +1977,7 @@ const renderAssignments = () => {
 
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 mt-6 tracking-wider">อื่นๆ</p>
           <SidebarItem id="messages" label="ข้อความ" icon={MessageSquare} activeTab={activeTab} onSelect={() => { setActiveTab('messages'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          
+
         </nav>
 
         <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
@@ -1989,7 +2014,7 @@ const renderAssignments = () => {
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
-           
+
             <div className="hidden md:flex justify-between items-center mb-8">
               <h2 className="text-2xl font-bold text-slate-800">
                 {activeTab === 'dashboard' ? 'ภาพรวม' :
@@ -2025,14 +2050,14 @@ const renderAssignments = () => {
                 {activeTab === 'exams' && renderExams()}
                 {activeTab === 'schedule' && renderSchedule()}
                 {activeTab === 'messages' && renderMessages()}
-               
+
               </>
             )}
 
             <div className="h-20"></div>
           </div>
         </div>
-        <div className="fixed bottom-6 right-6 z-40">
+        {/*         <div className="fixed bottom-6 right-6 z-40">
           <button
             onClick={toggleRole}
             className="bg-slate-800 text-white px-5 py-3 rounded-full shadow-lg font-bold flex items-center hover:scale-105 transition-transform"
@@ -2040,7 +2065,7 @@ const renderAssignments = () => {
             <User size={18} className="mr-2" />
             สลับมุมมอง: {userRole === 'student' ? 'นักเรียน' : 'ครูผู้สอน'}
           </button>
-        </div>
+        </div> */}
 
       </main>
     </div>
