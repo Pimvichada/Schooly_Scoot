@@ -3,6 +3,7 @@ import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, logoutUser } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse } from './services/courseService';
+import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
 import {
   BookOpen,
   Calendar,
@@ -136,32 +137,7 @@ const ASSIGNMENTS = [
   { id: 3, title: 'แต่งกลอนสุภาพ', course: 'ภาษาไทยเพื่อการสื่อสาร', dueDate: '20 ม.ค. 67', status: 'pending', },
 ];
 
-const INITIAL_QUIZZES = [
-  {
-    id: 1,
-    title: 'สอบย่อย ครั้งที่ 1',
-    course: 'คณิตศาสตร์พื้นฐาน',
-    questions: 3,
-    time: '15 นาที',
-    status: 'available',
-    score: null,
-    items: [
-      { q: '1. ข้อใดคือค่าของ 2 + 2 x 2 ?', options: ['6', '8', '4', '10'], correct: 0 },
-      { q: '2. มุมภายในของสามเหลี่ยมรวมกันได้กี่องศา?', options: ['90', '180', '360', '270'], correct: 1 },
-      { q: '3. สูตรพื้นที่สี่เหลี่ยมจัตุรัสคือ?', options: ['กว้าง x ยาว', 'ด้าน x ด้าน', '1/2 x ฐาน x สูง', '2 x (กว้าง + ยาว)'], correct: 1 }
-    ]
-  },
-  {
-    id: 2,
-    title: 'สอบกลางภาค',
-    course: 'วิทยาศาสตร์ทั่วไป',
-    questions: 20,
-    time: '60 นาที',
-    status: 'completed',
-    score: '18/20',
-    items: []
-  }
-];
+// INITIAL_QUIZZES removed - using real data from Firestore
 
 const DEFAULT_NOTIFICATIONS = [
   { id: 1, type: 'homework', message: 'ใกล้ถึงกำหนดส่ง: แบบฝึกหัดบทที่ 1', time: '1 ชม. ที่แล้ว', read: false, detail: 'แบบฝึกหัดบทที่ 1 วิชาคณิตศาสตร์พื้นฐาน จะหมดเวลาส่งในอีก 1 ชั่วโมง กรุณารีบดำเนินการและตรวจสอบความถูกต้องก่อนส่ง' },
@@ -416,10 +392,21 @@ export default function SchoolyScootLMS() {
 
 
   // --- UPDATED QUIZ STATE & LOGIC ---
-  const [quizzes, setQuizzes] = useState(INITIAL_QUIZZES);
+  const [quizzes, setQuizzes] = useState([]); // Empty initially
   const [activeQuiz, setActiveQuiz] = useState(null); // Which quiz is currently being taken
   const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers { questionIndex: optionIndex }
   const [quizResult, setQuizResult] = useState(null); // Stores final score
+
+  // Fetch quizzes when entering a course or changing tab to quizzes
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      if (selectedCourse && courseTab === 'quizzes') {
+        const q = await getQuizzesByCourse(selectedCourse.name);
+        setQuizzes(q);
+      }
+    };
+    fetchQuizzes();
+  }, [selectedCourse, courseTab]);
 
   //  Assignment State (สำคัญมาก)
   const [assignments, setAssignments] = useState(ASSIGNMENTS);
@@ -436,7 +423,7 @@ export default function SchoolyScootLMS() {
   // Create Exam State
   const [newExam, setNewExam] = useState({
     title: '',
-    course: courses.length > 0 ? courses[0].name : '', // Safe access
+    course: '', // विल be set dynamically
     time: '30 นาที',
     items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
   });
@@ -557,31 +544,52 @@ export default function SchoolyScootLMS() {
     setNewExam(prev => ({ ...prev, items: updatedItems }));
   };
 
-  const handleSaveExam = () => {
+  const handleSaveExam = async () => {
     if (!newExam.title || newExam.items.some(i => !i.q)) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
-    const examToAdd = {
-      id: Date.now(),
-      title: newExam.title,
-      course: newExam.course,
-      questions: newExam.items.length,
-      time: newExam.time,
-      status: 'available',
-      score: null,
-      items: newExam.items
-    };
-    setQuizzes([...quizzes, examToAdd]);
-    setActiveModal(null);
-    // Reset form
-    setNewExam({
-      title: '',
-      course: courses.length > 0 ? courses[0].name : '',
-      time: '30 นาที',
-      items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
-    });
+
+    try {
+      const examToAdd = {
+        title: newExam.title,
+        course: selectedCourse.name, // Use selected course
+        questions: newExam.items.length,
+        time: newExam.time,
+        status: 'available',
+        score: null,
+        items: newExam.items,
+        ownerId: auth.currentUser.uid
+      };
+
+      const createdQuiz = await createQuiz(examToAdd);
+
+      setQuizzes([...quizzes, createdQuiz]);
+      setActiveModal(null);
+      // Reset form
+      setNewExam({
+        title: '',
+        course: '',
+        time: '30 นาที',
+        items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
+      });
+      alert('สร้างแบบทดสอบเรียบร้อย');
+    } catch (error) {
+      console.error("Failed to create quiz", error);
+      alert('เกิดข้อผิดพลาดในการสร้างแบบทดสอบ');
+    }
   };
+
+  const handleDeleteQuiz = async (quizId) => {
+    if (!confirm('คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?')) return;
+    try {
+      await deleteQuiz(quizId);
+      setQuizzes(prev => prev.filter(q => q.firestoreId !== quizId));
+    } catch (error) {
+      console.error("Failed to delete quiz", error);
+      alert('เกิดข้อผิดพลาดในการลบ');
+    }
+  }
 
   // ฟังก์ชันยืนยันการส่งงานและบันทึกไฟล์ลงใน State หลัก
   const handleConfirmSubmit = (assignmentId) => {
@@ -1491,12 +1499,13 @@ export default function SchoolyScootLMS() {
           onClick={() => setActiveTab('assignments')}
         />
         <StatCard
-          title={userRole === 'student' ? "แบบทดสอบ" : "สร้างข้อสอบ"}
-          value="2"
-          color="bg-[#96C68E]"
-          icon={<ClipboardList size={64} />}
-          onClick={() => setActiveTab('exams')}
+          title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"}
+          value="3"
+          color="bg-[#FF917B]"
+          icon={<FileText size={64} />}
+          onClick={() => setActiveTab('assignments')}
         />
+        {/* Exams stat card removed */}
         {/* <StatCard 
           title="การแจ้งเตือน" 
           value="5" 
@@ -1707,65 +1716,7 @@ export default function SchoolyScootLMS() {
     );
   };
 
-  const renderExams = () => (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center"><ClipboardList className="mr-3 text-[#96C68E]" /> แบบทดสอบ</h1>
-        {userRole === 'teacher' && (
-          <button
-            onClick={() => setActiveModal('createExam')}
-            className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]"
-          >
-            <Plus size={20} className="mr-2" /> สร้างแบบทดสอบ
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {quizzes.map((quiz) => (
-          <div key={quiz.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <span className="text-xs font-bold text-[#BEE1FF] bg-[#F0F9FF] px-2 py-1 rounded-lg mb-2 inline-block">{quiz.course}</span>
-                <h3 className="text-xl font-bold text-slate-800">{quiz.title}</h3>
-              </div>
-              {quiz.status === 'completed'
-                ? <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircle size={24} /></div>
-                : <div className="bg-yellow-100 text-yellow-600 p-2 rounded-full"><Clock size={24} /></div>
-              }
-            </div>
-            <div className="flex items-center gap-4 text-sm text-slate-500 mb-6">
-              <span className="flex items-center"><HelpCircle size={16} className="mr-1" /> {quiz.questions} ข้อ</span>
-              <span className="flex items-center"><Clock size={16} className="mr-1" /> {quiz.time}</span>
-            </div>
-
-            {quiz.status === 'completed' ? (
-              <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl">
-                <span className="font-bold text-slate-600">คะแนนที่ได้</span>
-                <span className="font-bold text-xl text-[#96C68E]">{quiz.score}</span>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (quiz.items && quiz.items.length > 0) {
-                    setActiveQuiz(quiz);
-                    setActiveModal('takeQuiz');
-                  }
-                }}
-                disabled={!quiz.items || quiz.items.length === 0}
-                className={`w-full py-3 rounded-xl font-bold text-white transition-all ${quiz.items && quiz.items.length > 0
-                  ? 'bg-[#96C68E] hover:bg-[#85b57d]'
-                  : 'bg-slate-300 cursor-not-allowed'
-                  }`}
-              >
-                {quiz.items && quiz.items.length > 0 ? 'เริ่มทำข้อสอบ' : 'ยังไม่เปิดให้ทำ'}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  // renderExams removed
 
   const renderSchedule = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -2300,6 +2251,112 @@ export default function SchoolyScootLMS() {
               </div>
             </div>
           );
+
+        case 'quizzes':
+          return (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                  <ClipboardList className="mr-2 text-[#96C68E]" /> แบบทดสอบ
+                </h2>
+                {userRole === 'teacher' && (
+                  <button
+                    onClick={() => setActiveModal('createExam')}
+                    className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]"
+                  >
+                    <Plus size={18} className="mr-2" /> สร้างแบบทดสอบ
+                  </button>
+                )}
+              </div>
+
+              {userRole === 'teacher' ? (
+                // --- TEACHER VIEW: Management Table ---
+                <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
+                      <tr>
+                        <th className="p-4 font-bold">ชื่อแบบทดสอบ</th>
+                        <th className="p-4 font-bold">สถานะ</th>
+                        <th className="p-4 font-bold">จำนวนข้อ</th>
+                        <th className="p-4 font-bold">เวลา</th>
+                        <th className="p-4 font-bold text-right">จัดการ</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {quizzes.length > 0 ? quizzes.map((quiz) => (
+                        <tr key={quiz.firestoreId || quiz.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-4 font-bold text-slate-700">{quiz.title}</td>
+                          <td className="p-4">
+                            <span className="bg-[#F0FDF4] text-[#96C68E] px-2 py-1 rounded-lg text-xs font-bold border border-[#96C68E]/20">
+                              เปิดใช้งาน
+                            </span>
+                          </td>
+                          <td className="p-4 text-slate-600 font-medium">{quiz.questions} ข้อ</td>
+                          <td className="p-4 text-slate-600 font-medium">{quiz.time}</td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleDeleteQuiz(quiz.firestoreId)}
+                              className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                              title="ลบแบบทดสอบ"
+                            >
+                              <Trash size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="5" className="p-8 text-center text-slate-400">
+                            ยังไม่มีแบบทดสอบในวิชานี้
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                // --- STUDENT VIEW: Card Grid ---
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {quizzes.length > 0 ? quizzes.map((quiz) => (
+                    <div key={quiz.firestoreId || quiz.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="w-12 h-12 bg-[#F0FDF4] rounded-2xl flex items-center justify-center text-[#96C68E] mb-2 group-hover:scale-110 transition-transform">
+                          <ClipboardList size={24} />
+                        </div>
+                        {/* Mock Status for now */}
+                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg self-start">Available</span>
+                      </div>
+
+                      <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1">{quiz.title}</h3>
+
+                      <div className="flex items-center gap-4 text-xs text-slate-500 mb-6 font-medium">
+                        <span className="flex items-center"><HelpCircle size={14} className="mr-1" /> {quiz.questions} ข้อ</span>
+                        <span className="flex items-center"><Clock size={14} className="mr-1" /> {quiz.time}</span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setActiveQuiz(quiz);
+                          setActiveModal('takeQuiz');
+                        }}
+                        className="w-full py-3 rounded-xl font-bold text-white bg-[#96C68E] hover:bg-[#85b57d] shadow-sm hover:shadow transition-all transform active:scale-95"
+                      >
+                        เริ่มทำข้อสอบ
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="col-span-full py-16 text-center">
+                      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <ClipboardList size={32} />
+                      </div>
+                      <h3 className="text-slate-500 font-bold">ยังไม่มีแบบทดสอบ</h3>
+                      <p className="text-slate-400 text-sm mt-1">คุณครูยังไม่ได้สร้างแบบทดสอบในวิชานี้</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+
       }
     };
 
@@ -2324,8 +2381,8 @@ export default function SchoolyScootLMS() {
 
         {/* Tabs Navigation */}
         <div className="flex space-x-1 overflow-x-auto pb-2 custom-scrollbar">
-          {['หน้าหลัก', 'งานในชั้นเรียน', 'สมาชิก', 'คะแนน', ...(userRole === 'teacher' ? ['ตั้งค่า'] : [])].map((tab) => {
-            const tabKey = tab === 'หน้าหลัก' ? 'home' : tab === 'งานในชั้นเรียน' ? 'work' : tab === 'สมาชิก' ? 'people' : tab === 'คะแนน' ? 'grades' : 'settings';
+          {['หน้าหลัก', 'งานในชั้นเรียน', 'แบบทดสอบ', 'สมาชิก', 'คะแนน', ...(userRole === 'teacher' ? ['ตั้งค่า'] : [])].map((tab) => {
+            const tabKey = tab === 'หน้าหลัก' ? 'home' : tab === 'งานในชั้นเรียน' ? 'work' : tab === 'แบบทดสอบ' ? 'quizzes' : tab === 'สมาชิก' ? 'people' : tab === 'คะแนน' ? 'grades' : 'settings';
             return (
               <button
                 key={tab}
@@ -2396,7 +2453,7 @@ export default function SchoolyScootLMS() {
           <SidebarItem id="dashboard" label="แดชบอร์ด" icon={PieChart} activeTab={activeTab} onSelect={() => { setActiveTab('dashboard'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} activeTab={activeTab} onSelect={() => { setActiveTab('courses'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          <SidebarItem id="exams" label="แบบทดสอบ" icon={ClipboardList} activeTab={activeTab} onSelect={() => { setActiveTab('exams'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          {/* Exams sidebar item removed */}
           <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
 
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 mt-6 tracking-wider">อื่นๆ</p>
