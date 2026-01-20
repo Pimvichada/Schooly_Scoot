@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, logoutUser } from './services/authService';
+import { getAllCourses, seedCourses, createCourse, deleteCourse } from './services/courseService';
 import {
   BookOpen,
   Calendar,
@@ -57,61 +58,77 @@ import RegisterPage from './components/RegisterPage';
 
 // --- MOCK DATA (Updated with Dynamic Feed) ---
 
-const COURSES = [
+// --- MOCK DATA (Updated with Dynamic Feed) ---
 
-  {
-    id: 1,
-    name: 'คณิตศาสตร์พื้นฐาน',
-    code: 'MATH101',
-    teacher: 'ครูสมชาย',
-    color: 'bg-[#96C68E]',
-    icon: <MascotSquare className="w-12 h-12" />,
-    description: 'เรียนรู้พื้นฐานคณิตศาสตร์ พีชคณิต เรขาคณิต และสถิติเบื้องต้น',
-    feed: [
-      { id: 101, text: 'ยินดีต้อนรับสู่เทอมการศึกษาใหม่ ขอให้นักเรียนทุกคนตั้งใจเรียนนะครับ', date: '8 ม.ค.', file: null },
-      { id: 102, text: 'ไฟล์ประกอบการเรียนสัปดาห์ที่ 1 เรื่องจำนวนจริง', date: '9 ม.ค.', file: 'Math_Week1.pdf' },
-      { id: 103, text: 'อย่าลืมทำการบ้านแบบฝึกหัดที่ 1.2 ส่งภายในวันศุกร์นี้นะครับ', date: 'เมื่อวาน', file: null }
-    ]
-  },
-  {
-    id: 2,
-    name: 'วิทยาศาสตร์ทั่วไป',
-    code: 'SCI102',
-    teacher: 'ครูวิไล',
-    color: 'bg-[#BEE1FF]',
-    icon: <MascotCircle className="w-12 h-12" />,
-    description: 'ศึกษาเกี่ยวกับสิ่งมีชีวิต ระบบนิเวศ และสารเคมีในชีวิตประจำวัน',
-    feed: [
-      { id: 201, text: 'แจ้งการสอบเก็บคะแนนย่อยครั้งที่ 1 ในสัปดาห์หน้า เตรียมตัวให้พร้อมนะคะ', date: 'เมื่อวาน', file: null },
-      { id: 202, text: 'สรุปผลการทดลองเรื่องกรด-เบส นักเรียนสามารถโหลดไปอ่านทบทวนได้ค่ะ', date: 'วันนี้', file: 'Lab_Report_Template.docx' }
-    ]
-  },
-  {
-    id: 3,
-    name: 'ภาษาไทยเพื่อการสื่อสาร',
-    code: 'THAI201',
-    teacher: 'ครูมานี',
-    color: 'bg-[#FF917B]',
-    icon: <MascotTriangle className="w-12 h-12" />,
-    description: 'การใช้ภาษาไทยเพื่อการสื่อสาร การเขียน และการพูดในที่สาธารณะ',
-    feed: [
-      { id: 301, text: 'ให้นักเรียนจับคู่ฝึกแต่งกลอนสุภาพ ส่งในคาบเรียน', date: '2 วันที่แล้ว', file: null }
-    ]
-  },
-  {
-    id: 4,
-    name: 'ศิลปะและการออกแบบ',
-    code: 'ART303',
-    teacher: 'ครูศิลป์',
-    color: 'bg-[#FFE787]',
-    icon: <MascotStar className="w-12 h-12" />,
-    description: 'ฝึกวาดภาพระบายสี องค์ประกอบศิลป์ และประวัติศาสตร์ศิลปะ',
-    feed: [
-      { id: 401, text: 'อย่าลืมเตรียมสีน้ำและพู่กันมาในคาบหน้านะครับ', date: '10 ม.ค.', file: null },
-      { id: 402, text: 'ตัวอย่างผลงานศิลปะ Impressionism สำหรับเป็นแรงบันดาลใจ', date: 'วันนี้', file: 'Art_Examples.jpg' }
-    ]
-  },
-];
+// const MOCK_COURSES = [
+
+//   {
+//     id: 1,
+//     name: 'คณิตศาสตร์พื้นฐาน',
+//     code: 'MATH101',
+//     teacher: 'ครูสมชาย',
+//     color: 'bg-[#96C68E]',
+//     icon: <MascotSquare className="w-12 h-12" />,
+//     description: 'เรียนรู้พื้นฐานคณิตศาสตร์ พีชคณิต เรขาคณิต และสถิติเบื้องต้น',
+//     feed: [
+//       { id: 101, text: 'ยินดีต้อนรับสู่เทอมการศึกษาใหม่ ขอให้นักเรียนทุกคนตั้งใจเรียนนะครับ', date: '8 ม.ค.', file: null },
+//       { id: 102, text: 'ไฟล์ประกอบการเรียนสัปดาห์ที่ 1 เรื่องจำนวนจริง', date: '9 ม.ค.', file: 'Math_Week1.pdf' },
+//       { id: 103, text: 'อย่าลืมทำการบ้านแบบฝึกหัดที่ 1.2 ส่งภายในวันศุกร์นี้นะครับ', date: 'เมื่อวาน', file: null }
+//     ]
+//   },
+//   {
+//     id: 2,
+//     name: 'วิทยาศาสตร์ทั่วไป',
+//     code: 'SCI102',
+//     teacher: 'ครูวิไล',
+//     color: 'bg-[#BEE1FF]',
+//     icon: <MascotCircle className="w-12 h-12" />,
+//     description: 'ศึกษาเกี่ยวกับสิ่งมีชีวิต ระบบนิเวศ และสารเคมีในชีวิตประจำวัน',
+//     feed: [
+//       { id: 201, text: 'แจ้งการสอบเก็บคะแนนย่อยครั้งที่ 1 ในสัปดาห์หน้า เตรียมตัวให้พร้อมนะคะ', date: 'เมื่อวาน', file: null },
+//       { id: 202, text: 'สรุปผลการทดลองเรื่องกรด-เบส นักเรียนสามารถโหลดไปอ่านทบทวนได้ค่ะ', date: 'วันนี้', file: 'Lab_Report_Template.docx' }
+//     ]
+//   },
+//   {
+//     id: 3,
+//     name: 'ภาษาไทยเพื่อการสื่อสาร',
+//     code: 'THAI201',
+//     teacher: 'ครูมานี',
+//     color: 'bg-[#FF917B]',
+//     icon: <MascotTriangle className="w-12 h-12" />,
+//     description: 'การใช้ภาษาไทยเพื่อการสื่อสาร การเขียน และการพูดในที่สาธารณะ',
+//     feed: [
+//       { id: 301, text: 'ให้นักเรียนจับคู่ฝึกแต่งกลอนสุภาพ ส่งในคาบเรียน', date: '2 วันที่แล้ว', file: null }
+//     ]
+//   },
+//   {
+//     id: 4,
+//     name: 'ศิลปะและการออกแบบ',
+//     code: 'ART303',
+//     teacher: 'ครูศิลป์',
+//     color: 'bg-[#FFE787]',
+//     icon: <MascotStar className="w-12 h-12" />,
+//     description: 'ฝึกวาดภาพระบายสี องค์ประกอบศิลป์ และประวัติศาสตร์ศิลปะ',
+//     feed: [
+//       { id: 401, text: 'อย่าลืมเตรียมสีน้ำและพู่กันมาในคาบหน้านะครับ', date: '10 ม.ค.', file: null },
+//       { id: 402, text: 'ตัวอย่างผลงานศิลปะ Impressionism สำหรับเป็นแรงบันดาลใจ', date: 'วันนี้', file: 'Art_Examples.jpg' }
+//     ]
+//   },
+// ];
+
+
+/**
+ * Helper to map iconType string back to Component
+ */
+const getCourseIcon = (type) => {
+  switch (type) {
+    case 'square': return <MascotSquare className="w-12 h-12" />;
+    case 'circle': return <MascotCircle className="w-12 h-12" />;
+    case 'triangle': return <MascotTriangle className="w-12 h-12" />;
+    case 'star': return <MascotStar className="w-12 h-12" />; // Default
+    default: return <MascotStar className="w-12 h-12" />;
+  }
+};
 
 const ASSIGNMENTS = [
   { id: 1, title: 'แบบฝึกหัดบทที่ 1', course: 'คณิตศาสตร์พื้นฐาน', dueDate: 'พรุ่งนี้, 16:00', status: 'pending', },
@@ -361,9 +378,34 @@ export default function SchoolyScootLMS() {
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
 
-  // Course & Quiz State
+  const [courses, setCourses] = useState([]); // Empty initially
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseTab, setCourseTab] = useState('home');
+  const [newCourseData, setNewCourseData] = useState({ name: '', code: '', color: 'bg-[#96C68E]' }); // State for creating course
+
+  // Fetch Courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const fetchedCourses = await getAllCourses();
+        if (fetchedCourses.length > 0) {
+          // Map icon string back to component
+          const coursesWithIcons = fetchedCourses.map(c => ({
+            ...c,
+            icon: getCourseIcon(c.iconType)
+          }));
+          setCourses(coursesWithIcons);
+        } else {
+          // If completely empty, maybe we want to use MOCK_COURSES or stay empty?
+          // specific logic: if empty, let's keep it empty so user can see "no courses" or "seed"
+          setCourses([]);
+        }
+      } catch (err) {
+        console.error("Failed to load courses", err);
+      }
+    };
+    fetchCourses();
+  }, []);
 
 
   // --- UPDATED QUIZ STATE & LOGIC ---
@@ -387,7 +429,7 @@ export default function SchoolyScootLMS() {
   // Create Exam State
   const [newExam, setNewExam] = useState({
     title: '',
-    course: COURSES[0].name,
+    course: courses.length > 0 ? courses[0].name : '', // Safe access
     time: '30 นาที',
     items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
   });
@@ -528,7 +570,7 @@ export default function SchoolyScootLMS() {
     // Reset form
     setNewExam({
       title: '',
-      course: COURSES[0].name,
+      course: courses.length > 0 ? courses[0].name : '',
       time: '30 นาที',
       items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
     });
@@ -559,6 +601,53 @@ export default function SchoolyScootLMS() {
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#96C68E]"></div>
     </div>;
   }
+
+  const handleDeleteCourse = async (courseToDelete) => {
+    if (!confirm(`คุณต้องการลบวิชา "${courseToDelete.name}" ใช่หรือไม่?`)) return;
+
+    try {
+      await deleteCourse(courseToDelete.firestoreId);
+      setCourses(prev => prev.filter(c => c.firestoreId !== courseToDelete.firestoreId));
+      alert('ลบรายวิชาเรียบร้อยแล้ว');
+      if (selectedCourse?.firestoreId === courseToDelete.firestoreId) {
+        setSelectedCourse(null);
+      }
+    } catch (error) {
+      console.error("Failed to delete course", error);
+      alert('เกิดข้อผิดพลาดในการลบรายวิชา');
+    }
+  };
+
+  const handleCreateCourse = async (e) => {
+    e.preventDefault();
+    if (!newCourseData.name || !newCourseData.code) {
+      alert('กรุณากรอกชื่อวิชาและรหัสวิชา');
+      return;
+    }
+
+    try {
+      const createdCourse = await createCourse({
+        name: newCourseData.name,
+        code: newCourseData.code,
+        color: newCourseData.color,
+        teacher: profile.firstName ? `ครู${profile.firstName}` : 'คุณครู' // Use logged in user's name as teacher
+      });
+
+      // Add icon component for display
+      const courseWithIcon = {
+        ...createdCourse,
+        icon: getCourseIcon(createdCourse.iconType)
+      };
+
+      setCourses(prev => [...prev, courseWithIcon]);
+      setActiveModal(null);
+      setNewCourseData({ name: '', code: '', color: 'bg-[#96C68E]' }); // Reset form
+      alert('สร้างห้องเรียนสำเร็จ!');
+    } catch (error) {
+      console.error("Failed to create course", error);
+      alert('เกิดข้อผิดพลาดในการสร้างห้องเรียน');
+    }
+  };
 
   const renderModal = () => {
     if (!activeModal) return null;
@@ -607,7 +696,9 @@ export default function SchoolyScootLMS() {
                       value={newExam.course}
                       onChange={(e) => setNewExam({ ...newExam, course: e.target.value })}
                     >
-                      {COURSES.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+
+
+                      {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -734,9 +825,9 @@ export default function SchoolyScootLMS() {
                     <button
                       onClick={submitQuiz}
                       disabled={Object.keys(quizAnswers).length < activeQuiz.items.length}
-                      className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${Object.keys(quizAnswers).length < activeQuiz.items.length
-                        ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                        : 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-md hover:translate-y-[-2px]'
+                      className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${Object.keys(quizAnswers).length === activeQuiz.items.length
+                        ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-md hover:translate-y-[-2px]'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                         }`}
                     >
                       ส่งข้อสอบ
@@ -769,24 +860,40 @@ export default function SchoolyScootLMS() {
           {activeModal === 'create' && (
             <div className="p-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-4">สร้างห้องเรียนใหม่</h2>
-              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); closeModal(); }}>
+              <form className="space-y-4" onSubmit={handleCreateCourse}>
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label>
-                  <input type="text" className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50" placeholder="เช่น วิทยาศาสตร์ ม.1" />
+                  <input
+                    type="text"
+                    className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
+                    placeholder="เช่น วิทยาศาสตร์ ม.1"
+                    value={newCourseData.name}
+                    onChange={(e) => setNewCourseData({ ...newCourseData, name: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-1">รหัสวิชา</label>
-                  <input type="text" className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50" placeholder="SCI-101" />
+                  <input
+                    type="text"
+                    className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
+                    placeholder="SCI-101"
+                    value={newCourseData.code}
+                    onChange={(e) => setNewCourseData({ ...newCourseData, code: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-1">เลือกสีธีม</label>
                   <div className="flex space-x-2">
                     {['bg-[#96C68E]', 'bg-[#FF917B]', 'bg-[#BEE1FF]', 'bg-[#FFE787]'].map(c => (
-                      <div key={c} className={`w-8 h-8 rounded-full ${c} cursor-pointer ring-2 ring-offset-2 ring-transparent hover:ring-slate-300`}></div>
+                      <div
+                        key={c}
+                        onClick={() => setNewCourseData({ ...newCourseData, color: c })}
+                        className={`w-8 h-8 rounded-full ${c} cursor-pointer ring-offset-2 transition-all ${newCourseData.color === c ? 'ring-2 ring-slate-400 scale-110' : 'ring-0 hover:ring-2 hover:ring-slate-200'}`}
+                      ></div>
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold text-lg mt-4 hover:bg-[#85b57d]">สร้างห้องเรียน</button>
+                <button type="submit" className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold text-lg mt-4 hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">สร้างห้องเรียน</button>
               </form>
             </div>
           )}
@@ -1300,10 +1407,35 @@ export default function SchoolyScootLMS() {
           </button>
         )}
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {COURSES.map(course => (
-          <CourseCard key={course.id} course={course} onClick={() => { setSelectedCourse(course); setCourseTab('home'); }} />
+        {courses.map(course => (
+          <CourseCard
+            key={course.id}
+            course={course}
+            onClick={() => setSelectedCourse(course)}
+            isTeacher={userRole === 'teacher'}
+            onDelete={handleDeleteCourse}
+          />
         ))}
+
+        {courses.length === 0 && (
+          <div className="col-span-full text-center py-20 text-slate-400">
+            <p className="mb-4">ยังไม่มีรายวิชาในระบบ</p>
+            <button
+              onClick={async () => {
+                if (confirm('ต้องการสร้างข้อมูลจำลองลงในฐานข้อมูลหรือไม่?')) {
+                  await seedCourses(MOCK_COURSES);
+                  alert('สร้างข้อมูลเรียบร้อย กรุณารีเฟรชหน้าเว็บ');
+                  window.location.reload();
+                }
+              }}
+              className="text-[#96C68E] border border-[#96C68E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#F0FDF4]"
+            >
+              + สร้างข้อมูลจำลอง (Seed Data)
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1786,6 +1918,38 @@ export default function SchoolyScootLMS() {
               <p className="text-slate-400">คุณครูยังไม่ได้กรอกคะแนนสำหรับวิชานี้</p>
             </div>
           );
+        case 'settings':
+          return (
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-4">ตั้งค่ารายวิชา</h3>
+
+              <div className="bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
+                <h4 className="font-bold text-lg text-slate-700">ข้อมูลทั่วไป</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label>
+                    <input type="text" defaultValue={selectedCourse.name} className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50" disabled />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">รหัสวิชา</label>
+                    <input type="text" defaultValue={selectedCourse.code} className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50" disabled />
+                  </div>
+                </div>
+                <p className="text-sm text-slate-400">* ขณะนี้ยังไม่เปิดให้แก้ไขรายละเอียดวิชา</p>
+              </div>
+
+              <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4">
+                <h4 className="font-bold text-lg text-red-600">โซนอันตราย</h4>
+                <p className="text-sm text-red-400">การลบรายวิชาจะไม่สามารถกู้คืนได้ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ</p>
+                <button
+                  onClick={() => handleDeleteCourse(selectedCourse)}
+                  className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 flex items-center shadow-lg hover:shadow-xl transition-all"
+                >
+                  <Trash className="mr-2" size={20} /> ลบรายวิชานี้
+                </button>
+              </div>
+            </div>
+          );
         default: // 'home' (Feed)
           return (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -1899,24 +2063,22 @@ export default function SchoolyScootLMS() {
         </div>
 
         {/* Tabs Navigation */}
-        <div className="border-b border-slate-200 flex space-x-6 overflow-x-auto">
-          {[
-            { id: 'home', label: 'หน้าหลัก' },
-            { id: 'work', label: 'งานในชั้นเรียน' },
-            { id: 'people', label: 'สมาชิก' },
-            { id: 'grades', label: 'คะแนน' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setCourseTab(tab.id)}
-              className={`pb-3 font-bold text-sm whitespace-nowrap transition-colors ${courseTab === tab.id
-                ? 'text-[#FF917B] border-b-2 border-[#FF917B]'
-                : 'text-slate-400 hover:text-slate-600'
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex space-x-1 overflow-x-auto pb-2 custom-scrollbar">
+          {['หน้าหลัก', 'งานในชั้นเรียน', 'สมาชิก', 'คะแนน', ...(userRole === 'teacher' ? ['ตั้งค่า'] : [])].map((tab) => {
+            const tabKey = tab === 'หน้าหลัก' ? 'home' : tab === 'งานในชั้นเรียน' ? 'work' : tab === 'สมาชิก' ? 'people' : tab === 'คะแนน' ? 'grades' : 'settings';
+            return (
+              <button
+                key={tab}
+                onClick={() => setCourseTab(tabKey)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${courseTab === tabKey
+                  ? 'bg-slate-800 text-white shadow-md'
+                  : 'bg-transparent text-slate-500 hover:bg-slate-100'
+                  }`}
+              >
+                {tab}
+              </button>
+            )
+          })}
         </div>
 
         {/* Render Tab Content */}

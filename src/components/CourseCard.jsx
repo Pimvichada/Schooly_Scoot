@@ -1,9 +1,8 @@
-import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
 export default function CourseCard({ course, onClick }) {
   return (
-    <div 
+    <div
       onClick={onClick}
       className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-lg hover:border-[#BEE1FF] transition-all cursor-pointer group"
     >
