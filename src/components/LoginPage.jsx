@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { User, Lock, ArrowRight, GraduationCap } from 'lucide-react';
 import { MascotStar } from './Mascots';
 
-export default function LoginPage({ onLogin }) {
+// 1. เพิ่ม onNavigateToRegister เข้าไปใน Props
+// ต้องใส่ { } ครอบตัวแปรแบบนี้เป๊ะๆ นะครับ
+export default function LoginPage({ onLogin, onNavigateToRegister }) {
   const [selectedRole, setSelectedRole] = useState('student');
 
   return (
@@ -27,12 +29,14 @@ export default function LoginPage({ onLogin }) {
             className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-out ${selectedRole === 'teacher' ? 'translate-x-full left-1.5' : 'left-1.5'}`}
           ></div>
           <button 
+            type="button"
             onClick={() => setSelectedRole('student')}
             className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm relative z-10 transition-colors duration-300 ${selectedRole === 'student' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <User size={18} className="mr-2"/> นักเรียน
           </button>
           <button 
+            type="button"
             onClick={() => setSelectedRole('teacher')}
             className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm relative z-10 transition-colors duration-300 ${selectedRole === 'teacher' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
           >
@@ -47,7 +51,7 @@ export default function LoginPage({ onLogin }) {
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={20}/>
               <input 
                 type="text" 
-                key={selectedRole} // Force re-render on role change
+                key={selectedRole} 
                 defaultValue={selectedRole === 'student' ? "student@schoolyscoot.ac.th" : "teacher@schoolyscoot.ac.th"}
                 className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:bg-white focus:border-[#96C68E] focus:ring-4 focus:ring-[#96C68E]/10 transition-all outline-none text-slate-700 font-medium placeholder:text-slate-300"
                 placeholder="กรอกชื่อผู้ใช้..."
@@ -77,7 +81,15 @@ export default function LoginPage({ onLogin }) {
 
         <div className="mt-8 text-center">
           <p className="text-sm text-slate-500">
-            ยังไม่มีบัญชี? <a href="#" className={`font-bold hover:underline transition-colors ${selectedRole === 'student' ? 'text-[#96C68E]' : 'text-[#FF917B]'}`}>ลงทะเบียนเรียน</a>
+            ยังไม่มีบัญชี? 
+            {/* 2. เปลี่ยน <a> เป็น <button> และเรียกใช้ onNavigateToRegister */}
+            <button 
+              type="button"
+              onClick={onNavigateToRegister}
+              className={`ml-1 font-bold hover:underline transition-colors ${selectedRole === 'student' ? 'text-[#96C68E]' : 'text-[#FF917B]'}`}
+            >
+              ลงทะเบียนเรียน
+            </button>
           </p>
         </div>
       </div>
