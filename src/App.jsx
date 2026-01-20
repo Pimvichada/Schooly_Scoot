@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, logoutUser } from './services/authService';
-import { getAllCourses, seedCourses, createCourse, deleteCourse } from './services/courseService';
+import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse } from './services/courseService';
 import {
   BookOpen,
   Calendar,
@@ -381,13 +381,22 @@ export default function SchoolyScootLMS() {
   const [courses, setCourses] = useState([]); // Empty initially
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseTab, setCourseTab] = useState('home');
-  const [newCourseData, setNewCourseData] = useState({ name: '', code: '', color: 'bg-[#96C68E]' }); // State for creating course
+  // State for creating course
+  const [newCourseData, setNewCourseData] = useState({
+    name: '', code: '', color: 'bg-[#96C68E]', description: '',
+    scheduleItems: [] // { dayOfWeek: 1, startTime: '08:30', endTime: '10:30', room: '421' }
+  });
+  const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
+  const [joinCode, setJoinCode] = useState(''); // State for student joining
 
+  // Fetch Courses
   // Fetch Courses
   useEffect(() => {
     const fetchCourses = async () => {
+      if (!isLoggedIn || !auth.currentUser) return;
+
       try {
-        const fetchedCourses = await getAllCourses();
+        const fetchedCourses = await getCoursesForUser(userRole, auth.currentUser.uid);
         if (fetchedCourses.length > 0) {
           // Map icon string back to component
           const coursesWithIcons = fetchedCourses.map(c => ({
@@ -396,8 +405,6 @@ export default function SchoolyScootLMS() {
           }));
           setCourses(coursesWithIcons);
         } else {
-          // If completely empty, maybe we want to use MOCK_COURSES or stay empty?
-          // specific logic: if empty, let's keep it empty so user can see "no courses" or "seed"
           setCourses([]);
         }
       } catch (err) {
@@ -405,7 +412,7 @@ export default function SchoolyScootLMS() {
       }
     };
     fetchCourses();
-  }, []);
+  }, [isLoggedIn, userRole]); // Re-fetch when login state or role changes
 
 
   // --- UPDATED QUIZ STATE & LOGIC ---
@@ -593,8 +600,45 @@ export default function SchoolyScootLMS() {
     setUploadFile([]);
     setActiveModal(null);
     setSelectedAssignment(null);
+    setActiveModal(null);
+    setSelectedAssignment(null);
   };
 
+  // Sync editingCourse state when entering settings or changing course
+  useEffect(() => {
+    if (selectedCourse && courseTab === 'settings') {
+      setEditingCourse({
+        ...selectedCourse,
+        scheduleItems: selectedCourse.schedule || []
+      });
+    }
+  }, [selectedCourse, courseTab]);
+
+  const handleUpdateCourse = async () => {
+    if (!editingCourse) return;
+    try {
+      await updateCourse(editingCourse.firestoreId, {
+        name: editingCourse.name,
+        code: editingCourse.code,
+        description: editingCourse.description,
+        schedule: editingCourse.scheduleItems
+      });
+
+      // Update local state
+      const updatedCourses = courses.map(c =>
+        c.firestoreId === editingCourse.firestoreId
+          ? { ...c, ...editingCourse, schedule: editingCourse.scheduleItems }
+          : c
+      );
+      setCourses(updatedCourses);
+      setSelectedCourse({ ...selectedCourse, ...editingCourse, schedule: editingCourse.scheduleItems });
+
+      alert('บันทึกการเปลี่ยนแปลงเรียบร้อย');
+    } catch (error) {
+      console.error("Failed to update course", error);
+      alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    }
+  };
 
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-100">
@@ -626,14 +670,18 @@ export default function SchoolyScootLMS() {
     }
 
     try {
+      if (!auth.currentUser) return;
+
       const createdCourse = await createCourse({
         name: newCourseData.name,
         code: newCourseData.code,
         color: newCourseData.color,
-        teacher: profile.firstName ? `ครู${profile.firstName}` : 'คุณครู' // Use logged in user's name as teacher
+        description: newCourseData.description,
+        schedule: newCourseData.scheduleItems,
+        teacher: profile.firstName ? `ครู${profile.firstName}` : 'คุณครู',
+        ownerId: auth.currentUser.uid
       });
 
-      // Add icon component for display
       const courseWithIcon = {
         ...createdCourse,
         icon: getCourseIcon(createdCourse.iconType)
@@ -641,11 +689,36 @@ export default function SchoolyScootLMS() {
 
       setCourses(prev => [...prev, courseWithIcon]);
       setActiveModal(null);
-      setNewCourseData({ name: '', code: '', color: 'bg-[#96C68E]' }); // Reset form
+      setNewCourseData({
+        name: '', code: '', color: 'bg-[#96C68E]', description: '',
+        scheduleItems: []
+      });
       alert('สร้างห้องเรียนสำเร็จ!');
     } catch (error) {
       console.error("Failed to create course", error);
       alert('เกิดข้อผิดพลาดในการสร้างห้องเรียน');
+    }
+  };
+
+  const handleJoinCourse = async (e) => {
+    e.preventDefault();
+    if (!joinCode) return;
+
+    try {
+      if (!auth.currentUser) return;
+      const joinedCourse = await joinCourse(joinCode, auth.currentUser.uid);
+      // Add icon component for display
+      const courseWithIcon = {
+        ...joinedCourse,
+        icon: getCourseIcon(joinedCourse.iconType)
+      };
+      setCourses(prev => [...prev, courseWithIcon]);
+      setActiveModal(null);
+      setJoinCode('');
+      alert('เข้าร่วมห้องเรียนสำเร็จ!');
+    } catch (error) {
+      console.error("Failed to join course", error);
+      alert(error.message || 'รหัสเข้าห้องเรียนไม่ถูกต้อง');
     }
   };
 
@@ -665,7 +738,7 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-        <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'takeQuiz', 'createExam'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
+        <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'takeQuiz', 'createExam', 'create'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
           <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
             <X size={20} className="text-slate-600" />
           </button>
@@ -857,55 +930,150 @@ export default function SchoolyScootLMS() {
           )}
 
           {/* CREATE CLASS MODAL */}
+          {/* CREATE CLASS MODAL */}
           {activeModal === 'create' && (
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-4">สร้างห้องเรียนใหม่</h2>
-              <form className="space-y-4" onSubmit={handleCreateCourse}>
+            <div className="p-8">
+              <h2 className="text-3xl font-bold text-slate-800 mb-6 text-center">สร้างห้องเรียนใหม่</h2>
+              <form className="space-y-6" onSubmit={handleCreateCourse}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">ชื่อวิชา</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors text-lg"
+                      placeholder="เช่น วิทยาศาสตร์ ม.1"
+                      value={newCourseData.name}
+                      onChange={(e) => setNewCourseData({ ...newCourseData, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">รหัสวิชา/CLASS ID</label>
+                    <input
+                      type="text"
+                      className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors text-lg"
+                      placeholder="SCI-101"
+                      value={newCourseData.code}
+                      onChange={(e) => setNewCourseData({ ...newCourseData, code: e.target.value })}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label>
-                  <input
-                    type="text"
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
-                    placeholder="เช่น วิทยาศาสตร์ ม.1"
-                    value={newCourseData.name}
-                    onChange={(e) => setNewCourseData({ ...newCourseData, name: e.target.value })}
+                  <label className="block text-sm font-bold text-slate-600 mb-2">คำอธิบายรายวิชา/Description</label>
+                  <textarea
+                    className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors h-32"
+                    placeholder="รายละเอียดวิชา..."
+                    value={newCourseData.description}
+                    onChange={(e) => setNewCourseData({ ...newCourseData, description: e.target.value })}
                   />
                 </div>
+
+                {/* Schedule Builder */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-1">รหัสวิชา</label>
-                  <input
-                    type="text"
-                    className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
-                    placeholder="SCI-101"
-                    value={newCourseData.code}
-                    onChange={(e) => setNewCourseData({ ...newCourseData, code: e.target.value })}
-                  />
+                  <label className="block text-sm font-bold text-slate-600 mb-2">ตารางเรียน</label>
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                    <div className="flex flex-wrap gap-4 items-end">
+                      <div className="flex-1 min-w-[120px]">
+                        <label className="text-xs font-bold text-slate-400 mb-1 block">วัน</label>
+                        <select id="daySelect" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]">
+                          <option value="1">จันทร์</option>
+                          <option value="2">อังคาร</option>
+                          <option value="3">พุธ</option>
+                          <option value="4">พฤหัส</option>
+                          <option value="5">ศุกร์</option>
+                        </select>
+                      </div>
+                      <div className="flex-1 min-w-[120px]">
+                        <label className="text-xs font-bold text-slate-400 mb-1 block">เวลาเริ่ม</label>
+                        <input id="startTime" type="time" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]" />
+                      </div>
+                      <div className="flex-none self-center pb-3 text-slate-400">-</div>
+                      <div className="flex-1 min-w-[120px]">
+                        <label className="text-xs font-bold text-slate-400 mb-1 block">เวลาสิ้นสุด</label>
+                        <input id="endTime" type="time" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]" />
+                      </div>
+                      <div className="flex-1 min-w-[100px]">
+                        <label className="text-xs font-bold text-slate-400 mb-1 block">ห้องเรียน</label>
+                        <input id="room" type="text" placeholder="ระบุห้อง" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]" />
+                      </div>
+                      <button type="button" onClick={() => {
+                        const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์' };
+                        const day = document.getElementById('daySelect').value;
+                        const start = document.getElementById('startTime').value;
+                        const end = document.getElementById('endTime').value;
+                        const room = document.getElementById('room').value;
+                        if (start && end) {
+                          setNewCourseData({
+                            ...newCourseData,
+                            scheduleItems: [...newCourseData.scheduleItems, {
+                              dayOfWeek: parseInt(day),
+                              startTime: start,
+                              endTime: end,
+                              room: room,
+                              dayLabel: dayMap[day]
+                            }]
+                          });
+                        }
+                      }} className="bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center min-w-[50px]">
+                        <Plus size={20} />
+                      </button>
+                    </div>
+
+                    {newCourseData.scheduleItems.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                        {newCourseData.scheduleItems.map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-[#E0F2FE] text-[#0284C7] font-bold px-3 py-1 rounded-lg text-sm">{item.dayLabel}</div>
+                              <div className="text-sm text-slate-700 font-medium">{item.startTime} - {item.endTime}</div>
+                              <div className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">ห้อง {item.room}</div>
+                            </div>
+                            <button type="button" onClick={() => {
+                              const newItems = newCourseData.scheduleItems.filter((_, i) => i !== idx);
+                              setNewCourseData({ ...newCourseData, scheduleItems: newItems });
+                            }} className="text-slate-400 hover:text-red-500 p-1"><X size={18} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-bold text-slate-600 mb-1">เลือกสีธีม</label>
-                  <div className="flex space-x-2">
+                  <label className="block text-sm font-bold text-slate-600 mb-2">เลือกสีธีม</label>
+                  <div className="flex space-x-4">
                     {['bg-[#96C68E]', 'bg-[#FF917B]', 'bg-[#BEE1FF]', 'bg-[#FFE787]'].map(c => (
                       <div
                         key={c}
                         onClick={() => setNewCourseData({ ...newCourseData, color: c })}
-                        className={`w-8 h-8 rounded-full ${c} cursor-pointer ring-offset-2 transition-all ${newCourseData.color === c ? 'ring-2 ring-slate-400 scale-110' : 'ring-0 hover:ring-2 hover:ring-slate-200'}`}
+                        className={`w-12 h-12 rounded-full ${c} cursor-pointer ring-offset-2 transition-all shadow-sm ${newCourseData.color === c ? 'ring-2 ring-slate-400 scale-110 shadow-md' : 'ring-0 hover:ring-2 hover:ring-slate-200'}`}
                       ></div>
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold text-lg mt-4 hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">สร้างห้องเรียน</button>
+                <button type="submit" className="w-full py-4 bg-[#96C68E] text-white rounded-xl font-bold text-xl mt-6 hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">สร้างห้องเรียน</button>
               </form>
             </div>
           )}
 
           {/* JOIN CLASS MODAL */}
+          {/* JOIN CLASS MODAL */}
           {activeModal === 'join' && (
             <div className="p-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-4">เข้าร่วมห้องเรียน</h2>
-              <p className="text-slate-500 mb-4">กรอกรหัสห้องเรียนที่ได้รับจากครูผู้สอน</p>
-              <form onSubmit={(e) => { e.preventDefault(); closeModal(); }}>
-                <input type="text" className="w-full p-4 rounded-xl border-2 border-[#BEE1FF] bg-slate-50 text-center text-2xl font-mono tracking-widest mb-6" placeholder="X7K-9P2" />
-                <button type="submit" className="w-full py-3 bg-[#BEE1FF] text-slate-800 rounded-xl font-bold text-lg hover:bg-[#aed8ff]">เข้าร่วม</button>
+              <form className="space-y-4" onSubmit={handleJoinCourse}>
+                <div>
+                  <label className="block text-sm font-bold text-slate-600 mb-1">รหัสเข้าห้องเรียน (Invite Code)</label>
+                  <input
+                    type="text"
+                    className="w-full p-4 text-center text-2xl tracking-widest uppercase rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors font-mono"
+                    placeholder="ABC-123"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  />
+                  <p className="text-xs text-slate-400 mt-2 text-center">ขอรหัส 6 หลักจากคุณครูผู้สอนเพื่อเข้าร่วม</p>
+                </div>
+                <button type="submit" className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold text-lg mt-4 hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">เข้าร่วม</button>
               </form>
             </div>
           )}
@@ -1610,22 +1778,32 @@ export default function SchoolyScootLMS() {
             <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight size={20} /></button>
           </div>
         </div>
-        {/* Simple Mock Weekly View */}
+        {/* Dynamic Weekly View */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => (
-            <div key={day} className="space-y-3">
-              <div className="text-center font-bold text-slate-500 mb-2">{day}</div>
-              {[1, 2, 3].map((slot) => (
-                <div key={slot} className={`p-3 rounded-xl text-sm ${(i + slot) % 3 === 0 ? 'bg-[#F0FDF4] border border-[#96C68E]' :
-                  (i + slot) % 4 === 0 ? 'bg-[#FFF7ED] border border-[#FF917B]' : 'bg-slate-50 border border-slate-100'
-                  }`}>
-                  <div className="font-bold text-slate-800">09:00 - 10:30</div>
-                  <div className="text-slate-600">{(i + slot) % 3 === 0 ? 'คณิตศาสตร์' : (i + slot) % 4 === 0 ? 'ภาษาไทย' : 'ว่าง'}</div>
-                  {(i + slot) % 3 === 0 && <div className="mt-2 text-xs text-[#96C68E] font-bold">● กำลังสอน</div>}
-                </div>
-              ))}
-            </div>
-          ))}
+          {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => {
+            const dayOfWeek = i + 1; // 1=Mon, 5=Fri
+            // Collect all schedule items for this day from all courses
+            const dailyItems = courses.flatMap(c =>
+              (c.schedule || []).filter(s => s.dayOfWeek === dayOfWeek).map(s => ({ ...s, courseName: c.name, color: c.color }))
+            ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+            return (
+              <div key={day} className="space-y-3">
+                <div className="text-center font-bold text-slate-500 mb-2">{day}</div>
+                {dailyItems.length > 0 ? dailyItems.map((slot, idx) => (
+                  <div key={idx} className={`p-3 rounded-xl text-sm border mb-2 ${slot.color ? slot.color + ' bg-opacity-20 border-opacity-50' : 'bg-slate-50 border-slate-100'}`}>
+                    <div className="font-bold text-slate-800">{slot.startTime} - {slot.endTime}</div>
+                    <div className="text-slate-700 font-bold line-clamp-1">{slot.courseName}</div>
+                    <div className="text-xs text-slate-500 mt-1">ห้อง {slot.room}</div>
+                  </div>
+                )) : (
+                  <div className="p-4 rounded-xl border-2 border-dashed border-slate-100 text-center text-slate-300 text-sm">
+                    ว่าง
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -1925,17 +2103,99 @@ export default function SchoolyScootLMS() {
 
               <div className="bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
                 <h4 className="font-bold text-lg text-slate-700">ข้อมูลทั่วไป</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label>
-                    <input type="text" defaultValue={selectedCourse.name} className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50" disabled />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">รหัสวิชา</label>
-                    <input type="text" defaultValue={selectedCourse.code} className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50" disabled />
-                  </div>
-                </div>
-                <p className="text-sm text-slate-400">* ขณะนี้ยังไม่เปิดให้แก้ไขรายละเอียดวิชา</p>
+                {editingCourse && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label>
+                        <input
+                          type="text"
+                          value={editingCourse.name}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                          className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1">รหัสวิชา</label>
+                        <input
+                          type="text"
+                          value={editingCourse.code}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
+                          className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-600 mb-1">คำอธิบายรายวิชา</label>
+                      <textarea
+                        value={editingCourse.description || ''}
+                        onChange={(e) => setEditingCourse({ ...editingCourse, description: e.target.value })}
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none h-24"
+                        placeholder="ใส่รายละเอียดวิชา..."
+                      />
+                    </div>
+
+                    {/* Schedule Editor */}
+                    <div>
+                      <label className="block text-sm font-bold text-slate-600 mb-1">จัดการตารางเรียน</label>
+                      <div className="bg-slate-50 p-4 rounded-xl space-y-3">
+                        <div className="flex flex-wrap gap-2 items-center">
+                          <select id="editDaySelect" className="p-2 rounded-lg border border-slate-200 text-sm">
+                            <option value="1">จันทร์</option>
+                            <option value="2">อังคาร</option>
+                            <option value="3">พุธ</option>
+                            <option value="4">พฤหัส</option>
+                            <option value="5">ศุกร์</option>
+                          </select>
+                          <input id="editStartTime" type="time" className="p-2 rounded-lg border border-slate-200 text-sm" />
+                          <span className="self-center">-</span>
+                          <input id="editEndTime" type="time" className="p-2 rounded-lg border border-slate-200 text-sm" />
+                          <input id="editRoom" type="text" placeholder="ห้อง" className="p-2 rounded-lg border border-slate-200 text-sm w-20" />
+                          <button onClick={() => {
+                            const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์' };
+                            const day = document.getElementById('editDaySelect').value;
+                            const start = document.getElementById('editStartTime').value;
+                            const end = document.getElementById('editEndTime').value;
+                            const room = document.getElementById('editRoom').value;
+                            if (start && end) {
+                              setEditingCourse({
+                                ...editingCourse,
+                                scheduleItems: [...(editingCourse.scheduleItems || []), {
+                                  dayOfWeek: parseInt(day),
+                                  startTime: start,
+                                  endTime: end,
+                                  room: room,
+                                  dayLabel: dayMap[day]
+                                }]
+                              });
+                            }
+                          }} className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"><Plus size={16} /></button>
+                        </div>
+
+                        <div className="space-y-2 mt-2">
+                          {(editingCourse.scheduleItems || []).map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 text-sm">
+                              <span>{item.dayLabel || ['', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'][item.dayOfWeek]} {item.startTime}-{item.endTime} ({item.room})</span>
+                              <button onClick={() => {
+                                const newItems = editingCourse.scheduleItems.filter((_, i) => i !== idx);
+                                setEditingCourse({ ...editingCourse, scheduleItems: newItems });
+                              }} className="text-red-400 hover:text-red-600"><X size={14} /></button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <button
+                        onClick={handleUpdateCourse}
+                        className="bg-[#96C68E] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#85b57d] shadow-sm flex items-center"
+                      >
+                        <Save className="mr-2" size={20} /> บันทึกการเปลี่ยนแปลง
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4">
