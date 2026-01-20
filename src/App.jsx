@@ -975,8 +975,17 @@ export default function SchoolyScootLMS() {
 
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-2">เลือกสีธีม</label>
-                  <div className="flex space-x-4">
-                    {['bg-[#96C68E]', 'bg-[#FF917B]', 'bg-[#BEE1FF]', 'bg-[#FFE787]'].map(c => (
+                  <div className="flex flex-wrap gap-4">
+                    {[
+                      'bg-[#96C68E]', // Green (Original)
+                      'bg-[#FF917B]', // Salmon (Original)
+                      'bg-[#BEE1FF]', // Blue (Original)
+                      'bg-[#FFE787]', // Yellow (Original)
+                      'bg-[#E0BBE4]', // Pastel Purple
+                      'bg-[#FFC6FF]', // Pastel Pink
+                      'bg-[#B5EAD7]', // Pastel Mint
+                      'bg-[#FFDAC1]'  // Pastel Peach
+                    ].map(c => (
                       <div
                         key={c}
                         onClick={() => setNewCourseData({ ...newCourseData, color: c })}
