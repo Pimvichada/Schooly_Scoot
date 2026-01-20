@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { User, Lock, ArrowRight, GraduationCap } from 'lucide-react';
+// 1. เพิ่ม Eye และ EyeOff
+import { User, Lock, ArrowRight, GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { MascotStar } from './Mascots';
 
-// 1. เพิ่ม onNavigateToRegister เข้าไปใน Props
-// ต้องใส่ { } ครอบตัวแปรแบบนี้เป๊ะๆ นะครับ
 export default function LoginPage({ onLogin, onNavigateToRegister }) {
   const [selectedRole, setSelectedRole] = useState('student');
+  // 2. เพิ่ม State สำหรับเปิด-ปิดรหัสผ่าน
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#eef2f6] to-[#e6e9f0] flex items-center justify-center p-4 relative overflow-hidden">
@@ -24,6 +25,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
           <p className="text-slate-500 mt-3 font-medium">ระบบจัดการการเรียนรู้สำหรับคนรุ่นใหม่</p>
         </div>
 
+        {/* ส่วนเลือก Role */}
         <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8 relative">
           <div 
             className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-out ${selectedRole === 'teacher' ? 'translate-x-full left-1.5' : 'left-1.5'}`}
@@ -58,16 +60,26 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
               />
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">รหัสผ่าน</label>
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={20}/>
               <input 
-                type="password" 
+                // 3. เปลี่ยน type ตาม State
+                type={showPassword ? "text" : "password"} 
                 defaultValue="password123"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:bg-white focus:border-[#96C68E] focus:ring-4 focus:ring-[#96C68E]/10 transition-all outline-none text-slate-700 font-medium placeholder:text-slate-300"
+                className="w-full pl-12 pr-12 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:bg-white focus:border-[#96C68E] focus:ring-4 focus:ring-[#96C68E]/10 transition-all outline-none text-slate-700 font-medium placeholder:text-slate-300"
                 placeholder="กรอกรหัสผ่าน..."
               />
+              {/* 4. เพิ่มปุ่มดวงตา */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
           </div>
           
@@ -82,7 +94,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
         <div className="mt-8 text-center">
           <p className="text-sm text-slate-500">
             ยังไม่มีบัญชี? 
-            {/* 2. เปลี่ยน <a> เป็น <button> และเรียกใช้ onNavigateToRegister */}
             <button 
               type="button"
               onClick={onNavigateToRegister}

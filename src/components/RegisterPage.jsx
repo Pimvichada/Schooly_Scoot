@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { User, Lock, Mail, ArrowRight, GraduationCap, FileText } from 'lucide-react';
+// เพิ่ม Eye และ EyeOff เข้ามา
+import { User, Lock, Mail, ArrowRight, GraduationCap, FileText, Eye, EyeOff } from 'lucide-react';
 import { MascotStar } from './Mascots';
 
 export default function RegisterPage({ onRegister, onBackToLogin }) {
   const [selectedRole, setSelectedRole] = useState('student');
+  // 1. เพิ่ม State สำหรับการสลับการมองเห็นรหัสผ่าน
+  const [showPassword, setShowPassword] = useState(false);
+  
   const [formData, setFormData] = useState({
     userId: '',
     fullName: '',
@@ -24,6 +28,8 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#eef2f6] to-[#e6e9f0] flex items-center justify-center p-4 relative overflow-hidden">
       <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl w-full max-w-lg relative z-10 border border-white/60">
+        
+        {/* ส่วนหัวเหมือนเดิม... */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-tr from-[#96C68E] to-[#BEE1FF] rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg transform -rotate-3">
             <MascotStar className="w-12 h-12 text-white" />
@@ -31,6 +37,7 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
           <h1 className="text-3xl font-extrabold text-slate-800">สร้างบัญชีใหม่</h1>
         </div>
 
+        {/* ส่วนเลือก Role เหมือนเดิม... */}
         <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 relative">
           <button 
             type="button"
@@ -49,6 +56,7 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ช่องกรอกข้อมูลอื่นๆ... */}
           <div className="relative">
             <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input name="userId" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E]" placeholder="รหัสประจำตัว" />
@@ -61,9 +69,27 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input type="email" name="email" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E]" placeholder="อีเมล" />
           </div>
+
+          {/* 2. ช่องรหัสผ่านที่ปรับปรุงใหม่ */}
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input type="password" name="password" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E]" placeholder="รหัสผ่าน" />
+            <input 
+              // เปลี่ยน type ตามสถานะ showPassword
+              type={showPassword ? "text" : "password"} 
+              name="password" 
+              onChange={handleChange} 
+              required 
+              className="w-full pl-12 pr-12 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E]" 
+              placeholder="รหัสผ่าน" 
+            />
+            {/* ปุ่มดวงตา */}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
           
           <button 
