@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, logoutUser } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
+import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus } from './services/assignmentService';
+import { getNotifications, seedNotifications, markNotificationAsRead } from './services/notificationService';
+import { getChats, seedChats, sendMessage } from './services/chatService';
+import { getUsersByIds } from './services/authService';
 import {
   BookOpen,
   Calendar,
@@ -57,65 +61,29 @@ import SidebarItem from './components/SidebarItem';
 import NotificationItem from './components/NotificationItem';
 import RegisterPage from './components/RegisterPage';
 
-// --- MOCK DATA (Updated with Dynamic Feed) ---
+
+const WELCOME_MESSAGES = {
+  student: [
+    'วันนี้พร้อมเรียนรู้เรื่องใหม่ๆ หรือยัง? อย่าลืมทำการบ้านนะ!',
+    'พร้อมเปิดโลกการเรียนรู้ใบใหม่หรือยัง? วันนี้มีเรื่องสนุกๆ รออยู่เพียบ!',
+    'วันนี้วันดี! มาตั้งใจเรียนและเก็บเกี่ยวความรู้กลับไปให้เต็มกระเป๋ากันเถอะ',
+    'การบ้านเยอะไม่ใช่ปัญหา เพราะเธอเป็นคนเก่ง! สู้ๆ นะ เดี๋ยวก็เสร็จ',
+    'ยินดีต้อนรับสู่คาบเรียนหรรษา! เตรียมสมองให้โล่งแล้วมาลุยกันเลย',
+    'ทุกความพยายามคือความสำเร็จ! วันนี้มาทำให้เต็มที่ สนุกไปกับการเรียนรู้นะ'
+  ],
+  teacher: [
+    'เตรียมตัวให้พร้อมสำหรับการสอนวันนี้นะครับ นักเรียนกำลังรอความรู้จากคุณครูอยู่!',
+    'วันนี้อากาศดี เหมาะกับการสอนมากครับ อย่าลืมแวะตรวจการบ้านด้วยนะครับ',
+    'สวัสดีครับคุณครู! วันนี้ตารางแน่นหน่อย แต่รับรองว่าสนุกแน่นอนครับ',
+    'ยินดีต้อนรับกลับครับ วันนี้มีเรื่องราวใหม่ๆ รอไปเล่าให้นักเรียนฟังเพียบเลย',
+    'พร้อมลุยงานวันนี้หรือยังครับ? มีนักเรียนส่งงานมารอให้คุณครูตรวจเต็มเลย!'
+  ]
+};
 
 // --- MOCK DATA (Updated with Dynamic Feed) ---
 
-// const MOCK_COURSES = [
+// --- MOCK DATA (Updated with Dynamic Feed) ---
 
-//   {
-//     id: 1,
-//     name: 'คณิตศาสตร์พื้นฐาน',
-//     code: 'MATH101',
-//     teacher: 'ครูสมชาย',
-//     color: 'bg-[#96C68E]',
-//     icon: <MascotSquare className="w-12 h-12" />,
-//     description: 'เรียนรู้พื้นฐานคณิตศาสตร์ พีชคณิต เรขาคณิต และสถิติเบื้องต้น',
-//     feed: [
-//       { id: 101, text: 'ยินดีต้อนรับสู่เทอมการศึกษาใหม่ ขอให้นักเรียนทุกคนตั้งใจเรียนนะครับ', date: '8 ม.ค.', file: null },
-//       { id: 102, text: 'ไฟล์ประกอบการเรียนสัปดาห์ที่ 1 เรื่องจำนวนจริง', date: '9 ม.ค.', file: 'Math_Week1.pdf' },
-//       { id: 103, text: 'อย่าลืมทำการบ้านแบบฝึกหัดที่ 1.2 ส่งภายในวันศุกร์นี้นะครับ', date: 'เมื่อวาน', file: null }
-//     ]
-//   },
-//   {
-//     id: 2,
-//     name: 'วิทยาศาสตร์ทั่วไป',
-//     code: 'SCI102',
-//     teacher: 'ครูวิไล',
-//     color: 'bg-[#BEE1FF]',
-//     icon: <MascotCircle className="w-12 h-12" />,
-//     description: 'ศึกษาเกี่ยวกับสิ่งมีชีวิต ระบบนิเวศ และสารเคมีในชีวิตประจำวัน',
-//     feed: [
-//       { id: 201, text: 'แจ้งการสอบเก็บคะแนนย่อยครั้งที่ 1 ในสัปดาห์หน้า เตรียมตัวให้พร้อมนะคะ', date: 'เมื่อวาน', file: null },
-//       { id: 202, text: 'สรุปผลการทดลองเรื่องกรด-เบส นักเรียนสามารถโหลดไปอ่านทบทวนได้ค่ะ', date: 'วันนี้', file: 'Lab_Report_Template.docx' }
-//     ]
-//   },
-//   {
-//     id: 3,
-//     name: 'ภาษาไทยเพื่อการสื่อสาร',
-//     code: 'THAI201',
-//     teacher: 'ครูมานี',
-//     color: 'bg-[#FF917B]',
-//     icon: <MascotTriangle className="w-12 h-12" />,
-//     description: 'การใช้ภาษาไทยเพื่อการสื่อสาร การเขียน และการพูดในที่สาธารณะ',
-//     feed: [
-//       { id: 301, text: 'ให้นักเรียนจับคู่ฝึกแต่งกลอนสุภาพ ส่งในคาบเรียน', date: '2 วันที่แล้ว', file: null }
-//     ]
-//   },
-//   {
-//     id: 4,
-//     name: 'ศิลปะและการออกแบบ',
-//     code: 'ART303',
-//     teacher: 'ครูศิลป์',
-//     color: 'bg-[#FFE787]',
-//     icon: <MascotStar className="w-12 h-12" />,
-//     description: 'ฝึกวาดภาพระบายสี องค์ประกอบศิลป์ และประวัติศาสตร์ศิลปะ',
-//     feed: [
-//       { id: 401, text: 'อย่าลืมเตรียมสีน้ำและพู่กันมาในคาบหน้านะครับ', date: '10 ม.ค.', file: null },
-//       { id: 402, text: 'ตัวอย่างผลงานศิลปะ Impressionism สำหรับเป็นแรงบันดาลใจ', date: 'วันนี้', file: 'Art_Examples.jpg' }
-//     ]
-//   },
-// ];
 
 
 /**
@@ -131,156 +99,11 @@ const getCourseIcon = (type) => {
   }
 };
 
-const ASSIGNMENTS = [
-  { id: 1, title: 'แบบฝึกหัดบทที่ 1', course: 'คณิตศาสตร์พื้นฐาน', dueDate: 'พรุ่งนี้, 16:00', status: 'pending', },
-  { id: 2, title: 'รายงานการทดลอง', course: 'วิทยาศาสตร์ทั่วไป', dueDate: '15 ม.ค. 67', status: 'submitted', },
-  { id: 3, title: 'แต่งกลอนสุภาพ', course: 'ภาษาไทยเพื่อการสื่อสาร', dueDate: '20 ม.ค. 67', status: 'pending', },
-];
 
-// INITIAL_QUIZZES removed - using real data from Firestore
 
-const DEFAULT_NOTIFICATIONS = [
-  { id: 1, type: 'homework', message: 'ใกล้ถึงกำหนดส่ง: แบบฝึกหัดบทที่ 1', time: '1 ชม. ที่แล้ว', read: false, detail: 'แบบฝึกหัดบทที่ 1 วิชาคณิตศาสตร์พื้นฐาน จะหมดเวลาส่งในอีก 1 ชั่วโมง กรุณารีบดำเนินการและตรวจสอบความถูกต้องก่อนส่ง' },
-  { id: 2, type: 'grade', message: 'ประกาศคะแนนสอบกลางภาค วิชาศิลปะ', time: '3 ชม. ที่แล้ว', read: false, detail: 'คุณครูศิลป์ได้ทำการประกาศคะแนนสอบกลางภาคแล้ว นักเรียนสามารถเข้าไปดูคะแนนได้ที่เมนู "ห้องเรียน > ศิลปะและการออกแบบ > คะแนน"' },
-  {
-    id: 3,
-    type: 'homework',
-    message: 'มอบหมายงานใหม่: การทดลองแรงโน้มถ่วง',
-    time: '5 ชม. ที่แล้ว',
-    read: true,
-    detail: 'วิชาวิทยาศาสตร์: ให้นักเรียนจัดทำวิดีโอการทดลองสั้นๆ เรื่องแรงโน้มถ่วง พร้อมเขียนรายงานสรุปผลการทดลอง 1 หน้ากระดาษ A4'
-  },
-  {
-    id: 4,
-    type: 'user',
-    message: 'คุณครูสมศรี เพิ่มคุณเข้ากลุ่ม "โครงงานวิทย์"',
-    time: '1 วันที่แล้ว',
-    read: false,
-    detail: 'คุณถูกเชิญเข้ากลุ่มสำหรับการทำโครงงานวิทยาศาสตร์ประจำภาคเรียนที่ 2/2568 คุณสามารถเริ่มสนทนากับเพื่อนในกลุ่มได้ทันที'
-  },
-  {
-    id: 5,
-    type: 'grade',
-    message: 'แก้ไขคะแนน: ใบงานที่ 4 วิชาภาษาไทย',
-    time: '2 วันที่แล้ว',
-    read: true,
-    detail: 'มีการอัปเดตคะแนนใหม่เนื่องจากมีการตรวจทานซ้ำ คะแนนของคุณเปลี่ยนจาก 8 เป็น 10 คะแนน'
-  },
-  {
-    id: 6,
-    type: 'homework',
-    message: 'แจ้งเตือน: งานค้างส่งวิชาประวัติศาสตร์',
-    time: '2 วันที่แล้ว',
-    read: false,
-    detail: 'คุณยังมีงานค้าง "สรุปเหตุการณ์กรุงศรีอยุธยา" ที่เกินกำหนดส่งมาแล้ว 2 วัน กรุณาส่งงานเพื่อไม่ให้ถูกหักคะแนนความรับผิดชอบ'
-  },
-  {
-    id: 7,
-    type: 'user',
-    message: 'เพื่อนร่วมชั้น 3 คน แสดงความคิดเห็นในโพสต์ของคุณ',
-    time: '3 วันที่แล้ว',
-    read: true,
-    detail: 'เพื่อนๆ ได้เข้ามาแสดงความคิดเห็นในหัวข้อ "ไอเดียจัดงานวันเด็ก" ในกระดานข่าวสารห้องเรียน'
-  },
-  {
-    id: 8,
-    type: 'grade',
-    message: 'สรุปผลการเรียนประจำเดือน ธันวาคม',
-    time: '4 วันที่แล้ว',
-    read: false,
-    detail: 'ระบบสรุปภาพรวมคะแนนเก็บประจำเดือนธันวาคมของคุณออกมาแล้ว คุณมีคะแนนเฉลี่ยอยู่ในระดับ "ดีเยี่ยม"'
-  },
-  {
-    id: 9,
-    type: 'homework',
-    message: 'เตรียมตัวสอบย่อย: คำศัพท์ภาษาอังกฤษ Unit 5',
-    time: '5 วันที่แล้ว',
-    read: true,
-    detail: 'วิชาภาษาอังกฤษจะมีการทดสอบย่อย (Quiz) ในวันจันทร์หน้า อย่าลืมทบทวนคำศัพท์เกี่ยวกับ Environment จำนวน 20 คำ'
-  },
-  {
-    id: 10,
-    type: 'user',
-    message: 'อัปเดตรูปโปรไฟล์ใหม่โดยคุณครูที่ปรึกษา',
-    time: '1 สัปดาห์ที่แล้ว',
-    read: true,
-    detail: 'คุณครูประจำชั้นได้อัปเดตรูปภาพกิจกรรมในหน้าข้อมูลส่วนตัวของชั้นเรียน คุณสามารถเข้าไปดูภาพกิจกรรมทัศนศึกษาได้แล้ว'
-  },
-  {
-    id: 11,
-    type: 'grade',
-    message: 'ประกาศผลการคัดเลือกตัวแทนแข่งขันคณิตศาสตร์',
-    time: '1 สัปดาห์ที่แล้ว',
-    read: false,
-    detail: 'ยินดีด้วย! คุณผ่านการคัดเลือกรอบแรกในการเป็นตัวแทนโรงเรียนไปแข่งขันคณิตศาสตร์โอลิมปิกระดับจังหวัด'
-  },
-  {
-    id: 12,
-    type: 'user',
-    message: 'แจ้งเตือน: การเข้าใช้งานระบบจากอุปกรณ์ใหม่',
-    time: '2 สัปดาห์ที่แล้ว',
-    read: true,
-    detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
-  },
-  {
-    id: 13,
-    type: 'user',
-    message: 'แจ้งเตือน: ',
-    time: '2 สัปดาห์ที่แล้ว',
-    read: true,
-    detail: 'มีการเข้าสู่ระบบบัญชีการศึกษาของคุณผ่าน iPad เมื่อเวลา 14:20 น. หากไม่ใช่คุณ กรุณาเปลี่ยนรหัสผ่านทันที'
-  }
-
-];
-
-const INITIAL_CHATS = [
-  {
-    id: 1,
-    name: 'ครูสมชาย',
-    role: 'Teacher',
-    avatar: 'bg-[#FF917B]',
-    lastMessage: 'อย่าลืมส่งงานนะครับ',
-    time: '10:30',
-    unread: 1,
-    messages: [
-      { id: 1, sender: 'other', text: 'สวัสดีครับนักเรียน วันนี้อย่าลืมส่งงานนะครับ', time: '10:30' }
-    ]
-  },
-  {
-    id: 2,
-    name: 'สมหญิง (หัวหน้าห้อง)',
-    role: 'Student',
-    avatar: 'bg-pink-200',
-    lastMessage: 'พรุ่งนี้มีสอบย่อยนะ',
-    time: '09:15',
-    unread: 0,
-    messages: [
-      { id: 1, sender: 'me', text: 'พรุ่งนี้วิชาอะไรสอบบ้างนะ?', time: '09:10' },
-      { id: 2, sender: 'other', text: 'พรุ่งนี้มีสอบย่อยนะ วิชาคณิตคาบแรกเลย', time: '09:15' }
-    ]
-  },
-];
-
-const MEMBERS = [
-  { id: 1, name: 'ด.ช. รักเรียน ขยันยิ่ง', role: 'student', avatar: 'bg-blue-200' },
-  { id: 2, name: 'ด.ญ. มานี มีตา', role: 'student', avatar: 'bg-pink-200' },
-];
-
-const GRADING_LIST = [
-  { id: 1, name: 'ด.ช. รักเรียน ขยันยิ่ง', status: 'submitted', file: 'homework1.pdf', score: '' },
-  { id: 2, name: 'ด.ญ. มานี มีตา', status: 'submitted', file: 'homework1_manee.pdf', score: '9' },
-];
-
-const BADGES = [
-  { id: 1, name: 'ส่งงานตรงเวลา', icon: <CheckCircle className="text-white" />, color: 'bg-green-400', date: '5 ม.ค. 67' },
-  { id: 2, name: 'ยอดนักอ่าน', icon: <BookOpen className="text-white" />, color: 'bg-blue-400', date: '8 ม.ค. 67' },
-  { id: 3, name: 'คะแนนเต็ม', icon: <Star className="text-white" />, color: 'bg-yellow-400', date: '10 ม.ค. 67' },
-  { id: 4, name: 'แอคทีฟสุดๆ', icon: <Zap className="text-white" />, color: 'bg-red-400', date: 'เมื่อวาน' },
-];
 
 // --- SEPARATE COMPONENTS ---
 
-// import LoginPage from './components/LoginPage';
 
 
 
@@ -306,6 +129,11 @@ export default function SchoolyScootLMS() {
     xp: 0,
     photoURL: ''
   });
+
+  const welcomeMessage = useMemo(() => {
+    const messages = WELCOME_MESSAGES[userRole] || WELCOME_MESSAGES.student;
+    return messages[Math.floor(Math.random() * messages.length)];
+  }, [userRole]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -349,8 +177,6 @@ export default function SchoolyScootLMS() {
 
 
   // Chat State
-  const [chats, setChats] = useState(INITIAL_CHATS);
-  const [activeChatId, setActiveChatId] = useState(null);
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
 
@@ -408,8 +234,18 @@ export default function SchoolyScootLMS() {
     fetchQuizzes();
   }, [selectedCourse, courseTab]);
 
+  // Fetch Assignments
+  useEffect(() => {
+    const loadAssignments = async () => {
+      await seedAssignments(); // Run once (safe check inside service)
+      const fetched = await getAssignments();
+      setAssignments(fetched);
+    };
+    loadAssignments();
+  }, []);
+
   //  Assignment State (สำคัญมาก)
-  const [assignments, setAssignments] = useState(ASSIGNMENTS);
+  const [assignments, setAssignments] = useState([]);
   const [assignmentFilter, setAssignmentFilter] = useState('pending');
   // ฟอร์มสร้างงาน
   const [newAssignment, setNewAssignment] = useState({
@@ -432,13 +268,69 @@ export default function SchoolyScootLMS() {
   const [activeModal, setActiveModal] = useState(null);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
-  const [uploadFile, setUploadFile] = useState([]);
+  // Data States
+  const [members, setMembers] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+
+  // Fetch Members when selectedCourse changes
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (selectedCourse && selectedCourse.studentIds && selectedCourse.studentIds.length > 0) {
+        const users = await getUsersByIds(selectedCourse.studentIds);
+        // Map to display structure if needed, or use raw
+        setMembers(users.map(u => ({
+          id: u.uid,
+          name: u.fullName || 'Unknown',
+          role: 'student',
+          avatar: u.photoURL || 'bg-blue-200' // fallback color/avatar
+        })));
+      } else {
+        setMembers([]);
+      }
+    };
+    fetchMembers();
+  }, [selectedCourse]);
+
+  // Handle opening grading modal
+  const openGradingModal = async (assignment) => {
+    setSelectedAssignment(assignment);
+    // Fetch submissions for this assignment
+    const subs = await getSubmissions(assignment.firestoreId);
+    setSubmissions(subs);
+    setActiveModal('grading');
+  };
 
   // Notifications state
-  const [notifications, setNotifications] = useState(DEFAULT_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
+  const [chats, setChats] = useState([]);
+  const [activeChatId, setActiveChatId] = useState(null);
+
+  // Fetch Notifications & Chats
+  useEffect(() => {
+    const fetchData = async () => {
+      if (auth.currentUser) {
+        // Notifications
+        await seedNotifications(auth.currentUser.uid);
+        const notifs = await getNotifications(auth.currentUser.uid);
+        setNotifications(notifs);
+
+        // Chats
+        await seedChats(auth.currentUser.uid);
+        const chatData = await getChats(auth.currentUser.uid);
+        setChats(chatData);
+      }
+    };
+    fetchData();
+  }, [auth.currentUser]);
 
   const markNotificationRead = (id) => {
+    // Optimistic update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    // Sync with Firestore
+    const notif = notifications.find(n => n.id === id);
+    if (notif && notif.firestoreId) {
+      markNotificationAsRead(notif.firestoreId);
+    }
     if (selectedNotification && selectedNotification.id === id) {
       setSelectedNotification(prev => prev ? { ...prev, read: true } : prev);
     }
@@ -450,32 +342,35 @@ export default function SchoolyScootLMS() {
     }
   }, [chats, activeChatId]);
 
-  const toggleRole = () => {
-    const newRole = userRole === 'student' ? 'teacher' : 'student';
-    setUserRole(newRole);
-    setProfile({
-      firstName: newRole === 'student' ? 'รักเรียน' : 'สมชาย',
-      lastName: newRole === 'student' ? 'ขยันยิ่ง' : 'ใจดี',
-      email: newRole === 'student' ? 'student@schoolyscoot.ac.th' : 'teacher@schoolyscoot.ac.th',
-      roleLabel: newRole === 'student' ? 'นักเรียน' : 'ครูผู้สอน',
-      level: newRole === 'student' ? 5 : 99,
-      xp: newRole === 'student' ? 75 : 100
-    });
-    setActiveTab('dashboard');
-    setSelectedCourse(null);
-    setCourseTab('home');
-  };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || !activeChatId) return;
-    const newMessage = { id: Date.now(), sender: 'me', text: chatInput, time: 'ตอนนี้' };
-    setChats(prevChats => prevChats.map(chat => {
+
+    // Send to Firestore
+    try {
+      const currentChat = chats.find(c => c.id === activeChatId);
+      if (currentChat && currentChat.firestoreId) {
+        const senderName = userRole === 'student' ? profile.firstName : 'ครู' + profile.firstName;
+        await sendMessage(currentChat.firestoreId, chatInput, 'me'); // 'me' or userId
+      }
+    } catch (err) {
+      console.error("Failed to send message", err);
+    }
+
+    // Optimistic Update (Optional, or wait for realtime listener - simpler to wait for now or just append)
+    setChats(prev => prev.map(chat => {
       if (chat.id === activeChatId) {
-        return { ...chat, messages: [...chat.messages, newMessage], lastMessage: chatInput, time: 'ตอนนี้' };
+        return {
+          ...chat,
+          messages: [...(chat.messages || []), { id: Date.now(), sender: 'me', text: chatInput, time: 'Now' }],
+          lastMessage: chatInput,
+          time: 'Now'
+        };
       }
       return chat;
     }));
+
     setChatInput('');
   };
 
@@ -570,7 +465,7 @@ export default function SchoolyScootLMS() {
       setNewExam({
         title: '',
         course: '',
-        time: '30 นาที',
+        time: '',
         items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
       });
       alert('สร้างแบบทดสอบเรียบร้อย');
@@ -921,23 +816,31 @@ export default function SchoolyScootLMS() {
 
           {/* VIDEO CALL MODAL */}
           {activeModal === 'video' && (
-            <div className="flex flex-col h-[500px]">
-              <div className="flex-1 bg-slate-900 relative flex items-center justify-center rounded-t-3xl">
+            <div className="flex flex-col h-[600px] bg-slate-900 rounded-3xl overflow-hidden relative group">
+              <div className="absolute top-6 left-6 z-20 flex items-center space-x-3">
+                <div className="bg-red-500 px-3 py-1 rounded-full flex items-center animate-pulse">
+                  <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
+                  <span className="text-white text-xs font-bold uppercase tracking-wider">Live</span>
+                </div>
+              </div>
+
+              <div className="flex-1 flex items-center justify-center">
                 <div className="text-white text-center">
-                  <div className="w-24 h-24 rounded-full bg-slate-700 mx-auto mb-4 flex items-center justify-center text-4xl">👨‍🏫</div>
-                  <h3 className="text-xl font-bold">ห้องเรียน: คณิตศาสตร์</h3>
-                  <p className="text-slate-400">กำลังรอให้ครูอนุญาตให้เข้าห้อง...</p>
+                  <div className="w-24 h-24 rounded-full bg-slate-800 mx-auto mb-4 flex items-center justify-center text-4xl animate-bounce">👨‍🏫</div>
+                  <h3 className="text-2xl font-bold mb-2">กำลังรอให้ครูอนุญาต...</h3>
+                  <p className="text-slate-400">ห้องเรียน: คณิตศาสตร์</p>
                 </div>
-                <div className="absolute bottom-6 flex space-x-4">
-                  <button className="p-4 rounded-full bg-red-500 text-white hover:bg-red-600 shadow-lg" onClick={closeModal}><PhoneOff size={24} /></button>
-                  <button className="p-4 rounded-full bg-slate-700 text-white hover:bg-slate-600"><MicOff size={24} /></button>
-                  <button className="p-4 rounded-full bg-slate-700 text-white hover:bg-slate-600"><VideoOff size={24} /></button>
-                </div>
+              </div>
+
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-4">
+                <button onClick={closeModal} className="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition-transform hover:scale-110"><PhoneOff size={24} /></button>
+                <button className="p-4 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-transform hover:scale-110"><MicOff size={24} /></button>
+                <button className="p-4 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-transform hover:scale-110"><VideoOff size={24} /></button>
               </div>
             </div>
           )}
 
-          {/* CREATE CLASS MODAL */}
+
           {/* CREATE CLASS MODAL */}
           {activeModal === 'create' && (
             <div className="p-8">
@@ -1388,40 +1291,33 @@ export default function SchoolyScootLMS() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-slate-400 text-sm border-b border-slate-200">
-                      <th className="py-3 font-bold">ชื่อ - นามสกุล</th>
-                      <th className="py-3 font-bold">สถานะ</th>
-                      <th className="py-3 font-bold">ไฟล์แนบ</th>
-                      <th className="py-3 font-bold w-24">คะแนน</th>
+
+              {/* Grading List */}
+              <div className="flex-1 overflow-y-auto mt-4">
+                <table className="w-full">
+                  <thead className="text-left text-slate-500 text-sm border-b border-slate-100">
+                    <tr>
+                      <th className="pb-2">ชื่อ-นามสกุล</th>
+                      <th className="pb-2">สถานะ</th>
+                      <th className="pb-2">ไฟล์แนบ</th>
+                      <th className="pb-2 text-center">คะแนน</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {GRADING_LIST.map(student => (
-                      <tr key={student.id} className="border-b border-slate-50 hover:bg-slate-50">
-                        <td className="py-4 flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-xs font-bold text-slate-500">Std</div>
-                          <span className="font-bold text-slate-700">{student.name}</span>
+                  <tbody className="divide-y divide-slate-50">
+                    {submissions.length > 0 ? submissions.map((student) => (
+                      <tr key={student.firestoreId || student.id} className="group hover:bg-slate-50">
+                        <td className="py-3 font-medium text-slate-700">{student.userName || 'Unknown'}</td>
+                        <td className="py-3">
+                          <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
                         </td>
-                        <td className="py-4">
-                          <span className={`px-2 py-1 rounded-lg text-xs font-bold ${student.status === 'submitted' ? 'bg-green-100 text-green-600' :
-                            student.status === 'late' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'
-                            }`}>
-                            {student.status === 'submitted' ? 'ส่งแล้ว' : student.status === 'late' ? 'ส่งช้า' : 'ยังไม่ส่ง'}
-                          </span>
-                        </td>
-                        <td className="py-4">
-                          {student.file ? (
-                            <button className="text-[#BEE1FF] font-bold text-sm hover:underline flex items-center">
-                              <FileText size={16} className="mr-1" /> {student.file}
-                            </button>
-                          ) : (
-                            <span className="text-slate-300 text-sm">-</span>
+                        <td className="py-3">
+                          {student.file && (
+                            <a href="#" className="font-medium text-blue-500 hover:underline flex items-center gap-1">
+                              <FileText size={14} /> ไฟล์งาน
+                            </a>
                           )}
                         </td>
-                        <td className="py-4">
+                        <td className="py-3 text-center">
                           <input
                             type="text"
                             placeholder="-"
@@ -1430,14 +1326,15 @@ export default function SchoolyScootLMS() {
                           />
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr><td colSpan="4" className="text-center py-4 text-slate-400">ยังไม่มีใครส่งงาน</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
-                <button onClick={closeModal} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm">บันทึกและคืนคะแนน</button>
+                <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ปิด</button>
               </div>
             </div>
           )}
@@ -1448,6 +1345,8 @@ export default function SchoolyScootLMS() {
 
   // --- PAGE CONTENT RENDERERS ---
 
+
+
   const renderDashboard = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Welcome Section */}
@@ -1457,9 +1356,7 @@ export default function SchoolyScootLMS() {
             สวัสดี, {userRole === 'student' ? `น้อง${profile.firstName}!` : `คุณครู${profile.firstName}!`} 👋
           </h1>
           <p className="text-slate-600">
-            {userRole === 'student'
-              ? 'วันนี้พร้อมเรียนรู้เรื่องใหม่ๆ หรือยัง? อย่าลืมทำการบ้านนะ!'
-              : 'วันนี้มีคาบสอน 3 วิชา และมีการบ้านรอตรวจ 12 งานครับ'}
+            {welcomeMessage}
           </p>
           <div className="mt-6 flex space-x-3">
             <button onClick={() => setActiveTab('schedule')} className="bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
@@ -1482,29 +1379,29 @@ export default function SchoolyScootLMS() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <StatCard
           title={userRole === 'student' ? "วิชาเรียน" : "ห้องเรียน"}
-          value="8"
+          value={courses.length.toString()}
           color="bg-[#FFE787]"
           icon={<BookOpen size={64} />}
           onClick={() => setActiveTab('courses')}
         />
         <StatCard
           title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"}
-          value="3"
+          value={userRole === 'student'
+            ? assignments.filter(a => a.status === 'pending').length.toString()
+            : assignments.length.toString()}
           color="bg-[#FF917B]"
           icon={<FileText size={64} />}
           onClick={() => setActiveTab('assignments')}
         />
-        <StatCard
-          title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"}
-          value="3"
-          color="bg-[#FF917B]"
-          icon={<FileText size={64} />}
-          onClick={() => setActiveTab('assignments')}
-        />
+        {/* Third stat card placeholder or removed as per user request context? 
+            The user highlighted 3 cards but 2 seems enough or maybe the 3rd was duplicate in snippet.
+            I will keep 2 unique ones for now or duplicate logic if intended?
+            The user snippet showed TWO identical cards for "assignments". I will assume accidental dupe and just render distinct ones.
+            Actually, let's just render the 2 main logic cards properly.
+        */}
         {/* Exams stat card removed */}
         {/* <StatCard 
           title="การแจ้งเตือน" 
@@ -1596,23 +1493,6 @@ export default function SchoolyScootLMS() {
           />
         ))}
 
-        {courses.length === 0 && (
-          <div className="col-span-full text-center py-20 text-slate-400">
-            <p className="mb-4">ยังไม่มีรายวิชาในระบบ</p>
-            <button
-              onClick={async () => {
-                if (confirm('ต้องการสร้างข้อมูลจำลองลงในฐานข้อมูลหรือไม่?')) {
-                  await seedCourses(MOCK_COURSES);
-                  alert('สร้างข้อมูลเรียบร้อย กรุณารีเฟรชหน้าเว็บ');
-                  window.location.reload();
-                }
-              }}
-              className="text-[#96C68E] border border-[#96C68E] px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#F0FDF4]"
-            >
-              + สร้างข้อมูลจำลอง (Seed Data)
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1916,14 +1796,15 @@ export default function SchoolyScootLMS() {
                   <div>
                     <h4 className={`font-bold ${isDone ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{data.title}</h4>
                     <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
-                      {isDone ? 'ส่งเรียบร้อยแล้ว' : `กำหนดส่ง: ${data.dueDate}`}
+                      {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${data.dueDate}` : 'ยังไม่มีกำหนดส่ง')}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => {
                     setSelectedAssignment(data);
-                    setActiveModal(userRole === 'teacher' ? 'grading' : 'assignmentDetail');
+                    if (userRole === 'teacher') openGradingModal(data);
+                    else setActiveModal('assignmentDetail'); // For student
                   }}
                   className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${isDone ? 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50' : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#a5d5ff]'
                     }`}
@@ -2028,14 +1909,16 @@ export default function SchoolyScootLMS() {
                 <span className="font-bold text-slate-700">{selectedCourse.teacher}</span>
               </div>
 
-              <h3 className="font-bold text-[#96C68E] mb-4 text-lg border-b border-slate-100 pb-2">เพื่อนร่วมชั้น ({MEMBERS.length} คน)</h3>
+              <h3 className="font-bold text-[#96C68E] mb-4 text-lg border-b border-slate-100 pb-2">เพื่อนร่วมชั้น ({members.length} คน)</h3>
               <div className="space-y-3">
-                {MEMBERS.map(m => (
+                {members.length > 0 ? members.map(m => (
                   <div key={m.id} className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full ${m.avatar} flex items-center justify-center text-slate-700 text-xs`}>Std</div>
+                    <div className={`w-10 h-10 rounded-full ${m.avatar || 'bg-blue-200'} flex items-center justify-center text-slate-700 text-xs`}>Std</div>
                     <span className="font-medium text-slate-700">{m.name}</span>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-slate-400">ยังไม่มีนักเรียนในวิชานี้</p>
+                )}
               </div>
             </div>
           );
@@ -2173,11 +2056,11 @@ export default function SchoolyScootLMS() {
                     <h3 className="font-bold text-slate-700 mb-2">รหัสเข้าห้องเรียน</h3>
                     <div className="flex items-center gap-4">
                       <div className="text-2xl font-mono text-[#96C68E] font-bold tracking-widest">
-                        X7K-9P2
+                        {selectedCourse.inviteCode || 'N/A'}
                       </div>
 
                       <button
-                        onClick={() => navigator.clipboard.writeText('X7K-9P2')}
+                        onClick={() => navigator.clipboard.writeText(selectedCourse.inviteCode || '')}
                         className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-slate-500 bg-slate-50 hover:bg-[#96C68E] hover:text-white rounded-md transition-colors border border-slate-200"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2453,7 +2336,6 @@ export default function SchoolyScootLMS() {
           <SidebarItem id="dashboard" label="แดชบอร์ด" icon={PieChart} activeTab={activeTab} onSelect={() => { setActiveTab('dashboard'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} activeTab={activeTab} onSelect={() => { setActiveTab('courses'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          {/* Exams sidebar item removed */}
           <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
 
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 mt-6 tracking-wider">อื่นๆ</p>
@@ -2505,9 +2387,8 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'dashboard' ? 'ภาพรวม' :
                   activeTab === 'courses' ? 'ห้องเรียน' :
                     activeTab === 'assignments' ? (userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน') :
-                      activeTab === 'exams' ? 'แบบทดสอบ' :
-                        activeTab === 'schedule' ? 'ตารางเรียน' :
-                          activeTab === 'messages' ? 'ข้อความ' : 'ตั้งค่า'}
+                      activeTab === 'schedule' ? 'ตารางเรียน' :
+                        activeTab === 'messages' ? 'ข้อความ' : 'ตั้งค่า'}
               </h2>
               <div className="flex items-center gap-4">
                 <div className="relative">
@@ -2532,7 +2413,6 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'dashboard' && renderDashboard()}
                 {activeTab === 'courses' && renderCourses()}
                 {activeTab === 'assignments' && renderAssignments()}
-                {activeTab === 'exams' && renderExams()}
                 {activeTab === 'schedule' && renderSchedule()}
                 {activeTab === 'messages' && renderMessages()}
 
@@ -2542,15 +2422,6 @@ export default function SchoolyScootLMS() {
             <div className="h-20"></div>
           </div>
         </div>
-        {/*         <div className="fixed bottom-6 right-6 z-40">
-          <button
-            onClick={toggleRole}
-            className="bg-slate-800 text-white px-5 py-3 rounded-full shadow-lg font-bold flex items-center hover:scale-105 transition-transform"
-          >
-            <User size={18} className="mr-2" />
-            สลับมุมมอง: {userRole === 'student' ? 'นักเรียน' : 'ครูผู้สอน'}
-          </button>
-        </div> */}
 
       </main>
     </div>

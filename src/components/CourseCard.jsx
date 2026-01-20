@@ -13,7 +13,7 @@ export default function CourseCard({ course, onClick }) {
       <h3 className="font-bold text-lg text-slate-800 mb-1">{course.name}</h3>
       <p className="text-slate-500 text-sm mb-3">{course.code} • {course.teacher}</p>
       <div className="flex items-center justify-between mt-4">
-        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">25 นักเรียน</span>
+        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">{course.studentIds?.length || 0} นักเรียน</span>
         <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-[#FF917B] group-hover:text-white transition-colors">
           <ChevronRight size={16} />
         </div>

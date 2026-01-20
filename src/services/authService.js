@@ -118,3 +118,21 @@ export const getUserProfile = async (uid) => {
         throw error;
     }
 };
+
+/**
+ * Get multiple user profiles by IDs
+ * @param {Array} userIds 
+ */
+export const getUsersByIds = async (userIds) => {
+    try {
+        if (!userIds || userIds.length === 0) return [];
+        // Firestore 'in' query supports up to 10 items. For more, we need multiple queries or just fetch all (bad).
+        // For this small app, we can loop GetDoc use Promise.all
+
+        const userDocs = await Promise.all(userIds.map(id => getDoc(doc(db, 'users', id))));
+        return userDocs.map(d => d.exists() ? d.data() : null).filter(u => u !== null);
+    } catch (error) {
+        console.error("Error getting users:", error);
+        return [];
+    }
+};
