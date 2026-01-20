@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { getUserProfile, logoutUser } from './services/authService';
-import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse } from './services/courseService';
+import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
+import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment } from './services/assignmentService';
-import { getNotifications, seedNotifications, markNotificationAsRead } from './services/notificationService';
+import { getNotifications, seedNotifications, markNotificationAsRead, createNotification } from './services/notificationService';
+import { createPost, getPostsByCourse } from './services/postService';
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import {
@@ -44,13 +45,16 @@ import {
   ArrowRight,
   ClipboardList,
   Clock,
+  CheckCircle2,
   HelpCircle,
   Trash,
   Award,
+  Heart,
   Star,
   Zap,
   Trophy,
-  GraduationCap
+  GraduationCap,
+  Copy
 } from 'lucide-react';
 
 import { MascotCircle, MascotSquare, MascotTriangle, MascotStar } from './components/Mascots';
@@ -269,10 +273,108 @@ export default function SchoolyScootLMS() {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
   // Data States
+
   const [members, setMembers] = useState([]);
   const [submissions, setSubmissions] = useState([]);
 
-  // Fetch Members when selectedCourse changes
+  // Post Feed State
+  const [posts, setPosts] = useState([]);
+  const [newPostContent, setNewPostContent] = useState('');
+
+  // Fetch Posts when course selected
+  useEffect(() => {
+    const fetchPosts = async () => {
+      if (selectedCourse?.firestoreId) {
+        try {
+          const loadedPosts = await getPostsByCourse(selectedCourse.firestoreId);
+          setPosts(loadedPosts);
+        } catch (error) {
+          console.error("Failed to load posts", error);
+        }
+      } else {
+        setPosts([]);
+      }
+    };
+    fetchPosts();
+  }, [selectedCourse]);
+
+  // Handle Create Post
+  const handleCreatePost = async (e) => {
+    e.preventDefault();
+    if (!newPostContent.trim()) return;
+
+    try {
+      const author = {
+        uid: auth.currentUser.uid,
+        name: `${profile.firstName} ${profile.lastName}`,
+        avatar: profile.photoURL,
+        role: profile.roleLabel
+      };
+
+      const newPost = await createPost(selectedCourse.firestoreId, newPostContent, author);
+
+      // Update local state
+      setPosts([newPost, ...posts]);
+      setNewPostContent('');
+      // alert('โพสต์ประกาศเรียบร้อย');
+    } catch (error) {
+      console.error("Failed to create post", error);
+      alert('ไม่สามารถสร้างโพสต์ได้');
+    }
+  };
+
+  // Edit Profile State
+  const [editProfileData, setEditProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    photoURL: ''
+  });
+
+  // Handle Update Profile
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      if (!auth.currentUser) return;
+
+      const fullName = `${editProfileData.firstName} ${editProfileData.lastName}`.trim();
+      const updatePayload = {
+        fullName,
+        photoURL: editProfileData.photoURL
+      };
+
+      await updateUserProfile(auth.currentUser.uid, updatePayload);
+
+      // Update local state
+      setProfile(prev => ({
+        ...prev,
+        firstName: editProfileData.firstName,
+        lastName: editProfileData.lastName,
+        photoURL: editProfileData.photoURL
+      }));
+
+      setActiveModal(null);
+      alert('บันทึกข้อมูลโปรไฟล์เรียบร้อย');
+    } catch (error) {
+      console.error("Failed to update profile", error);
+      alert('เกิดข้อผิดพลาดในการบันทึกโปรไฟล์');
+    }
+  };
+
+  // Handle File Upload (Convert to Base64)
+  const handleProfileImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit for base64
+        alert('รูปภาพต้องมีขนาดไม่เกิน 1MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditProfileData({ ...editProfileData, photoURL: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   useEffect(() => {
     const fetchMembers = async () => {
       if (selectedCourse && selectedCourse.studentIds && selectedCourse.studentIds.length > 0) {
@@ -566,6 +668,28 @@ export default function SchoolyScootLMS() {
     }
   };
 
+  const handleLeaveCourse = async () => {
+    if (!confirm('ยืนยันที่จะออกจากห้องเรียนนี้หรือไม่? ข้อมูลการส่งงานและคะแนนอาจสูญหาย')) return;
+    try {
+      if (!selectedCourse.firestoreId) {
+        // Fallback for mock data courses
+        alert('ไม่สามารถออกจากวิชาตัวอย่างได้ (Mock Data)');
+        return;
+      }
+
+      await leaveCourse(selectedCourse.firestoreId, auth.currentUser.uid);
+
+      // Update local state
+      setCourses(courses.filter(c => c.firestoreId !== selectedCourse.firestoreId));
+      setSelectedCourse(null);
+
+      alert('ออกจากห้องเรียนเรียบร้อยแล้ว');
+    } catch (error) {
+      console.error("Failed to leave course", error);
+      alert('เกิดข้อผิดพลาดในการออกจากห้องเรียน: ' + error.message);
+    }
+  };
+
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-100">
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#96C68E]"></div>
@@ -641,6 +765,15 @@ export default function SchoolyScootLMS() {
       setCourses(prev => [...prev, courseWithIcon]);
       setActiveModal(null);
       setJoinCode('');
+
+      // Notification
+      await createNotification(
+        auth.currentUser.uid,
+        `เข้าห้องเรียน ${joinedCourse.name} สำเร็จ`,
+        'system',
+        'คุณได้เข้าร่วมห้องเรียนเรียบร้อยแล้ว'
+      );
+
       alert('เข้าร่วมห้องเรียนสำเร็จ!');
     } catch (error) {
       console.error("Failed to join course", error);
@@ -1173,6 +1306,62 @@ export default function SchoolyScootLMS() {
             </div>
           )}
 
+          {/* EDIT PROFILE MODAL */}
+          {activeModal === 'editProfile' && (
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                <User className="mr-3 text-[#96C68E]" /> แก้ไขโปรไฟล์
+              </h2>
+              <div className="space-y-6">
+                {/* Avatar Selection */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="w-24 h-24 rounded-full bg-slate-100 mb-4 overflow-hidden border-4 border-white shadow-md relative group">
+                    {editProfileData.photoURL ? (
+                      <img src={editProfileData.photoURL} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#BEE1FF] text-3xl font-bold text-slate-600">
+                        {editProfileData.firstName?.[0]}
+                      </div>
+                    )}
+                    <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-bold text-xs">
+                      <Upload size={20} className="mb-1" />
+                      <input type="file" className="hidden" accept="image/*" onChange={handleProfileImageUpload} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-400">คลิกที่รูปเพื่ออัปโหลดภาพใหม่</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อ</label>
+                    <input
+                      type="text"
+                      value={editProfileData.firstName}
+                      onChange={(e) => setEditProfileData({ ...editProfileData, firstName: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-1">นามสกุล</label>
+                    <input
+                      type="text"
+                      value={editProfileData.lastName}
+                      onChange={(e) => setEditProfileData({ ...editProfileData, lastName: e.target.value })}
+                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleUpdateProfile}
+                  className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all"
+                >
+                  บันทึกการเปลี่ยนแปลง
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* CREATE ASSIGNMENT MODAL (TEACHER) */}
           {activeModal === 'createAssignment' && (
             <div className="p-8">
@@ -1298,10 +1487,22 @@ export default function SchoolyScootLMS() {
                       // 2. Update Local State (so it shows up immediately)
                       setAssignments(prev => [...prev, createdAssign]);
 
-                      // 3. Reset Form
+                      // 3. Notify Students
+                      const currentCourse = courses.find(c => c.name === newAssignment.course);
+                      if (currentCourse && currentCourse.studentIds && currentCourse.studentIds.length > 0) {
+                        // Loop through students
+                        currentCourse.studentIds.forEach(studentId => {
+                          createNotification(
+                            studentId,
+                            `มีการบ้านใหม่: ${newAssignment.title}`,
+                            'homework',
+                            `วิชา ${newAssignment.course} สั่งงานใหม่ กำหนดส่ง ${newAssignment.dueDate || 'ยังไม่กำหนด'}`
+                          );
+                        });
+                      }
+
+                      // 4. Reset Form
                       setNewAssignment({
-                        title: '',
-                        course: '',
                         dueDate: '',
                         description: '',
                         file: null,
@@ -1829,6 +2030,172 @@ export default function SchoolyScootLMS() {
     // Helper to render content based on active sub-tab
     const renderSubTabContent = () => {
       switch (courseTab) {
+        case 'home':
+        case 'home':
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {/* Left Sidebar - Class Info & Upcoming Work */}
+              <div className="md:col-span-1 space-y-6">
+                {/* About Course Card */}
+                <div className="relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group hover:shadow-md transition-all duration-300">
+                  {/* Decorative Gradient Blob */}
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient[#FFE787]  opacity-20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+
+                  <h3 className="relative font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <div className="bg-[#E3F2FD] p-2 rounded-xl text-[#BEE1FF]">
+                      <Info size={20} className="text-[#5B9BD5]" />
+                    </div>
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">เกี่ยวกับวิชา</span>
+                  </h3>
+
+                  <div className="relative space-y-5">
+
+                    <div className="relative">
+
+                      {selectedCourse.description && (
+                        <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-50">
+                          <p className="text-xs text-indigo-300 font-bold uppercase mt-1 flex items-center gap-1">
+                            คำอธิบาย
+                          </p>
+                          <p className="text-sm text-indigo-900 leading-relaxed font-medium">{selectedCourse.description}</p>
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-400 font-bold uppercase mt-4 mb-2 tracking-wider flex items-center gap-1">
+                        รหัสเข้าเรียน <Star size={12} className="text-[#FFE787] fill-[#FFE787]" />
+                      </p>
+                      <div
+                        className="relative overflow-hidden flex items-center justify-between bg-[#FFF0EE] p-4 rounded-2xl border-2 border-dashed border-[#FF917B] cursor-pointer hover:bg-[#FFE5E2] transition-colors group/code"
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedCourse.inviteCode);
+                        }}
+
+                      >
+
+                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FF917B_1px,transparent_1px)] [background-size:8px_8px]"></div>
+
+                        <code className="relative text-[#FF917B] font-black text-xl tracking-widest">{selectedCourse.inviteCode}</code>
+                        <div className="relative bg-white p-2 rounded-xl shadow-sm group-hover/code:scale-110 transition-transform">
+                          <Copy size={16} className="text-[#FF917B]" />
+                        </div>
+                      </div>
+                    </div>
+
+
+                  </div>
+                </div>
+
+                {/* Upcoming Work Card */}
+
+              </div>
+
+              {/* Main Feed Area */}
+              <div className="md:col-span-3 space-y-6">
+                {/* Post Input Area */}
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 relative">
+                  <div className="flex gap-4">
+                    <div className="w-14 h-14 rounded-full bg-slate-100 p-1 flex-shrink-0 border-2 border-white shadow-sm">
+                      <div className="w-full h-full rounded-full overflow-hidden">
+                        {profile.photoURL ? (
+                          <img src={profile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#BEE1FF] to-[#9acbff] text-white font-bold text-xl">
+                            {profile.firstName?.[0]}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <form onSubmit={handleCreatePost} className="relative z-10">
+                        <div className="relative group">
+                          <textarea
+                            value={newPostContent}
+                            onChange={(e) => setNewPostContent(e.target.value)}
+                            placeholder={`ประกาศบางอย่างให้กับชั้นเรียน...`}
+                            className="w-full p-5 bg-[#F8FAFC] rounded-3xl border-2 border-transparent focus:border-[#BEE1FF]/50 focus:bg-white transition-all text-slate-700 resize-none min-h-[100px] shadow-inner placeholder:text-slate-400"
+                          />
+                          <div className="absolute right-3 bottom-3 flex gap-2">
+                            <button type="button" className="p-2 text-slate-400 hover:bg-[#FFE787] hover:text-[#B49216] rounded-xl transition-all duration-300">
+                              <Upload size={18} />
+                            </button>
+                            <button type="button" className="p-2 text-slate-400 hover:bg-[#96C68E] hover:text-[#2D5A27] rounded-xl transition-all duration-300">
+                              <FileText size={18} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end mt-3">
+                          <button
+                            type="submit"
+                            disabled={!newPostContent.trim()}
+                            className={`px-8 py-2.5 rounded-2xl font-bold transition-all transform hover:-translate-y-1 active:translate-y-0 ${newPostContent.trim() ? 'bg-gradient-to-r from-[#96C68E] to-[#7CB372] text-white shadow-lg shadow-green-200' : 'bg-slate-100 text-slate-300'}`}
+                          >
+                            ส่ง
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Posts List */}
+                <div className="space-y-5">
+                  {posts.length > 0 ? posts.map(post => (
+                    <div key={post.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 group">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-50 p-1 shadow-sm">
+                            <div className="w-full h-full rounded-xl overflow-hidden">
+                              {post.author?.avatar ? (
+                                <img src={post.author.avatar} alt="Author" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF917B] to-[#FF7B61] text-white font-bold text-lg">
+                                  {post.author?.name?.[0] || 'U'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-800 text-lg">{post.author?.name}</h4>
+                            <p className="text-xs text-slate-400 font-medium flex items-center gap-1">
+                              {post.createdAt || 'เมื่อสักครู่'} • <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-slate-500">ครูผู้สอน</span>
+                            </p>
+                          </div>
+                        </div>
+                        <button className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+                          <MoreVertical size={20} />
+                        </button>
+                      </div>
+
+                      <div className="pl-[4.5rem]">
+                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed text-[0.95rem]">{post.content}</p>
+
+                        {/* Post Actions */}
+                        <div className="flex gap-4 mt-6 pt-4 border-t border-slate-50">
+                          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:bg-[#FFF0EE] hover:text-[#FF917B] transition-all font-bold text-sm">
+                            <Heart size={18} className="group-hover:fill-current" /> ถูกใจ
+                          </button>
+                          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:bg-[#EBF5FF] hover:text-[#BEE1FF] transition-all font-bold text-sm">
+                            <MessageSquare size={18} /> แสดงความคิดเห็น
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-16">
+                      <div className="w-24 h-24 bg-gradient-to-br from-slate-50 to-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-slate-50">
+                        <MessageSquare size={32} className="text-slate-200" />
+                      </div>
+                      <h3 className="text-slate-800 font-bold text-lg mb-2">ยังไม่มีประกาศใหม่</h3>
+                      <p className="text-slate-400 max-w-xs mx-auto leading-relaxed">
+                        เมื่อครูมีการแจ้งเตือนหรือประกาศข่าวสาร <br />ข้อมูลจะปรากฏที่นี่เป็นที่แรก
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+
         case 'work': {
           // กรองงานเฉพาะของวิชานี้
           const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
@@ -1972,7 +2339,21 @@ export default function SchoolyScootLMS() {
                   <p className="text-slate-400">ยังไม่มีนักเรียนในวิชานี้</p>
                 )}
               </div>
-            </div>
+
+
+              {
+                userRole === 'student' && (
+                  <div className="mt-8 pt-6 border-t border-slate-100 flex justify-center">
+                    <button
+                      onClick={handleLeaveCourse}
+                      className="text-red-500 text-sm font-bold flex items-center hover:bg-red-50 px-6 py-3 rounded-xl transition-colors"
+                    >
+                      <LogOut size={18} className="mr-2" /> ออกจากห้องเรียนนี้
+                    </button>
+                  </div>
+                )
+              }
+            </div >
           );
         case 'grades':
           return (
@@ -2084,16 +2465,30 @@ export default function SchoolyScootLMS() {
                 )}
               </div>
 
-              <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4">
-                <h4 className="font-bold text-lg text-red-600">โซนอันตราย</h4>
-                <p className="text-sm text-red-400">การลบรายวิชาจะไม่สามารถกู้คืนได้ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ</p>
-                <button
-                  onClick={() => handleDeleteCourse(selectedCourse)}
-                  className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 flex items-center shadow-lg hover:shadow-xl transition-all"
-                >
-                  <Trash className="mr-2" size={20} /> ลบรายวิชานี้
-                </button>
-              </div>
+              {/* DANGER ZONE (Moved inside the main container) */}
+              {userRole === 'teacher' && (
+                <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4 mt-6">
+                  <h4 className="font-bold text-lg text-red-600">โซนอันตราย</h4>
+                  <p className="text-sm text-red-400">การลบรายวิชาจะไม่สามารถกู้คืนได้ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ</p>
+                  <button
+                    onClick={() => handleDeleteCourse(selectedCourse)}
+                    className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 flex items-center shadow-lg hover:shadow-xl transition-all"
+                  >
+                    <Trash className="mr-2" size={20} /> ลบรายวิชานี้
+                  </button>
+                </div>
+              )}
+
+              {userRole === 'student' && (
+                <div className="mt-8 pt-6 border-t border-slate-200">
+                  <button
+                    onClick={handleLeaveCourse}
+                    className="text-red-500 text-sm font-bold flex items-center hover:bg-red-50 px-4 py-2 rounded-xl transition-colors"
+                  >
+                    <LogOut size={18} className="mr-2" /> ออกจากห้องเรียนนี้
+                  </button>
+                </div>
+              )}
             </div>
           );
         default: // 'home' (Feed)
@@ -2396,7 +2791,17 @@ export default function SchoolyScootLMS() {
         </nav>
 
         <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
-          <div className="flex items-center">
+          <div
+            className="flex items-center cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-xl"
+            onClick={() => {
+              setEditProfileData({
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                photoURL: profile.photoURL
+              });
+              setActiveModal('editProfile');
+            }}
+          >
             <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
               {profile.photoURL ? (
                 <img src={profile.photoURL} alt="Profile" className="w-full h-full object-cover" />
@@ -2410,7 +2815,7 @@ export default function SchoolyScootLMS() {
               </p>
               <p className="text-xs text-slate-500 truncate capitalize">{profile.roleLabel}</p>
             </div>
-            <button onClick={handleLogout} className="text-slate-400 hover:text-red-400"><LogOut size={18} /></button>
+            <button onClick={(e) => { e.stopPropagation(); handleLogout(); }} className="text-slate-400 hover:text-red-400"><LogOut size={18} /></button>
           </div>
         </div>
       </aside>

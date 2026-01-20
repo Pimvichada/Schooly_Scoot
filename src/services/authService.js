@@ -7,7 +7,7 @@ import {
     GoogleAuthProvider,
     signInWithPopup
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
 /**
  * Register a new user
@@ -134,5 +134,34 @@ export const getUsersByIds = async (userIds) => {
     } catch (error) {
         console.error("Error getting users:", error);
         return [];
+    }
+};
+
+/**
+ * Update user profile
+ * @param {string} uid 
+ * @param {object} updateData - { fullName, photoURL, ... }
+ */
+export const updateUserProfile = async (uid, updateData) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("No authenticated user");
+
+        // 1. Update Firebase Auth Profile (if name/photo changed)
+        if (updateData.fullName || updateData.photoURL) {
+            await updateProfile(user, {
+                displayName: updateData.fullName || user.displayName,
+                photoURL: updateData.photoURL || user.photoURL
+            });
+        }
+
+        // 2. Update Firestore
+        const docRef = doc(db, "users", uid);
+        await updateDoc(docRef, updateData);
+
+        return true;
+    } catch (error) {
+        console.error("Error updating profile:", error);
+        throw error;
     }
 };

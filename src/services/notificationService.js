@@ -79,3 +79,26 @@ export const seedNotifications = async (userId) => {
         console.error("Error seeding notifications:", error);
     }
 };
+
+/**
+ * Create a new notification
+ * @param {string} userId - Recipient user ID
+ * @param {string} message - Main notification text
+ * @param {string} type - 'homework', 'system', 'user', etc.
+ * @param {string} detail - Detailed description
+ */
+export const createNotification = async (userId, message, type = 'system', detail = '') => {
+    try {
+        await addDoc(collection(db, 'notifications'), {
+            userId,
+            message,
+            type,
+            detail,
+            read: false,
+            time: 'ตอนนี้', // You might want to format this or use relative time in UI
+            createdAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error("Error creating notification:", error);
+    }
+};

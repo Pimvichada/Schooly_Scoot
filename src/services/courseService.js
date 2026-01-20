@@ -1,5 +1,5 @@
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, query, orderBy, serverTimestamp, deleteDoc, doc, where, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, orderBy, serverTimestamp, deleteDoc, doc, where, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 /**
  * Fetch courses based on user role
@@ -176,6 +176,24 @@ export const updateCourse = async (courseId, updateData) => {
         return true;
     } catch (error) {
         console.error("Error updating course:", error);
+        throw error;
+    }
+};
+
+/**
+ * Leave a course
+ * @param {string} courseId 
+ * @param {string} studentUid 
+ */
+export const leaveCourse = async (courseId, studentUid) => {
+    try {
+        const courseRef = doc(db, 'courses', courseId);
+        await updateDoc(courseRef, {
+            studentIds: arrayRemove(studentUid)
+        });
+        return true;
+    } catch (error) {
+        console.error("Error leaving course:", error);
         throw error;
     }
 };
