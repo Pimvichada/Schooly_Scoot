@@ -310,7 +310,8 @@ export default function SchoolyScootLMS() {
     email: '',
     roleLabel: '',
     level: 1,
-    xp: 0
+    xp: 0,
+    photoURL: ''
   });
 
   useEffect(() => {
@@ -328,7 +329,8 @@ export default function SchoolyScootLMS() {
               email: user.email,
               roleLabel: userProfile.role === 'student' ? 'นักเรียน' : 'ครูผู้สอน',
               level: userProfile.level || 1,
-              xp: userProfile.xp || 0
+              xp: userProfile.xp || 0,
+              photoURL: userProfile.photoURL || user.photoURL || ''
             });
             setIsLoggedIn(true);
           }
@@ -1169,7 +1171,7 @@ export default function SchoolyScootLMS() {
       <div className="bg-[#BEE1FF] rounded-3xl p-6 md:p-10 relative overflow-hidden group">
         <div className="relative z-10 max-w-[70%]">
           <h1 className="text-2xl md:text-4xl font-bold text-slate-800 mb-2">
-            สวัสดี, {userRole === 'student' ? 'น้องนักเรียน!' : 'คุณครูคนเก่ง!'} 👋
+            สวัสดี, {userRole === 'student' ? `น้อง${profile.firstName}!` : `คุณครู${profile.firstName}!`} 👋
           </h1>
           <p className="text-slate-600">
             {userRole === 'student'
@@ -1983,7 +1985,11 @@ export default function SchoolyScootLMS() {
         <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
-              <User className="text-slate-400" />
+              {profile.photoURL ? (
+                <img src={profile.photoURL} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User className="text-slate-400" />
+              )}
             </div>
             <div className="ml-3 flex-1 overflow-hidden">
               <p className="text-sm font-bold text-slate-800 truncate">
