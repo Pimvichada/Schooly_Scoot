@@ -1,5 +1,6 @@
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, query, orderBy, serverTimestamp, deleteDoc, doc, where, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, orderBy, serverTimestamp, deleteDoc, doc, where, updateDoc, arrayUnion, arrayRemove, getDoc } from 'firebase/firestore';
+import { createNotification } from './notificationService';
 
 /**
  * Fetch courses based on user role
@@ -131,11 +132,11 @@ export const deleteCourse = async (courseId) => {
 };
 
 /**
- * Join a course using invite code
+ * Join a course using invite code (Request mode)
  * @param {string} inviteCode 
- * @param {string} studentUid 
+ * @param {Object} studentUser - { uid, displayName } for notification
  */
-export const joinCourse = async (inviteCode, studentUid) => {
+export const joinCourse = async (inviteCode, studentUser) => {
     try {
         const coursesCol = collection(db, 'courses');
         const q = query(coursesCol, where('inviteCode', '==', inviteCode));
@@ -146,20 +147,83 @@ export const joinCourse = async (inviteCode, studentUid) => {
         }
 
         const courseDoc = querySnapshot.docs[0];
+        const courseData = courseDoc.data();
         const courseRef = doc(db, 'courses', courseDoc.id);
 
-        // Check if already joined
-        if (courseDoc.data().studentIds?.includes(studentUid)) {
+        // Check if already enrolled
+        if (courseData.studentIds?.includes(studentUser.uid)) {
             throw new Error("คุณอยู่ในห้องเรียนนี้อยู่แล้ว");
         }
 
+        // Check if already pending
+        if (courseData.pendingStudentIds?.includes(studentUser.uid)) {
+            throw new Error("รอคุณครูอนุมัติคำขอเข้าร่วม");
+        }
+
+        // Add to pending
         await updateDoc(courseRef, {
-            studentIds: arrayUnion(studentUid)
+            pendingStudentIds: arrayUnion(studentUser.uid)
         });
 
-        return { ...courseDoc.data(), firestoreId: courseDoc.id };
+        // Notify Teacher
+        const studentName = studentUser.displayName || 'นักเรียน';
+        await createNotification(
+            courseData.ownerId,
+            `คำขอเข้าห้องเรียน: ${courseData.name}`,
+            'system',
+            `${studentName} ขอเข้าร่วมห้องเรียน ${courseData.name} (${courseData.code})`
+        );
+
+        return { ...courseData, firestoreId: courseDoc.id, status: 'pending' };
     } catch (error) {
         console.error("Error joining course:", error);
+        throw error;
+    }
+};
+
+/**
+ * Approve a student join request
+ */
+export const approveJoinRequest = async (courseId, studentId) => {
+    try {
+        const courseRef = doc(db, 'courses', courseId);
+        const courseSnap = await getDoc(courseRef);
+
+        if (!courseSnap.exists()) throw new Error("Course not found");
+        const courseData = courseSnap.data();
+
+        await updateDoc(courseRef, {
+            pendingStudentIds: arrayRemove(studentId),
+            studentIds: arrayUnion(studentId)
+        });
+
+        // Notify Student
+        await createNotification(
+            studentId,
+            `อนุมัติการเข้าห้องเรียน: ${courseData.name}`,
+            'system',
+            `คุณครูได้อนุมัติให้คุณเข้าห้องเรียน ${courseData.name} แล้ว`
+        );
+
+        return true;
+    } catch (error) {
+        console.error("Error approving request:", error);
+        throw error;
+    }
+};
+
+/**
+ * Reject a student join request
+ */
+export const rejectJoinRequest = async (courseId, studentId) => {
+    try {
+        const courseRef = doc(db, 'courses', courseId);
+        await updateDoc(courseRef, {
+            pendingStudentIds: arrayRemove(studentId)
+        });
+        return true;
+    } catch (error) {
+        console.error("Error rejecting request:", error);
         throw error;
     }
 };

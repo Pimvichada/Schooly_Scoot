@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
-import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse } from './services/courseService';
+import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification } from './services/notificationService';
@@ -189,6 +189,7 @@ export default function SchoolyScootLMS() {
   // State for creating course
   const [newCourseData, setNewCourseData] = useState({
     name: '', code: '', color: 'bg-[#96C68E]', description: '',
+    startDate: '', endDate: '',
     scheduleItems: [] // { dayOfWeek: 1, startTime: '08:30', endTime: '10:30', room: '421' }
   });
   const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
@@ -237,7 +238,7 @@ export default function SchoolyScootLMS() {
     fetchQuizzes();
   }, [selectedCourse, courseTab]);
 
-  // Fetch Assignments
+
   useEffect(() => {
     const loadAssignments = async () => {
       if (authLoading) return; // Wait for auth to be ready
@@ -250,7 +251,11 @@ export default function SchoolyScootLMS() {
     loadAssignments();
   }, [authLoading, userRole, auth.currentUser]);
 
+
   //  Assignment State (สำคัญมาก)
+
+
+
   const [assignments, setAssignments] = useState([]);
   const [assignmentFilter, setAssignmentFilter] = useState('pending');
   // ฟอร์มสร้างงาน
@@ -261,9 +266,6 @@ export default function SchoolyScootLMS() {
     description: '',
     files: [],
   });
-
-  // State for student file upload
-  const [uploadFile, setUploadFile] = useState([]);
 
   // Create Exam State
   const [newExam, setNewExam] = useState({
@@ -280,6 +282,7 @@ export default function SchoolyScootLMS() {
   // Data States
 
   const [members, setMembers] = useState([]);
+  const [pendingMembers, setPendingMembers] = useState([]); // Pending Students
   const [submissions, setSubmissions] = useState([]);
 
   // Post Feed State
@@ -397,6 +400,78 @@ export default function SchoolyScootLMS() {
     };
     fetchMembers();
   }, [selectedCourse]);
+
+  // Fetch Pending Members (For Teacher)
+  useEffect(() => {
+    const fetchPendingMembers = async () => {
+      if (userRole === 'teacher' && selectedCourse && selectedCourse.pendingStudentIds && selectedCourse.pendingStudentIds.length > 0) {
+        const users = await getUsersByIds(selectedCourse.pendingStudentIds);
+        setPendingMembers(users.map(u => ({
+          id: u.uid,
+          name: u.fullName || 'Unknown',
+          role: 'student',
+          avatar: u.photoURL || 'bg-yellow-200'
+        })));
+      } else {
+        setPendingMembers([]);
+      }
+    };
+    fetchPendingMembers();
+  }, [selectedCourse, userRole]);
+
+  // Handle Approve Request
+  const handleApprove = async (studentId) => {
+    try {
+      await approveJoinRequest(selectedCourse.firestoreId, studentId);
+
+      // Update local state
+      const student = pendingMembers.find(m => m.id === studentId);
+      setPendingMembers(prev => prev.filter(m => m.id !== studentId));
+      setMembers(prev => [...prev, { ...student, avatar: student.avatar || 'bg-blue-200' }]);
+
+      // Update selected course data
+      const updatedPending = selectedCourse.pendingStudentIds.filter(id => id !== studentId);
+      const updatedStudents = [...(selectedCourse.studentIds || []), studentId];
+      setSelectedCourse(prev => ({ ...prev, pendingStudentIds: updatedPending, studentIds: updatedStudents }));
+
+      // Also update courses list locally to reflect count if used
+      setCourses(prev => prev.map(c =>
+        c.firestoreId === selectedCourse.firestoreId
+          ? { ...c, pendingStudentIds: updatedPending, studentIds: updatedStudents }
+          : c
+      ));
+
+      alert('อนุมัติเข้าห้องเรียนเรียบร้อย');
+    } catch (error) {
+      console.error("Failed to approve", error);
+      alert('เกิดข้อผิดพลาดในการอนุมัติ');
+    }
+  };
+
+  // Handle Reject Request
+  const handleReject = async (studentId) => {
+    if (!confirm('ต้องการปฏิเสธคำขอนี้ใช่หรือไม่?')) return;
+    try {
+      await rejectJoinRequest(selectedCourse.firestoreId, studentId);
+
+      // Update local state
+      setPendingMembers(prev => prev.filter(m => m.id !== studentId));
+
+      // Update selected course data
+      const updatedPending = selectedCourse.pendingStudentIds.filter(id => id !== studentId);
+      setSelectedCourse(prev => ({ ...prev, pendingStudentIds: updatedPending }));
+
+      setCourses(prev => prev.map(c =>
+        c.firestoreId === selectedCourse.firestoreId
+          ? { ...c, pendingStudentIds: updatedPending }
+          : c
+      ));
+
+    } catch (error) {
+      console.error("Failed to reject", error);
+      alert('เกิดข้อผิดพลาดในการปฏิเสธ');
+    }
+  };
 
   // Handle opening grading modal
   const openGradingModal = async (assignment) => {
@@ -732,6 +807,8 @@ export default function SchoolyScootLMS() {
         code: newCourseData.code,
         color: newCourseData.color,
         description: newCourseData.description,
+        startDate: newCourseData.startDate,
+        endDate: newCourseData.endDate,
         schedule: newCourseData.scheduleItems,
         teacher: profile.firstName ? `ครู${profile.firstName}` : 'คุณครู',
         ownerId: auth.currentUser.uid
@@ -746,6 +823,7 @@ export default function SchoolyScootLMS() {
       setActiveModal(null);
       setNewCourseData({
         name: '', code: '', color: 'bg-[#96C68E]', description: '',
+        startDate: '', endDate: '',
         scheduleItems: []
       });
       alert('สร้างห้องเรียนสำเร็จ!');
@@ -761,7 +839,19 @@ export default function SchoolyScootLMS() {
 
     try {
       if (!auth.currentUser) return;
-      const joinedCourse = await joinCourse(joinCode, auth.currentUser.uid);
+      const result = await joinCourse(joinCode, {
+        uid: auth.currentUser.uid,
+        displayName: `${profile.firstName} ${profile.lastName}`.trim()
+      });
+
+      if (result.status === 'pending') {
+        alert('ส่งคำขอเข้าร่วมห้องเรียนเรียบร้อย กรุณารอคุณครูอนุมัติ');
+        setJoinCode('');
+        setActiveModal(null);
+        return;
+      }
+
+      const joinedCourse = result;
       // Add icon component for display
       const courseWithIcon = {
         ...joinedCourse,
@@ -1040,6 +1130,27 @@ export default function SchoolyScootLMS() {
                   />
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">วันที่เริ่มเรียน/Start Date</label>
+                    <input
+                      type="date"
+                      className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
+                      value={newCourseData.startDate}
+                      onChange={(e) => setNewCourseData({ ...newCourseData, startDate: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-600 mb-2">วันที่สิ้นสุด/End Date</label>
+                    <input
+                      type="date"
+                      className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
+                      value={newCourseData.endDate}
+                      onChange={(e) => setNewCourseData({ ...newCourseData, endDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+
                 {/* Schedule Builder */}
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-2">ตารางเรียน</label>
@@ -1171,15 +1282,44 @@ export default function SchoolyScootLMS() {
                     key={notif.id}
                     notif={notif}
                     isSelected={selectedNotification?.id === notif.id}
-                    onClick={() => { setSelectedNotification(notif); markNotificationRead(notif.id); setActiveModal('notificationDetail'); }}
+                    onClick={() => {
+                      setSelectedNotification(notif);
+                      markNotificationRead(notif.id);
+
+                      // Smart Navigation Logic
+                      if (notif.message.includes('คำขอเข้าห้องเรียน') && userRole === 'teacher') {
+                        // Extract course name or find relevant course
+                        // NOTE: In a real app we'd store courseId in notification metadata.
+                        // Here we try to fuzzy match or just let teacher find it, BUT 
+                        // let's try to match by name if present in message, e.g. "คำขอเข้าห้องเรียน: Science"
+                        const courseName = notif.message.split(': ')[1];
+                        const targetCourse = courses.find(c => c.name === courseName);
+                        if (targetCourse) {
+                          setSelectedCourse(targetCourse);
+                          setCourseTab('people'); // Navigate to Members/Approvals
+                          setActiveModal(null); // Close modal
+                        } else {
+                          setActiveModal('notificationDetail');
+                        }
+                      } else if (notif.message.includes('อนุมัติการเข้าห้องเรียน') && userRole === 'student') {
+                        const courseName = notif.message.split(': ')[1];
+                        const targetCourse = courses.find(c => c.name === courseName);
+                        if (targetCourse) {
+                          setSelectedCourse(targetCourse);
+                          setCourseTab('home');
+                          setActiveModal(null);
+                        } else {
+                          setActiveModal('notificationDetail');
+                        }
+                      } else {
+                        // Default behavior
+                        setActiveModal('notificationDetail');
+                      }
+                    }}
                   />
 
                 ))}
-                {/* notif.read = true; */}
               </div>
-              {/* <button onClick={closeModal} className="w-full py-3 mt-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">
-                 ปิด
-               </button> */}
             </div>
           )}
 
@@ -1940,31 +2080,40 @@ export default function SchoolyScootLMS() {
 
   const renderSchedule = () => (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><Calendar className="mr-3 text-[#96C68E]" /> ตารางเรียน/สอน</h1>
+      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><Calendar className="mr-3 text-[#96C68E]" /> {userRole === 'teacher' ? 'ตารางสอน' : 'ตารางเรียน'}</h1>
+
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-        <div className="flex justify-between items-center mb-6">
+        {/* <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-slate-700">มกราคม 2567</h2>
           <div className="flex gap-2">
             <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight className="rotate-180" size={20} /></button>
             <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight size={20} /></button>
           </div>
-        </div>
+        </div> */}
         {/* Dynamic Weekly View */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => {
             const dayOfWeek = i + 1; // 1=Mon, 5=Fri
             // Collect all schedule items for this day from all courses
+            // Collect all schedule items for this day from all courses
             const dailyItems = courses.flatMap(c =>
-              (c.schedule || []).filter(s => s.dayOfWeek === dayOfWeek).map(s => ({ ...s, courseName: c.name, color: c.color }))
+              (c.schedule || []).filter(s => s.dayOfWeek === dayOfWeek).map(s => ({
+                ...s,
+                courseName: c.name,
+                courseCode: c.code,
+                teacher: c.teacher,
+                color: c.color
+              }))
             ).sort((a, b) => a.startTime.localeCompare(b.startTime));
 
             return (
               <div key={day} className="space-y-3">
-                <div className="text-center font-bold text-slate-500 mb-2">{day}</div>
+                <div className="text-center font-bold text-slate-500 mb-2 ">{day}</div>
                 {dailyItems.length > 0 ? dailyItems.map((slot, idx) => (
-                  <div key={idx} className={`p-3 rounded-xl text-sm border mb-2 ${slot.color ? slot.color + ' bg-opacity-20 border-opacity-50' : 'bg-slate-50 border-slate-100'}`}>
+                  <div key={idx} className={`p-3 rounded-xl text-sm border-gray-200 mb-2 text-center ${slot.color ? slot.color + ' bg-opacity-20 border-opacity-50' : 'bg-slate-50 border-slate-100'}`}>
                     <div className="font-bold text-slate-800">{slot.startTime} - {slot.endTime}</div>
                     <div className="text-slate-700 font-bold line-clamp-1">{slot.courseName}</div>
+                    <div className="text-slate-500">{slot.courseCode}</div>
                     <div className="text-xs text-slate-500 mt-1">ห้อง {slot.room}</div>
                   </div>
                 )) : (
@@ -2301,6 +2450,7 @@ export default function SchoolyScootLMS() {
                   </div>
                   <div>
                     <h4 className={`font-bold ${isDone ? 'text-slate-400' : 'text-slate-800'}`}>{data.title}</h4>
+
                     <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
                       {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${data.dueDate}` : 'ยังไม่มีกำหนดส่ง')}
                     </p>
@@ -2396,6 +2546,45 @@ export default function SchoolyScootLMS() {
         case 'people':
           return (
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+
+              {/* Pending Requests Section (For Teachers) */}
+              {userRole === 'teacher' && pendingMembers.length > 0 && (
+                <div className="mb-8 p-4 bg-yellow-50 rounded-2xl border border-yellow-100">
+                  <h3 className="font-bold text-yellow-700 mb-4 text-lg border-b border-yellow-200 pb-2 flex items-center">
+                    <AlertCircle className="mr-2" size={20} /> คำขอเข้าร่วม ({pendingMembers.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {pendingMembers.map(m => (
+                      <div key={m.id} className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full ${m.avatar || 'bg-yellow-200'} flex items-center justify-center text-slate-700 font-bold text-sm`}>
+                            {m.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-700">{m.name}</p>
+                            <p className="text-xs text-slate-400">ขอเข้าร่วม</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleApprove(m.id)}
+                            className="bg-[#96C68E] text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-[#85b57d] transition-colors"
+                          >
+                            อนุมัติ
+                          </button>
+                          <button
+                            onClick={() => handleReject(m.id)}
+                            className="bg-red-100 text-red-500 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-200 transition-colors"
+                          >
+                            ปฏิเสธ
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <h3 className="font-bold text-[#FF917B] mb-4 text-lg border-b border-slate-100 pb-2">ครูผู้สอน</h3>
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-10 h-10 rounded-full bg-[#FF917B] flex items-center justify-center text-white font-bold">T</div>
@@ -2791,12 +2980,18 @@ export default function SchoolyScootLMS() {
               <button
                 key={tab}
                 onClick={() => setCourseTab(tabKey)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${courseTab === tabKey
+                className={`relative px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${courseTab === tabKey
                   ? 'bg-slate-800 text-white shadow-md'
                   : 'bg-transparent text-slate-500 hover:bg-slate-100'
                   }`}
               >
                 {tab}
+                {/* Notification Badge for Members Tab */}
+                {tab === 'สมาชิก' && userRole === 'teacher' && pendingMembers.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#F8FAFC]">
+                    {pendingMembers.length}
+                  </span>
+                )}
               </button>
             )
           })}
