@@ -135,7 +135,7 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
                                         {/* <span className="text-[10px] font-bold text-[#5B9BD5] bg-[#E3F2FD] px-2 py-0.5 rounded-md block w-fit">
                                             เรียน
                                         </span> */}
-                                        <span className={`text-[10px] md:text-xs font-bold ${userRole === 'teacher' ? 'text-[#FF917B] bg-[#FFF0EE] border-[#FF917B]/20' : 'text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20'} p-1 rounded-lg backdrop-blur-sm line-clamp-2 border`}>
+                                        <span className={`text-[10px] md:text-xs font-bold ${userRole === 'teacher' ? 'text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20' : 'text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20'} p-1 rounded-lg backdrop-blur-sm line-clamp-2 border`}>
                                             {userRole === 'teacher' ? 'สอน' : 'เรียน'}
                                         </span>
                                     </div>
@@ -164,7 +164,7 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
                         </p>
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
+                {/* <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
                     <div className="p-3 bg-green-50 rounded-2xl text-green-500">
                         <CalendarIcon size={24} />
                     </div>
@@ -174,7 +174,7 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
                             วันสำคัญระดับโลก
                         </p>
                     </div>
-                </div>
+                </div> */}
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
                     <div className="p-3 bg-blue-50 rounded-2xl text-blue-500">
                         <BookOpen size={24} />
