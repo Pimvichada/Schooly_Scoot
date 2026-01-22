@@ -240,12 +240,15 @@ export default function SchoolyScootLMS() {
   // Fetch Assignments
   useEffect(() => {
     const loadAssignments = async () => {
+      if (authLoading) return; // Wait for auth to be ready
+
       await seedAssignments(); // Run once (safe check inside service)
-      const fetched = await getAssignments();
+      const uid = auth.currentUser ? auth.currentUser.uid : null;
+      const fetched = await getAssignments(null, uid, userRole);
       setAssignments(fetched);
     };
     loadAssignments();
-  }, []);
+  }, [authLoading, userRole, auth.currentUser]);
 
   //  Assignment State (สำคัญมาก)
   const [assignments, setAssignments] = useState([]);
@@ -258,6 +261,9 @@ export default function SchoolyScootLMS() {
     description: '',
     files: [],
   });
+
+  // State for student file upload
+  const [uploadFile, setUploadFile] = useState([]);
 
   // Create Exam State
   const [newExam, setNewExam] = useState({
@@ -2294,7 +2300,7 @@ export default function SchoolyScootLMS() {
                     {isDone ? <CheckCircle className="text-green-600" size={20} /> : <FileText className="text-yellow-600" size={20} />}
                   </div>
                   <div>
-                    <h4 className={`font-bold ${isDone ? 'text-slate-400 line-through' : 'text-slate-800'}`}>{data.title}</h4>
+                    <h4 className={`font-bold ${isDone ? 'text-slate-400' : 'text-slate-800'}`}>{data.title}</h4>
                     <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
                       {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${data.dueDate}` : 'ยังไม่มีกำหนดส่ง')}
                     </p>

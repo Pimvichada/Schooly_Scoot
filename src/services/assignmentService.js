@@ -17,10 +17,55 @@ export const getAssignments = async (courseName, uid, role) => {
         }
 
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({
+        const assignments = snapshot.docs.map(doc => ({
             ...doc.data(),
+            id: doc.id, // Ensure id is present for App.jsx compatibility
             firestoreId: doc.id
         }));
+
+        // If student, check submission status for each assignment
+        if (role === 'student' && uid) {
+            const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
+                try {
+                    // Check if this assignment has a submission from this user
+                    const subCol = collection(db, 'assignments', assignment.firestoreId, 'submissions');
+                    const subQuery = query(subCol, where('userId', '==', uid));
+                    const subSnapshot = await getDocs(subQuery);
+
+                    if (!subSnapshot.empty) {
+                        const submission = subSnapshot.docs[0].data();
+                        let files = [];
+                        if (Array.isArray(submission.file)) {
+                            files = submission.file;
+                        } else if (submission.file) {
+                            files = [submission.file];
+                        }
+
+                        return {
+                            ...assignment,
+                            status: 'submitted',
+                            submittedFiles: files,
+                            score: submission.score
+                        };
+                    }
+
+                    // If no submission found for this student, force status to 'pending'
+                    // This overrides any global status (like in seeded data) to ensure accurate student view
+                    return {
+                        ...assignment,
+                        status: 'pending',
+                        submittedFiles: [],
+                        score: null
+                    };
+                } catch (err) {
+                    console.error(`Error checking submission for ${assignment.firestoreId}:`, err);
+                    return assignment;
+                }
+            }));
+            return enrichedAssignments;
+        }
+
+        return assignments;
     } catch (error) {
         console.error("Error getting assignments:", error);
         return [];
