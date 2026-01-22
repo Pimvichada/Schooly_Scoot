@@ -2902,7 +2902,7 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'assignments' && renderAssignments()}
                 {activeTab === 'schedule' && renderSchedule()}
                 {activeTab === 'messages' && renderMessages()}
-                {activeTab === 'calendar' && <CalendarPage />}
+                {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} />}
 
               </>
             )}

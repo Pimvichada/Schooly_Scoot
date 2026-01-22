@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, BookOpen } from 'lucide-react';
 
 const HOLIDAYS = [
     // 2027 (Example future proofing or current year 2026/2027)
@@ -26,7 +26,7 @@ const HOLIDAYS = [
     // Add more as needed or current year detection
 ];
 
-export default function CalendarPage() {
+export default function CalendarPage({ courses = [], userRole = 'student' }) {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const getDaysInMonth = (date) => {
@@ -79,26 +79,42 @@ export default function CalendarPage() {
 
                     {Array(days).fill(null).map((_, i) => {
                         const day = i + 1;
+                        const currentDayDate = new Date(year, month, day);
                         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                         const holiday = HOLIDAYS.find(h => h.date === dateStr);
                         const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+
+                        // Check for classes
+                        // Adjust dayOfWeek: JS Date 0=Sun. Course Data usually 1=Mon...5=Fri.
+                        // If data matches JS Date.getDay(), use that.
+                        // Assumption: App.jsx uses 1=Mon..5=Fri.
+                        // If courses data follows that, then Mon=1.
+                        // JS getDay(): Sun=0, Mon=1. So it matches directly for Mon-Fri.
+                        const dayOfWeek = currentDayDate.getDay();
+                        const hasClass = courses.some(c => (c.schedule || []).some(s => s.dayOfWeek === dayOfWeek));
 
                         return (
                             <div
                                 key={day}
                                 className={`h-24 md:h-32 p-3 rounded-2xl border transition-all relative group cursor-pointer ${isToday
-                                        ? 'bg-[#F0FDF4] border-[#96C68E] shadow-sm'
-                                        : holiday
-                                            ? 'bg-[#FFF0EE] border-[#FF917B]/30 hover:border-[#FF917B]'
-                                            : 'bg-white border-slate-100 hover:border-[#BEE1FF]'
+                                    ? 'bg-[#F0FDF4] border-[#96C68E] shadow-sm'
+                                    : holiday
+                                        ? 'bg-[#FFF0EE] border-[#FF917B]/30 hover:border-[#FF917B]'
+                                        : 'bg-white border-slate-100 hover:border-[#BEE1FF]'
                                     }`}
                             >
-                                <span className={`text-sm font-bold ${isToday
+                                <div className="flex justify-between items-start">
+                                    <span className={`text-sm font-bold ${isToday
                                         ? 'w-8 h-8 rounded-full bg-[#96C68E] text-white flex items-center justify-center'
                                         : holiday ? 'text-[#FF917B]' : 'text-slate-700'
-                                    }`}>
-                                    {day}
-                                </span>
+                                        }`}>
+                                        {day}
+                                    </span>
+
+                                    {hasClass && !holiday && (
+                                        <div className="w-2 h-2 rounded-full bg-[#BEE1FF]"></div>
+                                    )}
+                                </div>
 
                                 {holiday && (
                                     <div className="mt-2">
@@ -108,7 +124,24 @@ export default function CalendarPage() {
                                     </div>
                                 )}
 
-                                {isToday && !holiday && (
+                                {hasClass && !holiday && ( // Show "มีเรียน" if class exists and not a holiday (or show both? logic choice. user said show class)
+                                    // If holiday, maybe no class? usually holidays = no class.
+                                    // But let's show it anyway if data says so, or prioritize holiday.
+                                    // Usually holidays override classes.
+                                    // Let's hide "มีเรียน" if holiday to avoid clutter, or maybe show if we want strict data.
+                                    // For now, assume holiday = no class visually, or just show indicator.
+                                    // User request: "วันไหนมีเรียนกฌจะแสดงในปฐิทินว่าเรียน"
+                                    <div className="mt-1">
+                                        {/* <span className="text-[10px] font-bold text-[#5B9BD5] bg-[#E3F2FD] px-2 py-0.5 rounded-md block w-fit">
+                                            เรียน
+                                        </span> */}
+                                        <span className={`text-[10px] md:text-xs font-bold ${userRole === 'teacher' ? 'text-[#FF917B] bg-[#FFF0EE] border-[#FF917B]/20' : 'text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20'} p-1 rounded-lg backdrop-blur-sm line-clamp-2 border`}>
+                                            {userRole === 'teacher' ? 'สอน' : 'เรียน'}
+                                        </span>
+                                    </div>
+                                )}
+
+                                {isToday && !holiday && !hasClass && (
                                     <div className="mt-2 text-xs font-bold text-[#96C68E] text-center opacity-80">
                                         วันนี้
                                     </div>
@@ -119,7 +152,7 @@ export default function CalendarPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
                     <div className="p-3 bg-red-50 rounded-2xl text-red-500">
                         <MapPin size={24} />
@@ -127,7 +160,7 @@ export default function CalendarPage() {
                     <div>
                         <h3 className="font-bold text-slate-800">วันหยุดนักขัตฤกษ์</h3>
                         <p className="text-sm text-slate-500 mt-1">
-                            วันหยุดราชการและวันสำคัญต่างๆ ในประเทศไทย
+                            วันหยุดราชการไทย
                         </p>
                     </div>
                 </div>
@@ -138,7 +171,18 @@ export default function CalendarPage() {
                     <div>
                         <h3 className="font-bold text-slate-800">วันสำคัญสากล</h3>
                         <p className="text-sm text-slate-500 mt-1">
-                            วันปีใหม่, วันแรงงาน และวันสำคัญระดับโลกอื่นๆ
+                            วันสำคัญระดับโลก
+                        </p>
+                    </div>
+                </div>
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
+                    <div className="p-3 bg-blue-50 rounded-2xl text-blue-500">
+                        <BookOpen size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-800">{userRole === 'teacher' ? 'วันที่มีสอน' : 'วันที่มีเรียน'}</h3>
+                        <p className="text-sm text-slate-500 mt-1">
+                            {userRole === 'teacher' ? 'วันที่ต้องเข้าสอนตามตาราง' : 'วันที่ต้องเข้าเรียนตามตาราง'}
                         </p>
                     </div>
                 </div>
