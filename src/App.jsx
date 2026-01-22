@@ -239,6 +239,7 @@ export default function SchoolyScootLMS() {
   }, [selectedCourse, courseTab]);
 
 
+  // Fetch Assignments
   useEffect(() => {
     const loadAssignments = async () => {
       if (authLoading) return; // Wait for auth to be ready
@@ -250,7 +251,6 @@ export default function SchoolyScootLMS() {
     };
     loadAssignments();
   }, [authLoading, userRole, auth.currentUser]);
-
 
   //  Assignment State (สำคัญมาก)
 
@@ -267,6 +267,9 @@ export default function SchoolyScootLMS() {
     files: [],
   });
 
+  
+  // State for student file upload
+  const [uploadFile, setUploadFile] = useState([]);
   // Create Exam State
   const [newExam, setNewExam] = useState({
     title: '',

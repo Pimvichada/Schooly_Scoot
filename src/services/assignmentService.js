@@ -15,7 +15,6 @@ export const getAssignments = async (courseName, uid, role) => {
             // Fallback or fetch all for dashboard?
             q = query(assignmentsCol);
         }
-
         const snapshot = await getDocs(q);
         const assignments = snapshot.docs.map(doc => ({
             ...doc.data(),
