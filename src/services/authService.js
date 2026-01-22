@@ -5,7 +5,11 @@ import {
     signOut,
     updateProfile,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithPopup,
+    sendPasswordResetEmail,
+    setPersistence,
+    browserLocalPersistence,
+    browserSessionPersistence,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 
@@ -60,7 +64,11 @@ export const loginUser = async (email, password) => {
 /**
  * Login with Google
  */
-export const loginWithGoogle = async (role = 'student') => {
+/**
+ * Authenticate with Google (No Firestore creation yet)
+ * Returns { user, isNewUser, existingRole }
+ */
+export const authenticateWithGoogle = async () => {
     try {
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
@@ -70,18 +78,47 @@ export const loginWithGoogle = async (role = 'student') => {
         const docRef = doc(db, "users", user.uid);
         const docSnap = await getDoc(docRef);
 
-        if (!docSnap.exists()) {
-            // Create new user in Firestore if not exists
-            await setDoc(docRef, {
-                uid: user.uid,
-                email: user.email,
-                fullName: user.displayName,
-                role: role,
-                photoURL: user.photoURL,
-                createdAt: new Date().toISOString()
-            });
+        if (docSnap.exists()) {
+            return { user, isNewUser: false, existingRole: docSnap.data().role };
+        } else {
+            return { user, isNewUser: true };
         }
+    } catch (error) {
+        throw error;
+    }
+};
 
+/**
+ * Complete Google Registration (Create Firestore Doc)
+ */
+export const completeGoogleRegistration = async (user, role, fullName) => {
+    try {
+        const docRef = doc(db, "users", user.uid);
+        await setDoc(docRef, {
+            uid: user.uid,
+            email: user.email,
+            fullName: fullName || user.displayName,
+            role: role,
+            photoURL: user.photoURL,
+            createdAt: new Date().toISOString()
+        });
+        return user;
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Legacy support / Quick login if needed
+ */
+export const loginWithGoogle = async (role = 'student') => {
+    // This function can redirect to new flow or remain for backwards compatibility if needed
+    // For now, we'll just wrap the new flow for auto-creation
+    try {
+        const { user, isNewUser } = await authenticateWithGoogle();
+        if (isNewUser) {
+            await completeGoogleRegistration(user, role, user.displayName);
+        }
         return user;
     } catch (error) {
         throw error;
@@ -162,6 +199,30 @@ export const updateUserProfile = async (uid, updateData) => {
         return true;
     } catch (error) {
         console.error("Error updating profile:", error);
+    }
+};
+
+/**
+ * Send Password Reset Email
+ * @param {string} email
+ */
+export const resetPassword = async (email) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+    } catch (error) {
         throw error;
+    }
+};
+
+/**
+ * Set Auth Persistence
+ * @param {boolean} rememberMe
+ */
+export const setAuthPersistence = async (rememberMe) => {
+    try {
+        const type = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+        await setPersistence(auth, type);
+    } catch (error) {
+        console.error("Error setting persistence:", error);
     }
 };

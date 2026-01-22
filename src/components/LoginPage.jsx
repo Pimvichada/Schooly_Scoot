@@ -1,16 +1,31 @@
 import React, { useState } from 'react';
 import { User, Lock, ArrowRight, GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { MascotStar } from './Mascots';
-import { loginUser, loginWithGoogle } from '../services/authService';
+import { loginUser, resetPassword, setAuthPersistence } from '../services/authService';
 
 export default function LoginPage({ onLogin, onNavigateToRegister }) {
-  const [selectedRole, setSelectedRole] = useState('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   // 2. เพิ่ม State สำหรับเปิด-ปิดรหัสผ่าน
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('กรุณากรอกอีเมลเพื่อรีเซ็ตรหัสผ่าน');
+      return;
+    }
+    try {
+      await resetPassword(email);
+      alert('ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว');
+      setError('');
+    } catch (err) {
+      console.error(err);
+      setError('ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้ ตรวจสอบอีเมลอีกครั้ง');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,6 +33,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
     setLoading(true);
 
     try {
+      await setAuthPersistence(rememberMe);
       await loginUser(email, password);
       // onLogin prop isn't strictly needed for auth logic anymore but might be used for other side effects if any
       if (onLogin) onLogin();
@@ -29,17 +45,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setError('');
-    // No need to set general loading state for popup, but could prevent double clicks
-    try {
-      await loginWithGoogle(selectedRole);
-      if (onLogin) onLogin();
-    } catch (err) {
-      console.error(err);
-      setError('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google');
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#eef2f6] to-[#e6e9f0] flex items-center justify-center p-4 relative overflow-hidden">
@@ -59,25 +65,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
         </div>
 
         {/* ส่วนเลือก Role */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-8 relative">
-          <div
-            className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-white rounded-xl shadow-sm transition-all duration-300 ease-out ${selectedRole === 'teacher' ? 'translate-x-full left-1.5' : 'left-1.5'}`}
-          ></div>
-          <button
-            type="button"
-            onClick={() => setSelectedRole('student')}
-            className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm relative z-10 transition-colors duration-300 ${selectedRole === 'student' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            <User size={18} className="mr-2" /> นักเรียน
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedRole('teacher')}
-            className={`flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm relative z-10 transition-colors duration-300 ${selectedRole === 'teacher' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            <GraduationCap size={18} className="mr-2" /> ครูผู้สอน
-          </button>
-        </div>
+
 
         {/* Error Alert */}
         {error && (
@@ -127,29 +115,33 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
             </div>
           </div>
 
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center text-slate-600 cursor-pointer hover:text-slate-800 transition-colors">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-slate-300 text-[#96C68E] focus:ring-[#96C68E] mr-2"
+              />
+              จดจำฉัน
+            </label>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="font-bold text-[#FF917B] hover:text-[#ff7e61] hover:underline transition-colors"
+            >
+              ลืมรหัสผ่าน?
+            </button>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center group ${selectedRole === 'student' ? 'bg-[#96C68E] hover:bg-[#85b57d]' : 'bg-[#FF917B] hover:bg-[#ff7e61]'} disabled:opacity-70 disabled:cursor-not-allowed`}
+            className={`w-full text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center group bg-[#96C68E] hover:bg-[#85b57d] disabled:opacity-70 disabled:cursor-not-allowed`}
           >
             {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'} <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
           </button>
         </form>
-
-        <div className="my-6 flex items-center">
-          <div className="flex-1 h-px bg-slate-200"></div>
-          <span className="px-4 text-slate-400 text-sm">หรือ</span>
-          <div className="flex-1 h-px bg-slate-200"></div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleGoogleLogin}
-          className="w-full bg-white text-slate-700 py-4 rounded-2xl font-bold text-lg border border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center mb-6"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 mr-3" alt="Google" />
-          เข้าสู่ระบบด้วย Google
-        </button>
 
         <div className="mt-8 text-center">
           <p className="text-sm text-slate-500">
@@ -157,13 +149,13 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
             <button
               type="button"
               onClick={onNavigateToRegister}
-              className={`ml-1 font-bold hover:underline transition-colors ${selectedRole === 'student' ? 'text-[#96C68E]' : 'text-[#FF917B]'}`}
+              className={`ml-1 font-bold hover:underline transition-colors text-[#96C68E]`}
             >
               ลงทะเบียนเรียน
             </button>
           </p>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

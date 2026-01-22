@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 // เพิ่ม Eye และ EyeOff เข้ามา
 import { User, Lock, Mail, ArrowRight, GraduationCap, FileText, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { MascotStar } from './Mascots';
-import { registerUser } from '../services/authService';
+import { registerUser, authenticateWithGoogle, completeGoogleRegistration } from '../services/authService';
 
 export default function RegisterPage({ onRegister, onBackToLogin }) {
   const [selectedRole, setSelectedRole] = useState('student');
@@ -11,8 +11,12 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // State for Google Registration Modal
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleUser, setGoogleUser] = useState(null);
+  const [googleFullName, setGoogleFullName] = useState('');
+
   const [formData, setFormData] = useState({
-    userId: '',
     fullName: '',
     email: '',
     password: '',
@@ -49,6 +53,42 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setError('');
+    try {
+      // 1. Authenticate only
+      const { user, isNewUser, existingRole } = await authenticateWithGoogle();
+
+      if (isNewUser) {
+        // 2. If new, show Modal to ask for Role and Name
+        setGoogleUser(user);
+        setGoogleFullName(user.displayName || '');
+        setShowGoogleModal(true);
+      } else {
+        // 3. If exists, just login (callback with role for navigation)
+        if (onRegister) onRegister({ role: existingRole });
+      }
+    } catch (err) {
+      console.error(err);
+      setError('เกิดข้อผิดพลาดในการลงทะเบียนด้วย Google');
+    }
+  };
+
+  const confirmGoogleRegistration = async () => {
+    if (!googleUser) return;
+    setLoading(true);
+    try {
+      await completeGoogleRegistration(googleUser, selectedRole, googleFullName);
+      setShowGoogleModal(false);
+      if (onRegister) onRegister({ role: selectedRole });
+    } catch (err) {
+      console.error(err);
+      setError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9fa] via-[#eef2f6] to-[#e6e9f0] flex items-center justify-center p-4 relative overflow-hidden">
       <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl w-full max-w-lg relative z-10 border border-white/60">
@@ -60,6 +100,53 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
           </div>
           <h1 className="text-3xl font-extrabold text-slate-800">สร้างบัญชีใหม่</h1>
         </div>
+
+        {/* Modal for Google Registration */}
+        {showGoogleModal && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl relative overflow-hidden">
+              <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">ยืนยันข้อมูล</h3>
+              <p className="text-sm text-slate-500 text-center mb-6">กรุณาตรวจสอบชื่อและเลือกสถานะของคุณ</p>
+
+              <div className="space-y-4">
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    value={googleFullName}
+                    onChange={(e) => setGoogleFullName(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-[#96C68E]"
+                    placeholder="ชื่อ-นามสกุล"
+                  />
+                </div>
+
+                <div className="flex bg-slate-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('student')}
+                    className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${selectedRole === 'student' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
+                  >
+                    นักเรียน
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('teacher')}
+                    className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${selectedRole === 'teacher' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}
+                  >
+                    ครูผู้สอน
+                  </button>
+                </div>
+
+                <button
+                  onClick={confirmGoogleRegistration}
+                  disabled={loading}
+                  className="w-full bg-[#96C68E] text-white py-3 rounded-xl font-bold hover:bg-[#85b57d] transition-all disabled:opacity-70 mt-4"
+                >
+                  {loading ? 'กำลังบันทึก...' : 'ตกลง'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ส่วนเลือก Role เหมือนเดิม... */}
         <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 relative">
@@ -88,11 +175,6 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ช่องกรอกข้อมูลอื่นๆ... */}
-          <div className="relative">
-            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input name="userId" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E]" placeholder="รหัสประจำตัว" />
-          </div>
           <div className="relative">
             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input name="fullName" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E]" placeholder="ชื่อ-นามสกุล" />
@@ -132,6 +214,21 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
             {loading ? 'กำลังสร้างบัญชี...' : 'สมัครสมาชิก'}
           </button>
         </form>
+
+        <div className="my-6 flex items-center">
+          <div className="flex-1 h-px bg-slate-200"></div>
+          <span className="px-4 text-slate-400 text-sm">หรือ</span>
+          <div className="flex-1 h-px bg-slate-200"></div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          className="w-full bg-white text-slate-700 py-4 rounded-2xl font-bold text-lg border border-slate-200 hover:bg-slate-50 transition-all flex items-center justify-center mb-6"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 mr-3" alt="Google" />
+          ลงทะเบียนด้วย Google
+        </button>
 
         <p className="mt-6 text-center text-sm text-slate-500">
           มีบัญชีอยู่แล้ว? <button onClick={onBackToLogin} type="button" className="font-bold text-[#96C68E] hover:underline">เข้าสู่ระบบ</button>

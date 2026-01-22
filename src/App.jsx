@@ -64,6 +64,7 @@ import CourseCard from './components/CourseCard';
 import SidebarItem from './components/SidebarItem';
 import NotificationItem from './components/NotificationItem';
 import RegisterPage from './components/RegisterPage';
+import CalendarPage from './components/CalendarPage';
 
 
 const WELCOME_MESSAGES = {
@@ -84,10 +85,6 @@ const WELCOME_MESSAGES = {
   ]
 };
 
-// --- MOCK DATA (Updated with Dynamic Feed) ---
-
-// --- MOCK DATA (Updated with Dynamic Feed) ---
-
 
 
 /**
@@ -105,12 +102,6 @@ const getCourseIcon = (type) => {
 
 
 
-
-// --- SEPARATE COMPONENTS ---
-
-
-
-
 // --- MAIN COMPONENT ---
 
 export default function SchoolyScootLMS() {
@@ -122,6 +113,14 @@ export default function SchoolyScootLMS() {
   const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Time State
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000); // Update every second
+    return () => clearInterval(timer);
+  }, []);
+
 
   // Profile State
   const [profile, setProfile] = useState({
@@ -129,8 +128,8 @@ export default function SchoolyScootLMS() {
     lastName: '',
     email: '',
     roleLabel: '',
-    level: 1,
-    xp: 0,
+    // level: 1,
+    // xp: 0,
     photoURL: ''
   });
 
@@ -1594,7 +1593,7 @@ export default function SchoolyScootLMS() {
 
 
   const renderDashboard = () => (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="h-screen space-y-6 animate-in fade-in duration-500">
       {/* Welcome Section */}
       <div className="bg-[#BEE1FF] rounded-3xl p-6 md:p-10 relative overflow-hidden group">
         <div className="relative z-10 max-w-[70%]">
@@ -1638,24 +1637,25 @@ export default function SchoolyScootLMS() {
           value={userRole === 'student'
             ? assignments.filter(a => a.status === 'pending').length.toString()
             : assignments.length.toString()}
-          color="bg-[#FF917B]"
           icon={<FileText size={64} />}
+          color="bg-[#FF917B]"
           onClick={() => setActiveTab('assignments')}
         />
-        {/* Third stat card placeholder or removed as per user request context? 
-            The user highlighted 3 cards but 2 seems enough or maybe the 3rd was duplicate in snippet.
-            I will keep 2 unique ones for now or duplicate logic if intended?
-            The user snippet showed TWO identical cards for "assignments". I will assume accidental dupe and just render distinct ones.
-            Actually, let's just render the 2 main logic cards properly.
-        */}
-        {/* Exams stat card removed */}
-        {/* <StatCard 
-          title="การแจ้งเตือน" 
-          value="5" 
-          color="bg-[#BEE1FF]" 
-          icon={<Bell size={64} />} 
-          onClick={() => setActiveModal('notificationsList')}
-        /> */}
+        <StatCard
+          value={
+            <div className="flex flex-col">
+              <span className="text-4xl font-black text-slate-800 tracking-tight">
+                {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span className="text-sm font-medium text-slate-600 mt-1 opacity-80">
+                {currentTime.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </span>
+            </div>
+          }
+          color="bg-[#96C68E]"
+          icon={<Clock size={80} className="opacity-40" />}
+          onClick={() => setActiveTab('calendar')}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1664,27 +1664,60 @@ export default function SchoolyScootLMS() {
             <h2 className="text-xl font-bold text-slate-800 flex items-center">
               <Calendar className="mr-2 text-[#96C68E]" /> ตารางเรียนวันนี้
             </h2>
-            <span className="text-sm text-slate-400">8 ม.ค. 2567</span>
+            <span className="text-sm text-slate-400">
+              {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
           </div>
           <div className="space-y-4">
-            {[
-              { time: '08:30 - 10:20', subject: 'คณิตศาสตร์พื้นฐาน', room: 'ห้อง 401', active: true },
-              { time: '10:30 - 12:00', subject: 'ภาษาไทย', room: 'ห้อง 202', active: false },
-              { time: '13:00 - 15:00', subject: 'วิทยาศาสตร์', room: 'LAB 3', active: false },
-            ].map((slot, idx) => (
-              <div key={idx} className={`flex items-center p-4 rounded-2xl ${slot.active ? 'bg-[#F0FDF4] border border-[#96C68E]' : 'bg-slate-50'}`}>
-                <div className="w-24 font-bold text-slate-600">{slot.time}</div>
-                <div className="flex-1 px-4 border-l border-slate-200 ml-4">
-                  <div className="font-bold text-slate-800">{slot.subject}</div>
-                  <div className="text-sm text-slate-500">{slot.room}</div>
-                </div>
-                {slot.active && (
-                  <button onClick={() => setActiveModal('video')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d]">
-                    <Video size={16} className="mr-1" /> เข้าเรียน
-                  </button>
-                )}
-              </div>
-            ))}
+            {(() => {
+              const today = new Date().getDay(); // 0=Sun, 1=Mon...
+              const now = new Date();
+              const currentHm = now.getHours() * 60 + now.getMinutes();
+
+              const todaySchedule = courses.flatMap(c =>
+                (c.schedule || [])
+                  .filter(s => s.dayOfWeek === today)
+                  .map(s => ({ ...s, subject: c.name }))
+              ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+              if (todaySchedule.length === 0) {
+                return (
+                  <div className="text-center py-12 text-slate-400">
+                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <Calendar size={24} />
+                    </div>
+                    วันนี้ไม่มีการเรียนการสอน พักผ่อนให้เต็มที่! 😴
+                  </div>
+                );
+              }
+
+              return todaySchedule.map((slot, idx) => {
+                const [sH, sM] = slot.startTime.split(':').map(Number);
+                const [eH, eM] = slot.endTime.split(':').map(Number);
+                const startHm = sH * 60 + sM;
+                const endHm = eH * 60 + eM;
+                const isActive = currentHm >= startHm && currentHm < endHm;
+
+                return (
+                  <div key={idx} className={`flex items-center p-4 rounded-2xl transition-all ${isActive ? 'bg-[#F0FDF4] border border-[#96C68E] shadow-sm scale-[1.02]' : 'bg-slate-50 border border-slate-50'}`}>
+                    <div className={`w-28 font-bold ${isActive ? 'text-[#96C68E]' : 'text-slate-500'}`}>
+                      {slot.startTime} - {slot.endTime}
+                    </div>
+                    <div className="flex-1 px-4 border-l border-slate-200 ml-4">
+                      <div className="font-bold text-slate-800 text-lg">{slot.subject}</div>
+                      <div className="text-sm text-slate-500 flex items-center mt-1">
+                        <span className="bg-slate-200 px-2 py-0.5 rounded text-xs mr-2">ห้อง {slot.room}</span>
+                      </div>
+                    </div>
+                    {isActive && (
+                      <button onClick={() => setActiveModal('video')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d] shadow-sm animate-pulse">
+                        <Video size={16} className="mr-1" /> เข้าเรียน
+                      </button>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -1746,15 +1779,13 @@ export default function SchoolyScootLMS() {
 
 
   const renderAssignments = () => {
-    // กรองข้อมูลตาม Filter และบทบาท
-    const filteredAssignments = assignments.filter(assign => {
-      // 1. Filter by Course Enrollment (Student only needs to see their own courses' work)
-      if (userRole === 'student') {
-        const isEnrolled = courses.some(c => c.name === assign.course);
-        if (!isEnrolled) return false;
-      }
+    // 1. Base Filter: Filter by Course (User must be related to the course)
+    const userAssignments = assignments.filter(assign =>
+      courses.some(c => c.name === assign.course)
+    );
 
-      // 2. Filter by Status Tab
+    // 2. Filter by Status Tab (for the list display)
+    const filteredAssignments = userAssignments.filter(assign => {
       if (assignmentFilter === 'all') return true;
       if (assignmentFilter === 'pending') {
         return assign.status === 'pending' || assign.status === 'late';
@@ -1773,26 +1804,25 @@ export default function SchoolyScootLMS() {
 
           {/* Tab Switcher */}
           <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-            {/* เพิ่มปุ่ม "ทั้งหมด" ตรงนี้ */}
             <button
               onClick={() => setAssignmentFilter('all')}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
-              ทั้งหมด ({assignments.length})
+              ทั้งหมด ({userAssignments.length})
             </button>
             <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
               <button
                 onClick={() => setAssignmentFilter('pending')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                ยังไม่ส่ง ({assignments.filter(a => a.status !== 'submitted').length})
+                ยังไม่ส่ง ({userAssignments.filter(a => a.status !== 'submitted').length})
               </button>
               <button
                 onClick={() => setAssignmentFilter('submitted')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                ส่งแล้ว ({assignments.filter(a => a.status === 'submitted').length})
+                ส่งแล้ว ({userAssignments.filter(a => a.status === 'submitted').length})
               </button>
             </div>
           </div>
@@ -2872,6 +2902,7 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'assignments' && renderAssignments()}
                 {activeTab === 'schedule' && renderSchedule()}
                 {activeTab === 'messages' && renderMessages()}
+                {activeTab === 'calendar' && <CalendarPage />}
 
               </>
             )}
