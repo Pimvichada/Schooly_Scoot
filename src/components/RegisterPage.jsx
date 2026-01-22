@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { User, Lock, Mail, ArrowRight, GraduationCap, FileText, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { MascotStar } from './Mascots';
 import { registerUser, authenticateWithGoogle, completeGoogleRegistration } from '../services/authService';
+import logo_Schooly from '../assets/logo_Schooly.png';
 
 export default function RegisterPage({ onRegister, onBackToLogin }) {
   const [selectedRole, setSelectedRole] = useState('student');
@@ -95,9 +96,13 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
 
         {/* ส่วนหัวเหมือนเดิม... */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-tr from-[#96C68E] to-[#BEE1FF] rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg transform -rotate-3">
-            <MascotStar className="w-12 h-12 text-white" />
-          </div>
+          <h1 className="flex justify-center items-center">
+            <img
+              src={logo_Schooly}
+              alt="Schooly Scoot Logo"
+              className="h-38 w-auto"
+            />
+          </h1>
           <h1 className="text-3xl font-extrabold text-slate-800">สร้างบัญชีใหม่</h1>
         </div>
 

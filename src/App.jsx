@@ -65,7 +65,7 @@ import SidebarItem from './components/SidebarItem';
 import NotificationItem from './components/NotificationItem';
 import RegisterPage from './components/RegisterPage';
 import CalendarPage from './components/CalendarPage';
-
+import logo_no_text from './assets/logo_no_tex3.png';
 
 const WELCOME_MESSAGES = {
   student: [
@@ -3043,12 +3043,17 @@ export default function SchoolyScootLMS() {
         fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F0F4F8] p-4 flex flex-col transition-transform duration-300 border-r border-white
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-        <div className="flex items-center px-4 py-6 mb-6">
-          <div className="w-10 h-10 bg-[#FF917B] rounded-xl flex items-center justify-center mr-3 shadow-sm">
-            <MascotStar className="w-8 h-8" />
-          </div>
-          <span className="text-xl font-bold text-slate-800 tracking-tight">Schooly Scoot</span>
-        </div>
+       
+          <h1 className="flex justify-center items-center">
+                       <img
+                         src={logo_no_text}
+                         alt="Schooly Scoot Logo"
+                         className="h-20 w-auto"
+                       />
+                     </h1>
+          
+          <span className="text-xl font-bold text-slate-800 tracking-tight text-center mb-6">Schooly Scoot</span>
+       
 
         <nav className="flex-1 overflow-y-auto custom-scrollbar">
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">เมนูหลัก</p>

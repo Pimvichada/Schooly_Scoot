@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Lock, ArrowRight, GraduationCap, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { MascotStar } from './Mascots';
 import { loginUser, resetPassword, setAuthPersistence } from '../services/authService';
+import logo_Schooly from '../assets/logo_Schooly.png';
 
 export default function LoginPage({ onLogin, onNavigateToRegister }) {
   const [email, setEmail] = useState('');
@@ -57,10 +58,17 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
 
       <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 border border-white/60">
         <div className="text-center mb-8">
-          <div className="w-24 h-24 bg-gradient-to-tr from-[#FF917B] to-[#FFE787] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl transform rotate-3 hover:rotate-6 transition-transform duration-500">
+          {/* <div className="w-24 h-24 bg-gradient-to-tr from-[#FF917B] to-[#FFE787] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl transform rotate-3 hover:rotate-6 transition-transform duration-500">
             <MascotStar className="w-16 h-16 text-white drop-shadow-sm" />
-          </div>
-          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Schooly Scoot</h1>
+          </div> */}
+          <h1 className="flex justify-center items-center">
+            <img
+              src={logo_Schooly}
+              alt="Schooly Scoot Logo"
+              className="h-38 w-auto"
+            />
+          </h1>
+          {/* <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">Schooly Scoot</h1> */}
           <p className="text-slate-500 mt-3 font-medium">ระบบจัดการการเรียนรู้สำหรับคนรุ่นใหม่</p>
         </div>
 
@@ -128,7 +136,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
             <button
               type="button"
               onClick={handleForgotPassword}
-              className="font-bold text-[#FF917B] hover:text-[#ff7e61] hover:underline transition-colors"
+              className="font-bold text-gray-500  hover:text-[#ff7e61] hover:underline transition-colors"
             >
               ลืมรหัสผ่าน?
             </button>
@@ -137,7 +145,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center group bg-[#96C68E] hover:bg-[#85b57d] disabled:opacity-70 disabled:cursor-not-allowed`}
+            className={`w-full text-gray-500 py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all flex items-center justify-center group bg-[#fde487] hover:bg-[#85b57d] disabled:opacity-70 disabled:cursor-not-allowed`}
           >
             {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'} <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={20} />
           </button>
