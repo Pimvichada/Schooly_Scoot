@@ -1664,9 +1664,6 @@ export default function SchoolyScootLMS() {
             <h2 className="text-xl font-bold text-slate-800 flex items-center">
               <Calendar className="mr-2 text-[#96C68E]" /> ตารางเรียนวันนี้
             </h2>
-            <span className="text-sm text-slate-400">
-              {new Date().toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </span>
           </div>
           <div className="space-y-4">
             {(() => {
@@ -1743,7 +1740,7 @@ export default function SchoolyScootLMS() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 
   const renderCourses = () => (
@@ -2275,36 +2272,23 @@ export default function SchoolyScootLMS() {
                 </div>
 
                 {/* ปุ่ม Toggle สลับโหมดการดู */}
-                <div className="flex bg-slate-100 p-1 rounded-xl">
+
+                {/* ปุ่มเพิ่มงานสำหรับครู (ย้ายมาไว้ข้างบน) */}
+                {userRole === 'teacher' && (
                   <button
-                    onClick={() => setWorkView('current')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${workView === 'current' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-                      }`}
+                    onClick={() => {
+                      setNewAssignment(prev => ({ ...prev, course: selectedCourse.name }));
+                      setActiveModal('createAssignment');
+                    }}
+                    className="px-4 py-2 bg-[#96C68E] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-[#85b57d] hover:shadow transition-all flex items-center"
                   >
-                    งานปัจจุบัน
+                    <Plus size={16} className="mr-2" /> มอบหมายงานใหม่
                   </button>
-                  <button
-                    onClick={() => setWorkView('all')}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${workView === 'all' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'
-                      }`}
-                  >
-                    งานทั้งหมด ({courseAssignments.length})
-                  </button>
-                </div>
+                )}
               </div>
 
               {/* ปุ่มเพิ่มงานสำหรับครู */}
-              {userRole === 'teacher' && (
-                <button
-                  onClick={() => {
-                    setNewAssignment(prev => ({ ...prev, course: selectedCourse.name }));
-                    setActiveModal('createAssignment');
-                  }}
-                  className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 font-bold hover:border-[#96C68E] hover:text-[#96C68E] transition-all bg-white/50"
-                >
-                  + มอบหมายงานใหม่
-                </button>
-              )}
+
 
               {/* การแสดงผลรายการงาน */}
               {workView === 'current' ? (
