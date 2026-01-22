@@ -1218,6 +1218,35 @@ export default function SchoolyScootLMS() {
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
                 <h3 className="font-bold text-slate-700 mb-2">คำชี้แจง</h3>
                 <p className="text-slate-600 text-sm leading-relaxed">{currentAssignmentData.description}</p>
+
+                {/* Display attached files from teacher */}
+                {currentAssignmentData.files && currentAssignmentData.files.length > 0 && (
+                  <div className="mt-4 border-t border-slate-100 pt-3">
+                    <h4 className="text-sm font-bold text-slate-600 mb-2 flex items-center gap-2">
+                      <Paperclip size={16} /> ไฟล์แนบ ({currentAssignmentData.files.length})
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {currentAssignmentData.files.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl">
+                          <FileText className="text-[#BEE1FF]" size={20} />
+                          <div>
+                            <p className="text-sm font-bold text-slate-700">{file.name}</p>
+                            <p className="text-xs text-slate-400">{(file.size ? (file.size / 1024).toFixed(1) : 0)} KB</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Fallback for old single file data */}
+                {currentAssignmentData.fileName && !currentAssignmentData.files && (
+                  <div className="mt-4 border-t border-slate-100 pt-3">
+                    <div className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl">
+                      <FileText className="text-[#BEE1FF]" size={20} />
+                      <p className="text-sm font-bold text-slate-700">{currentAssignmentData.fileName}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-slate-100 pt-6">
@@ -1427,12 +1456,15 @@ export default function SchoolyScootLMS() {
 
                   <input
                     type="file"
-                    onChange={(e) =>
-                      setNewAssignment({
-                        ...newAssignment,
-                        file: e.target.files[0],
-                      })
-                    }
+                    multiple // Allow multiple files
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        setNewAssignment(prev => ({
+                          ...prev,
+                          files: [...prev.files, ...Array.from(e.target.files)]
+                        }));
+                      }
+                    }}
                     className="block w-full text-sm text-slate-500
                file:mr-4 file:py-2 file:px-4
                file:rounded-xl file:border-0
@@ -1441,17 +1473,34 @@ export default function SchoolyScootLMS() {
                hover:file:bg-[#E6F7EC]"
                   />
 
-                  {newAssignment.file && (
-                    <div className="mt-3 flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3">
-                      <FileText className="text-[#96C68E]" />
-                      <div>
-                        <p className="text-sm font-bold text-slate-700">
-                          {newAssignment.file.name}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          ไฟล์ที่แนบ
-                        </p>
-                      </div>
+                  {newAssignment.files && newAssignment.files.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {newAssignment.files.map((file, index) => (
+                        <div key={index} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3">
+                          <div className="flex items-center gap-3">
+                            <FileText className="text-[#96C68E] w-5 h-5" />
+                            <div className="overflow-hidden">
+                              <p className="text-sm font-bold text-slate-700 truncate max-w-[200px]">
+                                {file.name}
+                              </p>
+                              <p className="text-xs text-slate-400">
+                                {(file.size / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setNewAssignment(prev => ({
+                                ...prev,
+                                files: prev.files.filter((_, i) => i !== index)
+                              }));
+                            }}
+                            className="text-slate-400 hover:text-red-500 p-1"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1471,9 +1520,12 @@ export default function SchoolyScootLMS() {
                         course: newAssignment.course,
                         dueDate: newAssignment.dueDate,
                         description: newAssignment.description,
-                        // Note: Storing File object directly causes errors in Firestore. 
-                        // We store the name for reference. Actual file storage would require Firebase Storage.
-                        fileName: newAssignment.file ? newAssignment.file.name : null,
+                        // Store array of file metadata
+                        files: newAssignment.files.map(f => ({
+                          name: f.name,
+                          size: f.size,
+                          type: f.type
+                        })),
                         status: 'pending',
                         score: null,
                         createdAt: new Date().toISOString(),
@@ -1502,9 +1554,11 @@ export default function SchoolyScootLMS() {
 
                       // 4. Reset Form
                       setNewAssignment({
+                        title: '',
+                        course: '',
                         dueDate: '',
                         description: '',
-                        file: null,
+                        files: [],
                       });
 
                       setActiveModal(null);
