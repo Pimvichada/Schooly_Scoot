@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
@@ -227,9 +228,32 @@ export default function SchoolyScootLMS() {
     fetchCourses();
   }, [isLoggedIn, userRole]); // Re-fetch when login state or role changes
 
+  // Real-time listener for selected course
+  useEffect(() => {
+    if (!selectedCourse?.firestoreId) return;
 
-  // --- UPDATED QUIZ STATE & LOGIC ---
-  const [quizzes, setQuizzes] = useState([]); // Empty initially
+    const courseRef = doc(db, 'courses', selectedCourse.firestoreId);
+    const unsubscribe = onSnapshot(courseRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const courseData = docSnap.data();
+
+        // Sync Meeting State
+        if (courseData.meeting) {
+          setMeetingConfig(prev => ({
+            ...prev,
+            ...courseData.meeting
+          }));
+        } else {
+          setMeetingConfig(prev => ({ ...prev, isActive: false }));
+        }
+
+        // Update selected course data continuously
+        // setSelectedCourse(prev => ({ ...prev, ...courseData })); // Careful with recursion/re-renders if not handled
+      }
+    });
+
+    return () => unsubscribe();
+  }, [selectedCourse?.firestoreId]);
   const [activeQuiz, setActiveQuiz] = useState(null); // Which quiz is currently being taken
   const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers { questionIndex: optionIndex }
   const [quizResult, setQuizResult] = useState(null); // Stores final score
@@ -264,27 +288,44 @@ export default function SchoolyScootLMS() {
 
 
 
-  const handleStartMeeting = () => {
+  const handleStartMeeting = async () => {
     if (!meetingConfig.topic) {
       alert('กรุณาระบุหัวข้อการเรียน');
       return;
     }
 
     const roomID = `SchoolyScoot_${selectedCourse.code}_${Date.now()}`;  // Generate Unique Room
-    setMeetingConfig(prev => ({ ...prev, isActive: true, roomName: roomID }));
+    const meetingData = {
+      topic: meetingConfig.topic,
+      isActive: true,
+      roomName: roomID
+    };
 
-    // Notify Students
-    if (selectedCourse && selectedCourse.studentIds) {
-      selectedCourse.studentIds.forEach(studentId => {
-        createNotification(
-          studentId,
-          `เข้าเรียน: ${meetingConfig.topic}`,
-          'meeting',
-          `วิชา ${selectedCourse.name} เริ่มการเรียนการสอนแล้ว! กดเพื่อเข้าร่วม`
-        );
-      });
-    }
+    // 1. Update Local State (Immediate Feedback)
+    setMeetingConfig(meetingData);
     setActiveModal('videoConference');
+
+    // 2. Sync to Firestore
+    try {
+      await updateCourse(selectedCourse.firestoreId, {
+        meeting: meetingData
+      });
+
+      // 3. Notify Students
+      if (selectedCourse && selectedCourse.studentIds) {
+        selectedCourse.studentIds.forEach(studentId => {
+          createNotification(
+            studentId,
+            `เข้าเรียน: ${meetingConfig.topic}`,
+            'meeting',
+            `วิชา ${selectedCourse.name} เริ่มการเรียนการสอนแล้ว! กดเพื่อเข้าร่วม`
+          );
+        });
+      }
+    } catch (error) {
+      console.error("Failed to start meeting:", error);
+      alert("เกิดข้อผิดพลาดในการเริ่มคลาสเรียน");
+    }
   };
 
   const [assignments, setAssignments] = useState([]);
@@ -3143,10 +3184,19 @@ export default function SchoolyScootLMS() {
                 </div>
               </div>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (confirm('ต้องการออกจากห้องเรียนใช่หรือไม่?')) {
                     setActiveModal(null);
-                    if (userRole === 'teacher') setMeetingConfig({ ...meetingConfig, isActive: false });
+                    if (userRole === 'teacher') {
+                      setMeetingConfig({ ...meetingConfig, isActive: false });
+                      try {
+                        await updateCourse(selectedCourse.firestoreId, {
+                          meeting: { isActive: false }
+                        });
+                      } catch (err) {
+                        console.error("Error ending meeting:", err);
+                      }
+                    }
                   }
                 }}
                 className="bg-red-500/20 hover:bg-red-500 text-red-100 hover:text-white px-4 py-2 rounded-xl transition-all font-bold text-sm"
