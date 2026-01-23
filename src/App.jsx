@@ -3035,29 +3035,61 @@ export default function SchoolyScootLMS() {
               </div>
 
               {userRole === 'teacher' ? (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
-                  <div className="w-24 h-24 bg-[#F0FDF4] rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Video size={48} className="text-[#96C68E]" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">เปิดห้องเรียนออนไลน์</h3>
-                  <p className="text-slate-500 mb-6">สร้างห้องเรียนวิดีโอเพื่อสอนนักเรียนแบบ Real-time</p>
+                meetingConfig.isActive ? (
+                  <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center animate-in fade-in">
+                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                      <Video size={48} className="text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">กำลังมีการเรียนการสอน</h3>
+                    <p className="text-slate-600 mb-6">หัวข้อ: <span className="font-bold text-[#96C68E]">{meetingConfig.topic}</span></p>
 
-                  <div className="max-w-md mx-auto space-y-4">
-                    <input
-                      type="text"
-                      placeholder="หัวข้อการเรียน (เช่น บทที่ 5: สมการเชิงเส้น)"
-                      className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#96C68E]"
-                      value={meetingConfig.topic}
-                      onChange={(e) => setMeetingConfig({ ...meetingConfig, topic: e.target.value })}
-                    />
-                    <button
-                      onClick={handleStartMeeting}
-                      className="w-full py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg hover:shadow-green-200 transition-all transform hover:-translate-y-1"
-                    >
-                      เริ่มการสอนทันที 🚀
-                    </button>
+                    <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                      <button
+                        onClick={() => setActiveModal('videoConference')}
+                        className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold hover:bg-[#85b57d] shadow-sm flex items-center justify-center"
+                      >
+                        <Video size={20} className="mr-2" /> กลับเข้าห้องเรียน
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm('ต้องการจบการสอนหรือไม่? นักเรียนทุกคนจะถูกตัดออกจากห้องเรียน')) {
+                            try {
+                              setMeetingConfig({ ...meetingConfig, isActive: false });
+                              await updateCourse(selectedCourse.firestoreId, { meeting: { isActive: false } });
+                            } catch (e) { console.error(e); alert('เกิดข้อผิดพลาด'); }
+                          }
+                        }}
+                        className="w-full py-3 bg-red-100 text-red-500 rounded-xl font-bold hover:bg-red-200 shadow-sm flex items-center justify-center"
+                      >
+                        <VideoOff size={20} className="mr-2" /> จบการสอน
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
+                    <div className="w-24 h-24 bg-[#F0FDF4] rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Video size={48} className="text-[#96C68E]" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">เปิดห้องเรียนออนไลน์</h3>
+                    <p className="text-slate-500 mb-6">สร้างห้องเรียนวิดีโอเพื่อสอนนักเรียนแบบ Real-time</p>
+
+                    <div className="max-w-md mx-auto space-y-4">
+                      <input
+                        type="text"
+                        placeholder="หัวข้อการเรียน (เช่น บทที่ 5: สมการเชิงเส้น)"
+                        className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#96C68E]"
+                        value={meetingConfig.topic}
+                        onChange={(e) => setMeetingConfig({ ...meetingConfig, topic: e.target.value })}
+                      />
+                      <button
+                        onClick={handleStartMeeting}
+                        className="w-full py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg hover:shadow-green-200 transition-all transform hover:-translate-y-1"
+                      >
+                        เริ่มการสอนทันที 🚀
+                      </button>
+                    </div>
+                  </div>
+                )
               ) : (
                 <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
                   {meetingConfig.isActive ? (
@@ -3184,24 +3216,13 @@ export default function SchoolyScootLMS() {
                 </div>
               </div>
               <button
-                onClick={async () => {
-                  if (confirm('ต้องการออกจากห้องเรียนใช่หรือไม่?')) {
-                    setActiveModal(null);
-                    if (userRole === 'teacher') {
-                      setMeetingConfig({ ...meetingConfig, isActive: false });
-                      try {
-                        await updateCourse(selectedCourse.firestoreId, {
-                          meeting: { isActive: false }
-                        });
-                      } catch (err) {
-                        console.error("Error ending meeting:", err);
-                      }
-                    }
-                  }
+                onClick={() => {
+                  // Just close the modal, don't end the meeting logic
+                  setActiveModal(null);
                 }}
-                className="bg-red-500/20 hover:bg-red-500 text-red-100 hover:text-white px-4 py-2 rounded-xl transition-all font-bold text-sm"
+                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl transition-all font-bold text-sm"
               >
-                ออกจากห้องเรียน
+                ปิดหน้าต่าง
               </button>
             </div>
 
