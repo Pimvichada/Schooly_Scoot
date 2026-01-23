@@ -113,6 +113,13 @@ export default function SchoolyScootLMS() {
   const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
   const [authLoading, setAuthLoading] = useState(true);
 
+  // Meeting State
+  const [meetingConfig, setMeetingConfig] = useState({
+    topic: '',
+    isActive: false,
+    roomName: ''
+  });
+
   // Time State
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -256,6 +263,30 @@ export default function SchoolyScootLMS() {
 
 
 
+
+  const handleStartMeeting = () => {
+    if (!meetingConfig.topic) {
+      alert('กรุณาระบุหัวข้อการเรียน');
+      return;
+    }
+
+    const roomID = `SchoolyScoot_${selectedCourse.code}_${Date.now()}`;  // Generate Unique Room
+    setMeetingConfig(prev => ({ ...prev, isActive: true, roomName: roomID }));
+
+    // Notify Students
+    if (selectedCourse && selectedCourse.studentIds) {
+      selectedCourse.studentIds.forEach(studentId => {
+        createNotification(
+          studentId,
+          `เข้าเรียน: ${meetingConfig.topic}`,
+          'meeting',
+          `วิชา ${selectedCourse.name} เริ่มการเรียนการสอนแล้ว! กดเพื่อเข้าร่วม`
+        );
+      });
+    }
+    setActiveModal('videoConference');
+  };
+
   const [assignments, setAssignments] = useState([]);
   const [assignmentFilter, setAssignmentFilter] = useState('pending');
   // ฟอร์มสร้างงาน
@@ -267,7 +298,7 @@ export default function SchoolyScootLMS() {
     files: [],
   });
 
-  
+
   // State for student file upload
   const [uploadFile, setUploadFile] = useState([]);
   // Create Exam State
@@ -2953,6 +2984,71 @@ export default function SchoolyScootLMS() {
             </div>
           )
 
+        case 'meeting':
+          return (
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                  <Video className="mr-2 text-[#96C68E]" /> ห้องเรียนออนไลน์
+                </h2>
+              </div>
+
+              {userRole === 'teacher' ? (
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
+                  <div className="w-24 h-24 bg-[#F0FDF4] rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Video size={48} className="text-[#96C68E]" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">เปิดห้องเรียนออนไลน์</h3>
+                  <p className="text-slate-500 mb-6">สร้างห้องเรียนวิดีโอเพื่อสอนนักเรียนแบบ Real-time</p>
+
+                  <div className="max-w-md mx-auto space-y-4">
+                    <input
+                      type="text"
+                      placeholder="หัวข้อการเรียน (เช่น บทที่ 5: สมการเชิงเส้น)"
+                      className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#96C68E]"
+                      value={meetingConfig.topic}
+                      onChange={(e) => setMeetingConfig({ ...meetingConfig, topic: e.target.value })}
+                    />
+                    <button
+                      onClick={handleStartMeeting}
+                      className="w-full py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg hover:shadow-green-200 transition-all transform hover:-translate-y-1"
+                    >
+                      เริ่มการสอนทันที 🚀
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
+                  {meetingConfig.isActive ? (
+                    <>
+                      <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                        <Video size={48} className="text-green-600" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-800 mb-2">กำลังมีการเรียนการสอน!</h3>
+                      <p className="text-slate-600 font-medium mb-1">หัวข้อ: <span className="text-[#96C68E]">{meetingConfig.topic}</span></p>
+                      <p className="text-slate-400 mb-8">คุณครูกำลังรอคุณอยู่ เข้าห้องเรียนเพื่อเริ่มเรียนได้เลย</p>
+
+                      <button
+                        onClick={() => setActiveModal('videoConference')}
+                        className="px-10 py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg hover:shadow-green-200 transition-all transform hover:-translate-y-1 animate-bounce"
+                      >
+                        เข้าห้องเรียน
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <VideoOff size={48} className="text-slate-300" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-400 mb-2">ยังไม่มีการเรียนการสอน</h3>
+                      <p className="text-slate-400">เมื่อคุณครูเริ่มคลาสเรียน ปุ่มเข้าห้องเรียนจะปรากฏที่นี่</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+
       }
     };
 
@@ -2977,8 +3073,8 @@ export default function SchoolyScootLMS() {
 
         {/* Tabs Navigation */}
         <div className="flex space-x-1 overflow-x-auto pb-2 custom-scrollbar">
-          {['หน้าหลัก', 'งานในชั้นเรียน', 'แบบทดสอบ', 'สมาชิก', 'คะแนน', ...(userRole === 'teacher' ? ['ตั้งค่า'] : [])].map((tab) => {
-            const tabKey = tab === 'หน้าหลัก' ? 'home' : tab === 'งานในชั้นเรียน' ? 'work' : tab === 'แบบทดสอบ' ? 'quizzes' : tab === 'สมาชิก' ? 'people' : tab === 'คะแนน' ? 'grades' : 'settings';
+          {['หน้าหลัก', 'งานในชั้นเรียน', 'แบบทดสอบ', 'สมาชิก', 'คะแนน', 'ห้องเรียนออนไลน์', ...(userRole === 'teacher' ? ['ตั้งค่า'] : [])].map((tab) => {
+            const tabKey = tab === 'หน้าหลัก' ? 'home' : tab === 'งานในชั้นเรียน' ? 'work' : tab === 'แบบทดสอบ' ? 'quizzes' : tab === 'สมาชิก' ? 'people' : tab === 'คะแนน' ? 'grades' : tab === 'ห้องเรียนออนไลน์' ? 'meeting' : 'settings';
             return (
               <button
                 key={tab}
@@ -3033,6 +3129,49 @@ export default function SchoolyScootLMS() {
     <div className="flex h-screen bg-[#F8FAFC] font-sans">
       {renderModal()}
 
+      {/* VIDEO CONFERENCE MODAL (Jitsi) */}
+      {activeModal === 'videoConference' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-[95vw] h-[90vh] rounded-3xl overflow-hidden flex flex-col relative shadow-2xl">
+            {/* Header */}
+            <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="bg-red-500 p-2 rounded-lg"><Video size={20} className="text-white" /></div>
+                <div>
+                  <h3 className="font-bold text-lg">{meetingConfig.topic || 'ห้องเรียนออนไลน์'}</h3>
+                  <p className="text-xs text-slate-400">Schooly Scoot Conference</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (confirm('ต้องการออกจากห้องเรียนใช่หรือไม่?')) {
+                    setActiveModal(null);
+                    if (userRole === 'teacher') setMeetingConfig({ ...meetingConfig, isActive: false });
+                  }
+                }}
+                className="bg-red-500/20 hover:bg-red-500 text-red-100 hover:text-white px-4 py-2 rounded-xl transition-all font-bold text-sm"
+              >
+                ออกจากห้องเรียน
+              </button>
+            </div>
+
+            {/* Jitsi Iframe */}
+            <div className="flex-1 bg-black relative">
+              <iframe
+                src={`https://meet.jit.si/${meetingConfig.roomName}#config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName="${profile.firstName} ${profile.lastName}"`}
+                className="w-full h-full border-0"
+                allow="camera; microphone; fullscreen; display-capture; autoplay"
+              ></iframe>
+
+              {/* Overlay Loading */}
+              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center -z-10">
+                <span className="text-slate-500 flex items-center gap-2"><div className="w-4 h-4 bg-slate-500 rounded-full animate-bounce"></div> กำลังโหลดห้องเรียน...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
@@ -3043,17 +3182,17 @@ export default function SchoolyScootLMS() {
         fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F0F4F8] p-4 flex flex-col transition-transform duration-300 border-r border-white
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
-       
-          <h1 className="flex justify-center items-center">
-                       <img
-                         src={logo_no_text}
-                         alt="Schooly Scoot Logo"
-                         className="h-20 w-auto"
-                       />
-                     </h1>
-          
-          <span className="text-xl font-bold text-slate-800 tracking-tight text-center mb-6">Schooly Scoot</span>
-       
+
+        <h1 className="flex justify-center items-center">
+          <img
+            src={logo_no_text}
+            alt="Schooly Scoot Logo"
+            className="h-20 w-auto"
+          />
+        </h1>
+
+        <span className="text-xl font-bold text-slate-800 tracking-tight text-center mb-6">Schooly Scoot</span>
+
 
         <nav className="flex-1 overflow-y-auto custom-scrollbar">
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">เมนูหลัก</p>
