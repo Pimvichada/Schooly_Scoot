@@ -4,12 +4,13 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
-import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz } from './services/quizService';
+import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
+import { uploadFile } from './services/uploadService';
 import {
   BookOpen,
   Calendar,
@@ -39,12 +40,12 @@ import {
   CheckCircle,
   AlertCircle,
   AlertTriangle,
+  Lock,
 
   Info,
   Send,
   Image as ImageIcon,
   Paperclip,
-  Lock,
   ArrowRight,
   ClipboardList,
   Clock,
@@ -62,7 +63,9 @@ import {
   Edit2,
   EyeOff,
   Eye,
-  Trash2
+  Trash2,
+  BarChart3,
+  TrendingUp
 } from 'lucide-react';
 
 import { MascotCircle, MascotSquare, MascotTriangle, MascotStar } from './components/Mascots';
@@ -646,15 +649,26 @@ export default function SchoolyScootLMS() {
 
 
   // Fetch quizzes when entering a course or changing tab to quizzes
+  // Fetch quizzes and submissions
   useEffect(() => {
-    const fetchQuizzes = async () => {
-      if (selectedCourse && courseTab === 'quizzes') {
+    const fetchQuizzesAndSubmissions = async () => {
+      if (selectedCourse && (courseTab === 'quizzes' || courseTab === 'grades')) {
         const q = await getQuizzesByCourse(selectedCourse.name);
         setQuizzes(q);
+
+        // Fetch Submissions if Student
+        if (userRole === 'student' && auth.currentUser) {
+          const submissions = {};
+          for (const quiz of q) {
+            const sub = await checkSubmission(quiz.firestoreId, auth.currentUser.uid);
+            if (sub) submissions[quiz.firestoreId] = sub;
+          }
+          setMySubmissions(submissions);
+        }
       }
     };
-    fetchQuizzes();
-  }, [selectedCourse, courseTab]);
+    fetchQuizzesAndSubmissions();
+  }, [selectedCourse, courseTab, userRole]);
 
 
   // Fetch Assignments
@@ -742,9 +756,20 @@ export default function SchoolyScootLMS() {
   const [newExam, setNewExam] = useState({
     id: null,
     title: '',
-    course: '', // विल be set dynamically
-    time: '',
-    items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
+    course: '', // will be set dynamically
+    time: 30,
+    items: [{
+      id: 'init_1',
+      type: 'choice',
+      q: '',
+      image: null,
+      options: ['', '', '', ''],
+      correct: 0,
+      keywords: [],
+      correctAnswer: true,
+      pairs: [{ left: '', right: '' }]
+    }],
+    scheduledAt: '' // New field for scheduling
   });
 
   // Modal State
@@ -768,20 +793,69 @@ export default function SchoolyScootLMS() {
 
 
   // Quiz Taking Logic
-  const submitQuiz = useCallback(() => {
+  // Quiz Taking Logic
+  const submitQuiz = useCallback(async () => {
     if (!activeQuiz) return;
     let score = 0;
     activeQuiz.items.forEach((item, idx) => {
-      if (quizAnswers[idx] === item.correct) score++;
+      const answer = quizAnswers[idx];
+      let isCorrect = false;
+
+      if (!item.type || item.type === 'choice') {
+        isCorrect = answer === item.correct;
+      } else if (item.type === 'true_false') {
+        isCorrect = answer === item.correctAnswer;
+      } else if (item.type === 'matching') {
+        // all pairs must match
+        const pairs = item.pairs || [];
+        isCorrect = pairs.every((p, pIdx) => {
+          const userRight = answer ? answer[pIdx] : null;
+          return userRight === p.right;
+        });
+      } else if (item.type === 'text') {
+        const userText = (answer || '').trim().toLowerCase();
+        const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
+        isCorrect = keywords.some(k => userText.includes(k));
+      }
+
+      if (isCorrect) score++;
     });
-    setQuizResult({ score, total: activeQuiz.items.length });
-  }, [activeQuiz, quizAnswers]);
+
+    const total = activeQuiz.items.length;
+    setQuizResult({ score, total });
+
+    // Save submission to Backend
+    if (auth.currentUser) {
+      try {
+        const submissionData = {
+          score,
+          total,
+          answers: quizAnswers,
+          studentName: profile.firstName + ' ' + (profile.lastName || ''),
+        };
+        const savedSub = await submitQuizService(activeQuiz.firestoreId, auth.currentUser.uid, submissionData);
+
+        // Update local state to reflect submission
+        setMySubmissions(prev => ({
+          ...prev,
+          [activeQuiz.firestoreId]: savedSub
+        }));
+      } catch (error) {
+        console.error("Failed to submit quiz:", error);
+        alert("เกิดข้อผิดพลาดในการส่งคำตอบ แต่คะแนนถูกคำนวณแล้ว");
+      }
+    }
+  }, [activeQuiz, quizAnswers, profile, auth.currentUser]);
 
   // Use a ref to access the latest submitQuiz function inside the interval
   const submitQuizRef = useRef(submitQuiz);
   useEffect(() => {
     submitQuizRef.current = submitQuiz;
   }, [submitQuiz]);
+
+  const [mySubmissions, setMySubmissions] = useState({}); // Map: quizId -> submission
+  const [courseSubmissions, setCourseSubmissions] = useState({}); // For teacher view
+  const [selectedSubmission, setSelectedSubmission] = useState(null); // For detailed answer view
 
   // Quiz Timer Countdown & Auto Submit
   useEffect(() => {
@@ -1236,7 +1310,17 @@ export default function SchoolyScootLMS() {
   const handleAddQuestion = () => {
     setNewExam(prev => ({
       ...prev,
-      items: [...prev.items, { q: '', options: ['', '', '', ''], correct: 0 }]
+      items: [...prev.items, {
+        id: Date.now().toString(),
+        type: 'choice', // choice, true_false, text, matching
+        q: '',
+        image: null,
+        options: ['', '', '', ''],
+        correct: 0,
+        correctAnswer: true, // for true_false
+        keywords: [], // for text
+        pairs: [{ left: '', right: '' }] // for matching
+      }]
     }));
   };
 
@@ -1267,6 +1351,17 @@ export default function SchoolyScootLMS() {
     });
   };
 
+  const handleQuestionImageUpload = async (idx, file) => {
+    if (!file) return;
+    try {
+      const url = await uploadFile(file, 'quiz_questions');
+      handleUpdateQuestion(idx, 'image', url);
+    } catch (error) {
+      console.error("Failed to upload question image", error);
+      alert("อัปโหลดรูปภาพไม่สำเร็จ");
+    }
+  };
+
   const handleSaveExam = async () => {
     if (!newExam.title || newExam.items.some(i => !i.q)) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
@@ -1279,11 +1374,14 @@ export default function SchoolyScootLMS() {
         course: newExam.course || selectedCourse.name,
         questions: newExam.items.length,
         time: newExam.time,
+        scheduledAt: newExam.scheduledAt || null, // Persist schedule
         status: newExam.status || 'available', // Preserve status if editing, default available
         score: null,
         items: newExam.items.map(item => ({
           ...item,
-          options: [...item.options]
+          options: item.options ? [...item.options] : [],
+          keywords: item.keywords ? [...item.keywords] : [],
+          pairs: item.pairs ? item.pairs.map(p => ({ ...p })) : []
         })),
         ownerId: auth.currentUser.uid
       };
@@ -1298,6 +1396,27 @@ export default function SchoolyScootLMS() {
         const createdQuiz = await createQuiz(examData);
         setQuizzes([...quizzes, createdQuiz]);
         alert('สร้างแบบทดสอบเรียบร้อย');
+
+        // Notify Students
+        if (selectedCourse?.studentIds) {
+          const recipients = selectedCourse.studentIds.filter(id => id !== auth.currentUser.uid);
+          for (const studentId of recipients) {
+            const isScheduled = !!examData.scheduledAt;
+            const message = isScheduled
+              ? `มีแบบทดสอบใหม่กำหนดสอบวันที่ ${new Date(examData.scheduledAt).toLocaleString('th-TH', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+              })}`
+              : `มีแบบทดสอบใหม่ "${examData.title}" เปิดให้ทำแล้ว`;
+
+            await createNotification(
+              studentId,
+              `แบบทดสอบใหม่: ${examData.title}`,
+              'quiz',
+              message,
+              { courseId: selectedCourse.firestoreId, targetType: 'quiz', targetId: createdQuiz.firestoreId }
+            );
+          }
+        }
       }
 
       setActiveModal(null);
@@ -1306,8 +1425,9 @@ export default function SchoolyScootLMS() {
         id: null,
         title: '',
         course: '',
-
-        items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
+        time: 30,
+        items: [{ q: '', options: ['', '', '', ''], correct: 0 }],
+        scheduledAt: ''
       });
 
     } catch (error) {
@@ -1338,10 +1458,23 @@ export default function SchoolyScootLMS() {
       title: quiz.title,
       course: quiz.course,
       time: parseInt(quiz.time) || 30,
+      scheduledAt: quiz.scheduledAt || '',
       status: quiz.status,
       items: quiz.items.map(i => ({ ...i, options: [...i.options] })) // Deep copy
     });
     setActiveModal('createExam');
+  };
+
+  const handleViewResults = async (quiz) => {
+    try {
+      const subs = await getQuizSubmissions(quiz.firestoreId);
+      // Map submissions to include student names (already in submission data)
+      setCourseSubmissions(subs);
+      setActiveQuiz(quiz);
+      setActiveModal('viewResults');
+    } catch (error) {
+      console.error("Failed to fetch results", error);
+    }
   };
 
   const handleDeleteQuiz = async (quizId) => {
@@ -1703,6 +1836,45 @@ export default function SchoolyScootLMS() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Schedule Exam */}
+                  <div className="col-span-full bg-orange-50 p-4 rounded-xl border border-orange-100">
+                    <label className="flex items-center gap-3 cursor-pointer mb-2">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 accent-[#FF917B] rounded-lg"
+                        checked={!!newExam.scheduledAt}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            // Default to tomorrow 8:00 AM for convenience
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            tomorrow.setHours(8, 0, 0, 0);
+                            // Format to YYYY-MM-DDTHH:mm
+                            const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+                            setNewExam({ ...newExam, scheduledAt: localIso });
+                          } else {
+                            setNewExam({ ...newExam, scheduledAt: '' });
+                          }
+                        }}
+                      />
+                      <span className="font-bold text-slate-700 flex items-center">
+                        <Calendar size={18} className="mr-2 text-orange-500" /> กำหนดเวลาสอบ (Scheduled Release)
+                      </span>
+                    </label>
+                    <p className="text-sm text-slate-500 ml-8 mb-3">หากกำหนดเวลา นักเรียนจะไม่เห็นข้อสอบจนกว่าจะถึงเวลาที่กำหนด</p>
+
+                    {newExam.scheduledAt && (
+                      <div className="ml-8 animate-in slide-in-from-top-2 duration-200">
+                        <input
+                          type="datetime-local"
+                          className="w-full md:w-1/2 p-3 rounded-xl border border-orange-200 focus:border-orange-400 outline-none bg-white font-medium text-slate-700"
+                          value={newExam.scheduledAt}
+                          onChange={(e) => setNewExam({ ...newExam, scheduledAt: e.target.value })}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
 
@@ -1711,37 +1883,184 @@ export default function SchoolyScootLMS() {
                 <div className="space-y-4">
                   <h3 className="font-bold text-slate-700">รายการคำถาม ({newExam.items.length})</h3>
                   {newExam.items.map((item, idx) => (
-                    <div key={idx} className="border border-slate-200 rounded-2xl p-4 relative group hover:border-[#BEE1FF] transition-all">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded">ข้อที่ {idx + 1}</span>
-                        <button onClick={() => handleRemoveQuestion(idx)} className="text-red-400 hover:text-red-600"><Trash size={16} /></button>
+                    <div key={idx} className="border border-slate-200 rounded-2xl p-4 relative group hover:border-[#BEE1FF] transition-all bg-white shadow-sm">
+                      {/* Header: Num, Type, Delete */}
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ข้อที่ {idx + 1}</span>
+                          <select
+                            value={item.type || 'choice'}
+                            onChange={(e) => handleUpdateQuestion(idx, 'type', e.target.value)}
+                            className="text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#96C68E]"
+                          >
+                            <option value="choice">ปรนัย (4 ตัวเลือก)</option>
+                            <option value="true_false">ถูก/ผิด (True/False)</option>
+                            <option value="matching">จับคู่ (Matching)</option>
+                            <option value="text">เติมคำ (Keywords)</option>
+                          </select>
+                        </div>
+                        <button onClick={() => handleRemoveQuestion(idx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash size={16} /></button>
                       </div>
-                      <input
-                        type="text"
-                        className="w-full p-2 mb-3 border-b border-slate-200 focus:border-[#96C68E] outline-none font-bold text-slate-700"
-                        placeholder="พิมพ์โจทย์คำถาม..."
-                        value={item.q}
-                        onChange={(e) => handleUpdateQuestion(idx, 'q', e.target.value)}
-                      />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {item.options.map((opt, optIdx) => (
-                          <div key={optIdx} className="flex items-center">
+
+                      {/* Question Text & Image */}
+                      <div className="mb-4">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            className="w-full p-3 pr-12 mb-2 border border-slate-200 rounded-xl focus:border-[#96C68E] outline-none font-bold text-slate-700 bg-slate-50 focus:bg-white transition-colors"
+                            placeholder="พิมพ์โจทย์คำถาม..."
+                            value={item.q}
+                            onChange={(e) => handleUpdateQuestion(idx, 'q', e.target.value)}
+                          />
+                          <label className="absolute right-2 top-2 p-2 cursor-pointer text-slate-400 hover:text-[#96C68E] hover:bg-slate-100 rounded-full transition-colors z-10">
+                            <ImageIcon size={20} />
                             <input
-                              type="radio"
-                              name={`correct-${idx}`}
-                              checked={item.correct === optIdx}
-                              onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
-                              className="mr-2"
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onClick={(e) => e.target.value = null}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handleQuestionImageUpload(idx, e.target.files[0]);
+                                }
+                              }}
                             />
+                          </label>
+                        </div>
+                        {item.image && (
+                          <div className="relative w-fit mt-2">
+                            <img src={item.image} alt="Question" className="h-32 rounded-lg border border-slate-200 object-cover" />
+                            <button
+                              onClick={() => handleUpdateQuestion(idx, 'image', null)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Answer Editor based on Type */}
+                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                        {/* CASE: CHOICE */}
+                        {(!item.type || item.type === 'choice') && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {item.options.map((opt, optIdx) => (
+                              <div key={optIdx} className="flex items-center bg-white p-2 rounded-lg border border-slate-200 focus-within:border-[#96C68E] focus-within:ring-1 focus-within:ring-[#96C68E]">
+                                <input
+                                  type="radio"
+                                  name={`correct-${idx}`}
+                                  checked={item.correct === optIdx}
+                                  onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
+                                  className="mr-3 w-4 h-4 accent-[#96C68E]"
+                                />
+                                <input
+                                  type="text"
+                                  className="flex-1 text-sm outline-none text-slate-600 font-medium"
+                                  placeholder={`ตัวเลือก ${optIdx + 1}`}
+                                  value={opt}
+                                  onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* CASE: TRUE/FALSE */}
+                        {item.type === 'true_false' && (
+                          <div className="flex gap-4">
+                            <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold ${item.correctAnswer === true ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-slate-200 text-slate-400 hover:border-green-200'}`}>
+                              <input
+                                type="radio"
+                                name={`tf-${idx}`}
+                                checked={item.correctAnswer === true}
+                                onChange={() => handleUpdateQuestion(idx, 'correctAnswer', true)}
+                                className="hidden"
+                              />
+                              <CheckCircle2 size={20} className="mr-2" /> ถูก (True)
+                            </label>
+                            <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold ${item.correctAnswer === false ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200'}`}>
+                              <input
+                                type="radio"
+                                name={`tf-${idx}`}
+                                checked={item.correctAnswer === false}
+                                onChange={() => handleUpdateQuestion(idx, 'correctAnswer', false)}
+                                className="hidden"
+                              />
+                              <X size={20} className="mr-2" /> ผิด (False)
+                            </label>
+                          </div>
+                        )}
+
+                        {/* CASE: MATCHING */}
+                        {item.type === 'matching' && (
+                          <div className="space-y-2">
+                            {(item.pairs || []).map((pair, pIdx) => (
+                              <div key={pIdx} className="flex gap-2 items-center">
+                                <input
+                                  placeholder="ฝั่งซ้าย (โจทย์)"
+                                  className="flex-1 p-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-[#96C68E]"
+                                  value={pair.left}
+                                  onChange={(e) => {
+                                    const newPairs = [...item.pairs];
+                                    newPairs[pIdx].left = e.target.value;
+                                    handleUpdateQuestion(idx, 'pairs', newPairs);
+                                  }}
+                                />
+                                <ArrowRight size={16} className="text-slate-300" />
+                                <input
+                                  placeholder="ฝั่งขวา (คำตอบ)"
+                                  className="flex-1 p-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-[#96C68E]"
+                                  value={pair.right}
+                                  onChange={(e) => {
+                                    const newPairs = [...item.pairs];
+                                    newPairs[pIdx].right = e.target.value;
+                                    handleUpdateQuestion(idx, 'pairs', newPairs);
+                                  }}
+                                />
+                                {item.pairs.length > 1 && (
+                                  <button
+                                    onClick={() => {
+                                      const newPairs = item.pairs.filter((_, i) => i !== pIdx);
+                                      handleUpdateQuestion(idx, 'pairs', newPairs);
+                                    }}
+                                    className="text-slate-300 hover:text-red-500"
+                                  >
+                                    <Trash size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                            <button
+                              onClick={() => {
+                                const newPairs = [...(item.pairs || []), { left: '', right: '' }];
+                                handleUpdateQuestion(idx, 'pairs', newPairs);
+                              }}
+                              className="text-xs font-bold text-[#96C68E] hover:underline flex items-center"
+                            >
+                              <Plus size={12} className="mr-1" /> เพิ่มคู่จับคู่
+                            </button>
+                          </div>
+                        )}
+
+                        {/* CASE: TEXT / FILL IN BLANK */}
+                        {item.type === 'text' && (
+                          <div>
+                            <p className="text-xs font-bold text-slate-500 mb-2">คำตอบที่ถูกต้อง (Keywords)</p>
+                            <p className="text-[10px] text-slate-400 mb-2">ระบบจะตรวจคำตอบว่ามีคำเหล่านี้หรือไม่ (คั่นด้วยจุลภาค ,)</p>
                             <input
                               type="text"
-                              className={`flex-1 p-2 rounded-lg border text-sm ${item.correct === optIdx ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-200'}`}
-                              placeholder={`ตัวเลือก ${optIdx + 1}`}
-                              value={opt}
-                              onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
+                              className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                              placeholder="เช่น โปรตีน, เนื้อสัตว์, ถั่ว"
+                              value={item.keywords ? item.keywords.join(', ') : ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const keys = val.split(',').map(k => k.trim());
+                                handleUpdateQuestion(idx, 'keywords', keys);
+                              }}
                             />
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1755,9 +2074,352 @@ export default function SchoolyScootLMS() {
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
                 <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
-               <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
+                <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
                   <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW RESULTS MODAL */}
+          {activeModal === 'viewResults' && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+                {/* HEADER */}
+                <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-amber-100 p-3 rounded-2xl">
+                      <Trophy className="text-amber-500" size={32} />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                        ผลคะแนนสอบ
+                      </h2>
+                      <p className="text-slate-500 font-medium mt-1">
+                        แบบทดสอบ: <span className="text-indigo-600">{activeQuiz?.title}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={closeModal}
+                    className="group p-2 hover:bg-red-50 rounded-xl transition-colors duration-200"
+                  >
+                    <X size={28} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+                  </button>
+                </div>
+
+                {/* CONTENT */}
+                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+                  <div className="max-w-6xl mx-auto">
+                    {/* STATS GRID */}
+                    {courseSubmissions.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-slate-500 text-sm font-bold">คะแนนเฉลี่ย</p>
+                            <BarChart3 size={20} className="text-indigo-400" />
+                          </div>
+                          <p className="text-4xl font-black text-slate-800">
+                            {(courseSubmissions.reduce((a, b) => a + b.score, 0) / courseSubmissions.length).toFixed(1)}
+                            <span className="text-lg text-slate-400 font-medium ml-1">/ {activeQuiz?.questions}</span>
+                          </p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-slate-500 text-sm font-bold">ผ่านเกณฑ์ (50%)</p>
+                            <CheckCircle2 size={20} className="text-green-400" />
+                          </div>
+                          <p className="text-4xl font-black text-slate-800">
+                            {Math.round((courseSubmissions.filter(s => s.score >= (s.total / 2)).length / courseSubmissions.length) * 100)}%
+                          </p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-slate-500 text-sm font-bold">คะแนนสูงสุด</p>
+                            <TrendingUp size={20} className="text-amber-400" />
+                          </div>
+                          <p className="text-4xl font-black text-slate-800">
+                            {Math.max(...courseSubmissions.map(s => s.score))}
+                          </p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-slate-500 text-sm font-bold">ส่งแล้ว</p>
+                            <Users size={20} className="text-blue-400" />
+                          </div>
+                          <p className="text-4xl font-black text-slate-800">
+                            {courseSubmissions.length}
+                            <span className="text-lg text-slate-400 font-medium ml-1">คน</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* RESULTS TABLE */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
+                      {courseSubmissions.length > 0 ? (
+                        <table className="w-full text-left">
+                          <thead className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                            <tr>
+                              <th className="p-4 pl-6 font-bold">นักเรียน</th>
+                              <th className="p-4 font-bold">สถานะ</th>
+                              <th className="p-4 font-bold">เวลาส่ง</th>
+                              <th className="p-4 pr-6 font-bold text-right">คะแนนสอบ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {courseSubmissions.map((sub) => {
+                              const percent = (sub.score / sub.total) * 100;
+                              return (
+                                <tr
+                                  key={sub.firestoreId}
+                                  className="hover:bg-indigo-50/30 cursor-pointer transition-all hover:scale-[1.005] duration-200 group"
+                                  onClick={() => {
+                                    setSelectedSubmission(sub);
+                                    setActiveModal('viewAnswerDetail');
+                                  }}
+                                >
+                                  <td className="p-4 pl-6">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200 group-hover:border-indigo-200 group-hover:text-indigo-500 transition-colors">
+                                        {sub.studentName.charAt(0)}
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-slate-700 group-hover:text-indigo-700">{sub.studentName}</div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center bg-green-100 text-green-700`}>
+                                      <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
+                                    </span>
+                                  </td>
+                                  <td className="p-4">
+                                    <div className="flex items-center text-slate-500 font-medium text-sm">
+                                      <Clock size={16} className="mr-2 text-slate-400" />
+                                      {new Date(sub.submittedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                                    </div>
+                                  </td>
+                                  <td className="p-4 pr-6 text-right">
+                                    <div className="text-2xl font-black text-slate-800">
+                                      {sub.score} <span className="text-sm font-medium text-slate-400">/ {sub.total}</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-[400px] text-slate-400">
+                          <div className="bg-slate-50 p-6 rounded-full mb-4">
+                            <ClipboardList size={48} className="opacity-50" />
+                          </div>
+                          <p className="font-medium">ยังไม่มีนักเรียนส่งคำตอบ</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* FOOTER */}
+                <div className="px-8 py-5 border-t border-slate-100 bg-white flex justify-end">
+                  <button
+                    onClick={closeModal}
+                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200"
+                  >
+                    ปิดหน้าต่าง
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+
+          {/* VIEW ANSWER DETAIL MODAL */}
+          {activeModal === 'viewAnswerDetail' && selectedSubmission && activeQuiz && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+                {/* HEADER */}
+                <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => setActiveModal('viewResults')}
+                      className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-colors text-slate-600"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    <div className="bg-indigo-100 p-3 rounded-2xl">
+                      <FileText className="text-indigo-500" size={32} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                        {selectedSubmission.studentName}
+                      </h2>
+                      <p className="text-slate-500 font-medium mt-1">
+                        คะแนนสอบ: <span className="text-green-600 font-black text-lg">{selectedSubmission.score}</span> / {selectedSubmission.total}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={closeModal}
+                    className="group p-2 hover:bg-red-50 rounded-xl transition-colors duration-200"
+                  >
+                    <X size={28} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+                  </button>
+                </div>
+
+                {/* CONTENT */}
+                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+                  <div className="max-w-5xl mx-auto space-y-6">
+                    {activeQuiz.items.map((item, idx) => {
+                      const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
+                      let isCorrect = false;
+
+                      // Scoring Logic Check
+                      if (!item.type || item.type === 'choice') {
+                        isCorrect = answer === item.correct;
+                      } else if (item.type === 'true_false') {
+                        isCorrect = answer === item.correctAnswer;
+                      } else if (item.type === 'matching') {
+                        const pairs = item.pairs || [];
+                        isCorrect = pairs.every((p, pIdx) => {
+                          const userRight = answer ? answer[pIdx] : null;
+                          return userRight === p.right;
+                        });
+                      } else if (item.type === 'text') {
+                        const userText = (answer || '').toString().trim().toLowerCase();
+                        const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
+                        isCorrect = keywords.some(k => userText.includes(k));
+                      }
+
+                      return (
+                        <div key={idx} className={`bg-white p-8 rounded-3xl border shadow-sm transition-all hover:shadow-md ${isCorrect ? 'border-green-100 ring-4 ring-green-50/50' : 'border-red-100 ring-4 ring-red-50/50'}`}>
+                          <div className="flex justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                              <span className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {idx + 1}
+                              </span>
+                              <h3 className="font-bold text-slate-700 text-lg">{item.q}</h3>
+                            </div>
+                            {isCorrect ? (
+                              <span className="bg-green-100 text-green-600 px-4 py-1.5 rounded-xl text-sm font-bold flex items-center h-fit">
+                                <CheckCircle2 size={18} className="mr-2" /> ถูกต้อง
+                              </span>
+                            ) : (
+                              <span className="bg-red-50 text-red-500 px-4 py-1.5 rounded-xl text-sm font-bold flex items-center h-fit">
+                                <X size={18} className="mr-2" /> ผิด
+                              </span>
+                            )}
+                          </div>
+
+                          {item.image && (
+                            <div className="mb-6 pl-11">
+                              <img src={item.image} alt="Question" className="h-48 rounded-2xl border border-slate-100 object-cover shadow-sm" />
+                            </div>
+                          )}
+
+                          <div className="pl-11 space-y-4">
+                            {/* TYPE: CHOICE */}
+                            {(!item.type || item.type === 'choice') && (
+                              item.options.map((opt, optIdx) => {
+                                let optionClass = "p-4 rounded-xl border flex items-center justify-between transition-all ";
+                                if (optIdx === item.correct) {
+                                  optionClass += "bg-green-50 border-green-200 text-green-700 font-bold shadow-sm";
+                                } else if (optIdx === answer) {
+                                  optionClass += "bg-red-50 border-red-200 text-red-600 font-bold shadow-sm";
+                                } else {
+                                  optionClass += "bg-white border-slate-100 text-slate-500 opacity-60";
+                                }
+                                return (
+                                  <div key={optIdx} className={optionClass}>
+                                    <span className="flex items-center gap-3">
+                                      <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-[10px] opacity-50">
+                                        {['A', 'B', 'C', 'D'][optIdx]}
+                                      </span>
+                                      {opt}
+                                    </span>
+                                    {optIdx === item.correct && <CheckCircle size={20} className="text-green-500" />}
+                                    {optIdx === answer && optIdx !== item.correct && <X size={20} className="text-red-500" />}
+                                  </div>
+                                );
+                              })
+                            )}
+
+                            {/* TYPE: TRUE/FALSE */}
+                            {item.type === 'true_false' && (
+                              <div className="flex gap-4">
+                                <div className={`flex-1 p-4 rounded-2xl border flex items-center justify-center font-bold text-lg relative ${item.correctAnswer === true ? 'bg-green-50 border-green-200 text-green-700' : (answer === true ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white text-slate-300 border-slate-100')}`}>
+                                  TRUE
+                                  {item.correctAnswer === true && <CheckCircle size={20} className="absolute right-4 text-green-500" />}
+                                  {answer === true && item.correctAnswer !== true && <X size={20} className="absolute right-4 text-red-500" />}
+                                </div>
+                                <div className={`flex-1 p-4 rounded-2xl border flex items-center justify-center font-bold text-lg relative ${item.correctAnswer === false ? 'bg-green-50 border-green-200 text-green-700' : (answer === false ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white text-slate-300 border-slate-100')}`}>
+                                  FALSE
+                                  {item.correctAnswer === false && <CheckCircle size={20} className="absolute right-4 text-green-500" />}
+                                  {answer === false && item.correctAnswer !== false && <X size={20} className="absolute right-4 text-red-500" />}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* TYPE: MATCHING */}
+                            {item.type === 'matching' && (
+                              <div className="bg-slate-50 p-6 rounded-2xl space-y-3 border border-slate-100">
+                                {(item.pairs || []).map((pair, pIdx) => {
+                                  const userVal = answer ? answer[pIdx] : '-';
+                                  const isPairCorrect = userVal === pair.right;
+                                  return (
+                                    <div key={pIdx} className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center text-sm">
+                                      <div className="md:col-span-3 bg-white p-3 rounded-xl border border-slate-200 font-bold text-slate-600 shadow-sm">{pair.left}</div>
+                                      <div className="md:col-span-1 flex justify-center text-slate-300"><ArrowRight size={20} /></div>
+                                      <div className={`md:col-span-3 p-3 rounded-xl border font-bold flex justify-between items-center shadow-sm ${isPairCorrect ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                                        <span>{userVal}</span>
+                                        {!isPairCorrect && <span className="text-xs text-slate-400 font-normal ml-2 bg-white/50 px-2 py-0.5 rounded">(เฉลย: {pair.right})</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* TYPE: TEXT */}
+                            {item.type === 'text' && (
+                              <div className="space-y-4">
+                                <div>
+                                  <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">คำตอบของนักเรียน</p>
+                                  <div className={`p-4 rounded-2xl border text-lg font-bold shadow-sm ${isCorrect ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                                    {answer || <span className="text-slate-300 italic">ไม่ตอบ</span>}
+                                  </div>
+                                </div>
+                                {!isCorrect && (
+                                  <div>
+                                    <p className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">คำตอบที่ถูกต้อง (Keywords)</p>
+                                    <div className="p-4 rounded-2xl border border-slate-200 bg-white text-slate-600 font-medium shadow-sm">
+                                      {(item.keywords || []).join(', ')}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* FOOTER */}
+                <div className="px-8 py-5 border-t border-slate-100 bg-white flex justify-end">
+                  <button
+                    onClick={() => setActiveModal('viewResults')}
+                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200"
+                  >
+                    กลับไปหน้าผลรวม
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -1795,26 +2457,105 @@ export default function SchoolyScootLMS() {
                 </div>
               ) : (
                 <>
-                  <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                    {activeQuiz.items.map((q, idx) => (
-                      <div key={idx} className="mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                        <h4 className="font-bold text-lg text-slate-800 mb-4">{q.q}</h4>
-                        <div className="space-y-3">
-                          {q.options.map((opt, optIdx) => (
-                            <label key={optIdx} className={`flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${quizAnswers[idx] === optIdx
-                              ? 'border-[#96C68E] bg-white shadow-sm'
-                              : 'border-transparent bg-white hover:bg-slate-100'
-                              }`}>
+                  <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                    {activeQuiz.items.map((item, idx) => (
+                      <div key={idx} className="mb-8 last:mb-0">
+                        <div className="flex items-start gap-4 mb-4">
+                          <span className="flex-shrink-0 w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-500 text-sm">
+                            {idx + 1}
+                          </span>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2">{item.q}</h3>
+                            {item.image && (
+                              <img src={item.image} alt="Question" className="h-48 rounded-xl border border-slate-200 object-cover mb-4" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="pl-12">
+                          {/* TYPE: CHOICE */}
+                          {(!item.type || item.type === 'choice') && (
+                            <div className="space-y-3">
+                              {item.options.map((opt, optIdx) => (
+                                <label key={optIdx} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
+                                  ? 'bg-[#F0FDF4] border-[#96C68E] shadow-sm'
+                                  : 'bg-white border-slate-100 hover:border-[#96C68E]'
+                                  }`}>
+                                  <input
+                                    type="radio"
+                                    name={`q-${idx}`}
+                                    className="mr-3 w-5 h-5 accent-[#96C68E]"
+                                    onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
+                                    checked={quizAnswers[idx] === optIdx}
+                                  />
+                                  <span className="text-slate-700 font-medium">{opt}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* TYPE: TRUE/FALSE */}
+                          {item.type === 'true_false' && (
+                            <div className="flex gap-4">
+                              <button
+                                onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: true })}
+                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-100 bg-white text-slate-400 hover:border-green-200'}`}
+                              >
+                                <CheckCircle2 size={24} /> ถูก (True)
+                              </button>
+                              <button
+                                onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: false })}
+                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === false ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-100 bg-white text-slate-400 hover:border-red-200'}`}
+                              >
+                                <X size={24} /> ผิด (False)
+                              </button>
+                            </div>
+                          )}
+
+                          {/* TYPE: MATCHING */}
+                          {item.type === 'matching' && (
+                            <div className="space-y-4 bg-slate-50 p-4 rounded-xl">
+                              {item.pairs.map((pair, pIdx) => (
+                                <div key={pIdx} className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
+                                  <div className="flex-1 font-bold text-slate-700 bg-white p-3 rounded-lg border border-slate-200">
+                                    {pair.left}
+                                  </div>
+                                  <ArrowRight className="hidden md:block text-slate-300" />
+                                  <div className="flex-1">
+                                    <select
+                                      className="w-full p-3 rounded-lg border border-slate-200 outline-none focus:border-[#96C68E] bg-white cursor-pointer"
+                                      value={quizAnswers[idx] ? quizAnswers[idx][pIdx] || '' : ''}
+                                      onChange={(e) => {
+                                        const currentAns = quizAnswers[idx] || {};
+                                        setQuizAnswers({
+                                          ...quizAnswers,
+                                          [idx]: { ...currentAns, [pIdx]: e.target.value }
+                                        });
+                                      }}
+                                    >
+                                      <option value="">เลือกคำตอบ...</option>
+                                      {[...item.pairs].sort(() => Math.random() - 0.5).map((p, optionIdx) => (
+                                        <option key={optionIdx} value={p.right}>{p.right}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* TYPE: TEXT */}
+                          {item.type === 'text' && (
+                            <div>
                               <input
-                                type="radio"
-                                name={`q-${idx}`}
-                                className="w-5 h-5 text-[#96C68E] mr-3"
-                                onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
-                                checked={quizAnswers[idx] === optIdx}
+                                type="text"
+                                placeholder="พิมพ์คำตอบของคุณที่นี่..."
+                                className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:border-[#96C68E] font-medium text-slate-700"
+                                value={quizAnswers[idx] || ''}
+                                onChange={(e) => setQuizAnswers({ ...quizAnswers, [idx]: e.target.value })}
                               />
-                              <span className="text-slate-700">{opt}</span>
-                            </label>
-                          ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2611,7 +3352,7 @@ export default function SchoolyScootLMS() {
             </div>
           )}
         </div>
-      </div>
+      </div >
     );
   };
 
@@ -3581,10 +4322,64 @@ export default function SchoolyScootLMS() {
           );
         case 'grades':
           return (
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 text-center py-20">
-              <PieChart size={64} className="mx-auto text-slate-200 mb-4" />
-              <h3 className="font-bold text-slate-600 text-lg">คะแนนยังไม่ประกาศ</h3>
-              <p className="text-slate-400">คุณครูยังไม่ได้กรอกคะแนนสำหรับวิชานี้</p>
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                  <PieChart className="mr-2 text-[#96C68E]" /> คะแนนสอบ
+                </h2>
+              </div>
+
+              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
+                    <tr>
+                      <th className="p-4 font-bold">รายการสอบ</th>
+                      <th className="p-4 font-bold">วันที่สอบ</th>
+                      <th className="p-4 font-bold text-right">ผลลัพธ์</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {quizzes.length > 0 ? quizzes.map((quiz) => {
+                      const submission = mySubmissions[quiz.firestoreId];
+                      const isSubmitted = !!submission;
+
+                      return (
+                        <tr key={quiz.firestoreId} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-4">
+                            <div className="font-bold text-slate-700">{quiz.title}</div>
+                            <div className="text-xs text-slate-400">{quiz.questions} ข้อ</div>
+                          </td>
+                          <td className="p-4 text-sm text-slate-500">
+                            {submission ? new Date(submission.submittedAt).toLocaleDateString('th-TH') : '-'}
+                          </td>
+                          <td className="p-4 text-right">
+                            {userRole === 'teacher' ? (
+                              <button
+                                onClick={() => handleViewResults(quiz)}
+                                className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg text-xs font-bold hover:bg-amber-100"
+                              >
+                                <Trophy size={14} className="inline mr-1" /> ดูผลสอบ
+                              </button>
+                            ) : (
+                              isSubmitted ? (
+                                <span className="inline-block px-3 py-1 bg-green-50 text-green-600 border border-green-100 rounded-lg font-bold">
+                                  {submission.score} / {submission.total}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-sm">ยังไม่ทำ</span>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    }) : (
+                      <tr>
+                        <td colSpan="3" className="p-8 text-center text-slate-400">ยังไม่มีรายการสอบ</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           );
         case 'settings':
@@ -3823,7 +4618,7 @@ export default function SchoolyScootLMS() {
                 )}
               </div>
 
-                         {userRole === 'teacher' ? (
+              {userRole === 'teacher' ? (
                 // --- TEACHER VIEW: Management Table ---
                 <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
                   <table className="w-full text-left">
@@ -3839,7 +4634,15 @@ export default function SchoolyScootLMS() {
                     <tbody>
                       {quizzes.length > 0 ? quizzes.map((quiz) => (
                         <tr key={quiz.firestoreId} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
-                          <td className="p-4 font-bold text-slate-700">{quiz.title}</td>
+                          <td className="p-4">
+                            <div className="font-bold text-slate-700">{quiz.title}</div>
+                            {quiz.scheduledAt && (
+                              <div className="text-xs text-orange-500 flex items-center mt-1 font-medium bg-orange-50 w-fit px-2 py-0.5 rounded-lg border border-orange-100">
+                                <Calendar size={12} className="mr-1" />
+                                เริ่ม: {new Date(quiz.scheduledAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
+                          </td>
                           <td className="p-4">
                             <button
                               onClick={() => handleToggleQuizStatus(quiz)}
@@ -3854,6 +4657,14 @@ export default function SchoolyScootLMS() {
                           <td className="p-4 text-slate-500">{parseInt(quiz.time)} นาที</td>
                           <td className="p-4 text-right">
                             <div className="flex justify-end gap-2">
+                              {/* View Results Button */}
+                              <button
+                                onClick={() => handleViewResults(quiz)}
+                                className="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all"
+                                title="ดูคะแนน"
+                              >
+                                <Trophy size={18} />
+                              </button>
                               <button
                                 onClick={() => handleEditQuiz(quiz)}
                                 className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
@@ -3879,47 +4690,77 @@ export default function SchoolyScootLMS() {
                 </div>
               ) : (
                 // --- STUDENT VIEW: Card Grid ---
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {quizzes.filter(q => q.status !== 'closed').length > 0 ? quizzes.filter(q => q.status !== 'closed').map((quiz) => (
-                    <div key={quiz.firestoreId || quiz.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-12 h-12 bg-[#F0FDF4] rounded-2xl flex items-center justify-center text-[#96C68E] mb-2 group-hover:scale-110 transition-transform">
-                          <ClipboardList size={24} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {quizzes.filter(q => q.status !== 'closed').length > 0 ?
+                    quizzes.filter(q => q.status !== 'closed').map((quiz) => {
+                      // Determine if locked
+                      const scheduledTime = quiz.scheduledAt ? new Date(quiz.scheduledAt) : null;
+                      const isLocked = scheduledTime && scheduledTime > currentTime;
+
+                      // Check if submitted
+                      const submission = mySubmissions[quiz.firestoreId];
+                      const isSubmitted = !!submission;
+
+                      return (
+                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm transition-all group relative overflow-hidden ${isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100 hover:shadow-md'}`}>
+                          {isLocked && !isSubmitted && (
+                            <div className="absolute top-0 right-0 bg-orange-100 text-orange-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10">
+                              <Clock size={12} className="mr-1" /> เริ่ม: {scheduledTime.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          )}
+
+                          {isSubmitted && (
+                            <div className="absolute top-0 right-0 bg-green-100 text-green-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10">
+                              <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-start mb-4">
+                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2 transition-transform ${isLocked ? 'bg-slate-200 text-slate-400' : 'bg-[#F0FDF4] text-[#96C68E] group-hover:scale-110'}`}>
+                              {isLocked ? <Lock size={24} /> : (isSubmitted ? <Award size={24} /> : <ClipboardList size={24} />)}
+                            </div>
+                          </div>
+
+                          <h3 className={`text-lg font-bold mb-2 line-clamp-1 ${isLocked ? 'text-slate-500' : 'text-slate-800'}`}>{quiz.title}</h3>
+
+                          <div className="flex items-center gap-4 text-xs text-slate-500 mb-6 font-medium">
+                            <span className="flex items-center"><HelpCircle size={14} className="mr-1" /> {quiz.questions} ข้อ</span>
+                            <span className="flex items-center"><Clock size={14} className="mr-1" /> {parseInt(quiz.time)} นาที</span>
+                          </div>
+
+                          {isSubmitted ? (
+                            <div className="w-full py-3 rounded-xl font-bold text-center bg-green-50 text-green-600 border border-green-100">
+                              คะแนน: {submission.score} / {submission.total}
+                            </div>
+                          ) : (
+                            <button
+                              disabled={isLocked}
+                              onClick={() => {
+                                if (isLocked) return;
+                                setActiveQuiz(quiz);
+                                const minutes = parseInt(quiz.time) || 0;
+                                setQuizRemainingSeconds(minutes * 60);
+                                setActiveModal('takeQuiz');
+                              }}
+                              className={`w-full py-3 rounded-xl font-bold transition-all transform ${isLocked
+                                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                : 'text-white bg-[#96C68E] hover:bg-[#85b57d] shadow-sm hover:shadow active:scale-95'
+                                }`}
+                            >
+                              {isLocked ? `เริ่มสอบ ${scheduledTime.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${scheduledTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : 'เริ่มทำข้อสอบ'}
+                            </button>
+                          )}
                         </div>
-                        {/* Status badge hidden for students as they only see open ones */}
+                      )
+                    }) : (
+                      <div className="col-span-full py-16 text-center">
+                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                          <ClipboardList size={32} />
+                        </div>
+                        <h3 className="text-slate-500 font-bold">ยังไม่มีแบบทดสอบ</h3>
+                        <p className="text-slate-400 text-sm mt-1">คุณครูยังไม่ได้สร้างแบบทดสอบในวิชานี้</p>
                       </div>
-
-                      <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1">{quiz.title}</h3>
-
-                      <div className="flex items-center gap-4 text-xs text-slate-500 mb-6 font-medium">
-                        <span className="flex items-center"><HelpCircle size={14} className="mr-1" /> {quiz.questions} ข้อ</span>
-                        <span className="flex items-center"><Clock size={14} className="mr-1" /> {parseInt(quiz.time)} นาที</span>
-                      </div>
-
-
-                      <button
-                        onClick={() => {
-                          setActiveQuiz(quiz);
-                          // Parse time: "30 นาที" -> 30
-                          const minutes = parseInt(quiz.time) || 0;
-                          setQuizRemainingSeconds(minutes * 60);
-                          setActiveModal('takeQuiz');
-                        }}
-                        className="w-full py-3 rounded-xl font-bold text-white bg-[#96C68E] hover:bg-[#85b57d] shadow-sm hover:shadow transition-all transform active:scale-95"
-                      >
-                        เริ่มทำข้อสอบ
-                      </button>
-
-                    </div>
-                  )) : (
-                    <div className="col-span-full py-16 text-center">
-                      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-                        <ClipboardList size={32} />
-                      </div>
-                      <h3 className="text-slate-500 font-bold">ยังไม่มีแบบทดสอบ</h3>
-                      <p className="text-slate-400 text-sm mt-1">คุณครูยังไม่ได้สร้างแบบทดสอบในวิชานี้</p>
-                    </div>
-                  )}
+                    )}
                 </div>
               )}
             </div>

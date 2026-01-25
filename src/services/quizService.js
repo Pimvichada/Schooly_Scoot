@@ -59,7 +59,70 @@ export const deleteQuiz = async (quizId) => {
  * For now, we'll just mock the processing or update a local status if needed.
  * In a real app, you'd save the student's submission to a subcollection or separate collection.
  */
-// export const submitQuiz = async (quizId, studentId, answers, score) => { ... }
+/**
+ * Submit quiz answers
+ * @param {string} quizId 
+ * @param {string} studentId 
+ * @param {Object} submissionData ({ score, total, answers, studentName })
+ */
+export const submitQuiz = async (quizId, studentId, submissionData) => {
+    try {
+        const submissionsCol = collection(db, 'quiz_submissions');
+        const newSubmission = {
+            quizId,
+            studentId,
+            ...submissionData,
+            submittedAt: new Date().toISOString()
+        };
+        const docRef = await addDoc(submissionsCol, newSubmission);
+        return { ...newSubmission, firestoreId: docRef.id };
+    } catch (error) {
+        console.error("Error submitting quiz:", error);
+        throw error;
+    }
+};
+
+/**
+ * Check if student has submitted a quiz
+ * @param {string} quizId 
+ * @param {string} studentId 
+ */
+export const checkSubmission = async (quizId, studentId) => {
+    try {
+        const submissionsCol = collection(db, 'quiz_submissions');
+        const q = query(
+            submissionsCol,
+            where('quizId', '==', quizId),
+            where('studentId', '==', studentId)
+        );
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return null;
+        const doc = snapshot.docs[0];
+        return { ...doc.data(), firestoreId: doc.id };
+    } catch (error) {
+        console.error("Error checking submission:", error);
+        return null;
+    }
+};
+
+/**
+ * Get all submissions for a quiz (Teacher View)
+ * @param {string} quizId 
+ */
+export const getQuizSubmissions = async (quizId) => {
+    try {
+        const submissionsCol = collection(db, 'quiz_submissions');
+        const q = query(submissionsCol, where('quizId', '==', quizId));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({
+            ...doc.data(),
+            firestoreId: doc.id
+        }));
+    } catch (error) {
+        console.error("Error fetching submissions:", error);
+        return [];
+    }
+};
 
 
 
