@@ -64,6 +64,36 @@ export const getAssignments = async (courseName, uid, role) => {
             return enrichedAssignments;
         }
 
+        // If teacher, check if there are ANY submissions to categorize as "submitted" (Active/Grading)
+        // versus "pending" (No submissions yet)
+        if (role === 'teacher') {
+            const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
+                try {
+                    const subCol = collection(db, 'assignments', assignment.firestoreId, 'submissions');
+                    // We just need to know if there's at least one submission
+                    // Retrieve 1 doc to minimize bandwidth
+                    // Note: Firestore doesn't have a cheap 'count' unless using aggregation queries which might be overkill here
+                    // or just getDocs is fine for MVP small scale.
+                    // Let's just get all to be safe or use limit(1) if we could but q is needed.
+                    // Just getDocs(subCol) is simple.
+                    const subSnapshot = await getDocs(subCol);
+
+                    if (!subSnapshot.empty) {
+                        return {
+                            ...assignment,
+                            status: 'submitted', // Teacher view: "submitted" means "has submissions"
+                            submissionCount: subSnapshot.size
+                        };
+                    }
+                    return assignment;
+                } catch (err) {
+                    console.error("Error checking teacher submissions:", err);
+                    return assignment;
+                }
+            }));
+            return enrichedAssignments;
+        }
+
         return assignments;
     } catch (error) {
         console.error("Error getting assignments:", error);
@@ -146,11 +176,43 @@ export const submitAssignment = async (assignmentId, userId, userName, file) => 
  */
 export const getSubmissions = async (assignmentId) => {
     try {
+        console.log("Fetching submissions for Assignment ID:", assignmentId);
+        if (!assignmentId) {
+            console.error("getSubmissions called with empty ID");
+            return [];
+        }
         const subCol = collection(db, 'assignments', assignmentId, 'submissions');
         const snapshot = await getDocs(subCol);
         return snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
     } catch (error) {
         console.error("Error getting submissions:", error);
         return [];
+    }
+};
+
+/**
+ * Delete an assignment
+ */
+export const deleteAssignment = async (id) => {
+    try {
+        const ref = doc(db, 'assignments', id);
+        await deleteDoc(ref);
+    } catch (error) {
+        console.error("Error deleting assignment:", error);
+        throw error;
+    }
+};
+
+
+/**
+ * Grade a submission
+ */
+export const gradeSubmission = async (assignmentId, submissionId, score) => {
+    try {
+        const ref = doc(db, 'assignments', assignmentId, 'submissions', submissionId);
+        await updateDoc(ref, { score });
+    } catch (error) {
+        console.error("Error grading submission:", error);
+        throw error;
     }
 };
