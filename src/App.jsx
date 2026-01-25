@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
@@ -480,6 +480,9 @@ export default function SchoolyScootLMS() {
 
   // Time State
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [quizRemainingSeconds, setQuizRemainingSeconds] = useState(0);
+
+
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000); // Update every second
@@ -706,7 +709,6 @@ export default function SchoolyScootLMS() {
     dueDate: '',
     description: '',
     files: [],
-    maxScore: '' // Added maxScore to state
   });
 
 
@@ -738,6 +740,41 @@ export default function SchoolyScootLMS() {
   // const [newPostFiles, setNewPostFiles] = useState([]);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+
+
+  // Quiz Taking Logic
+  const submitQuiz = useCallback(() => {
+    if (!activeQuiz) return;
+    let score = 0;
+    activeQuiz.items.forEach((item, idx) => {
+      if (quizAnswers[idx] === item.correct) score++;
+    });
+    setQuizResult({ score, total: activeQuiz.items.length });
+  }, [activeQuiz, quizAnswers]);
+
+  // Use a ref to access the latest submitQuiz function inside the interval
+  const submitQuizRef = useRef(submitQuiz);
+  useEffect(() => {
+    submitQuizRef.current = submitQuiz;
+  }, [submitQuiz]);
+
+  // Quiz Timer Countdown & Auto Submit
+  useEffect(() => {
+    if (activeModal === 'takeQuiz' && !quizResult && quizRemainingSeconds > 0) {
+      const timer = setInterval(() => {
+        setQuizRemainingSeconds(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            submitQuizRef.current(); // Auto submit
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [activeModal, quizResult, quizRemainingSeconds]);
+
 
   // Fetch Posts when course selected
   useEffect(() => {
@@ -1153,15 +1190,7 @@ export default function SchoolyScootLMS() {
     }
   };
 
-  // Quiz Taking Logic
-  const submitQuiz = () => {
-    if (!activeQuiz) return;
-    let score = 0;
-    activeQuiz.items.forEach((item, idx) => {
-      if (quizAnswers[idx] === item.correct) score++;
-    });
-    setQuizResult({ score, total: activeQuiz.items.length });
-  };
+
 
   // Create Exam Logic
   const handleAddQuestion = () => {
@@ -1631,8 +1660,12 @@ export default function SchoolyScootLMS() {
                   <h2 className="text-2xl font-bold text-slate-800 flex items-center">
                     <ClipboardList className="mr-3 text-[#FF917B]" /> {activeQuiz.title}
                   </h2>
-                  <div className="flex items-center text-[#96C68E] font-bold bg-[#F0FDF4] px-4 py-2 rounded-xl">
-                    <Clock size={18} className="mr-2" /> {activeQuiz.time}
+            <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : 'bg-[#F0FDF4] text-[#96C68E]'}`}>
+                    <Clock size={18} className="mr-2" />
+                    {quizRemainingSeconds > 0
+                      ? `${Math.floor(quizRemainingSeconds / 60)}:${(quizRemainingSeconds % 60).toString().padStart(2, '0')} นาที`
+                      : activeQuiz.time}
+
                   </div>
                 </div>
                 <p className="text-slate-500">{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
@@ -1950,12 +1983,9 @@ export default function SchoolyScootLMS() {
                 <div className="bg-[#FFE787] p-3 rounded-2xl">
                   <FileText size={32} className="text-slate-700" />
                 </div>
-                <div className="flex-1">
+                <div>
                   <h2 className="text-2xl font-bold text-slate-800">{currentAssignmentData.title}</h2>
                   <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate}</p>
-                </div>
-                <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold whitespace-nowrap">
-                  {currentAssignmentData.maxScore || 10} คะแนน
                 </div>
               </div>
 
@@ -2163,30 +2193,15 @@ export default function SchoolyScootLMS() {
               </h2>
 
               <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      placeholder="ชื่องาน"
-                      className="w-full p-3 rounded-xl border"
-                      value={newAssignment.title}
-                      onChange={(e) =>
-                        setNewAssignment({ ...newAssignment, title: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="w-32">
-                    <input
-                      type="number"
-                      placeholder="คะแนนเต็ม"
-                      className="w-full p-3 rounded-xl border text-center"
-                      value={newAssignment.maxScore}
-                      onChange={(e) =>
-                        setNewAssignment({ ...newAssignment, maxScore: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
+                <input
+                  type="text"
+                  placeholder="ชื่องาน"
+                  className="w-full p-3 rounded-xl border"
+                  value={newAssignment.title}
+                  onChange={(e) =>
+                    setNewAssignment({ ...newAssignment, title: e.target.value })
+                  }
+                />
                 <div>
                   <label className="block text-sm font-bold text-slate-600 mb-1">
                     กำหนดส่ง
@@ -2321,7 +2336,6 @@ export default function SchoolyScootLMS() {
                         files: processedFiles,
                         status: 'pending',
                         score: null,
-                        maxScore: newAssignment.maxScore || 10,
                         createdAt: new Date().toISOString(),
                         ownerId: auth.currentUser?.uid
                       };
@@ -2354,7 +2368,6 @@ export default function SchoolyScootLMS() {
                         dueDate: '',
                         description: '',
                         files: [],
-                        maxScore: ''
                       });
 
                       setActiveModal(null);
@@ -2382,7 +2395,7 @@ export default function SchoolyScootLMS() {
                   <p className="text-slate-500">{selectedAssignment.course}</p>
                 </div>
                 <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
-                  คะแนนเต็ม: {selectedAssignment.maxScore || 10}
+                  คะแนนเต็ม: 10
                 </div>
               </div>
 
@@ -2763,17 +2776,6 @@ export default function SchoolyScootLMS() {
                         }`}>
                       {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
                     </button>
-                    {userRole === 'teacher' && (
-                      <button
-                        onClick={() => {
-                          setSelectedAssignment(assign);
-                          setActiveModal('assignmentDetail');
-                        }}
-                        className="px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-[#BEE1FF] text-slate-800"
-                      >
-                        ดูรายละเอียด
-                      </button>
-                    )}
                     {userRole === 'teacher' && (
                       <button
                         onClick={async (e) => {
@@ -3752,12 +3754,16 @@ export default function SchoolyScootLMS() {
                       <button
                         onClick={() => {
                           setActiveQuiz(quiz);
+                          // Parse time: "30 นาที" -> 30
+                          const minutes = parseInt(quiz.time) || 0;
+                          setQuizRemainingSeconds(minutes * 60);
                           setActiveModal('takeQuiz');
                         }}
                         className="w-full py-3 rounded-xl font-bold text-white bg-[#96C68E] hover:bg-[#85b57d] shadow-sm hover:shadow transition-all transform active:scale-95"
                       >
                         เริ่มทำข้อสอบ
                       </button>
+
                     </div>
                   )) : (
                     <div className="col-span-full py-16 text-center">
