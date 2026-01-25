@@ -7,7 +7,7 @@ import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUs
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification } from './services/notificationService';
-import { createPost, getPostsByCourse } from './services/postService';
+import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import {
@@ -56,7 +56,12 @@ import {
   Zap,
   Trophy,
   GraduationCap,
-  Copy
+  Smile,
+  Copy,
+  Edit2,
+  EyeOff,
+  Eye,
+  Trash2
 } from 'lucide-react';
 
 import { MascotCircle, MascotSquare, MascotTriangle, MascotStar } from './components/Mascots';
@@ -100,6 +105,357 @@ const getCourseIcon = (type) => {
     case 'star': return <MascotStar className="w-12 h-12" />; // Default
     default: return <MascotStar className="w-12 h-12" />;
   }
+};
+
+
+
+const EditPostModal = ({ post, onClose, onSave }) => {
+  const [content, setContent] = useState(post.content);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSaving(true);
+    try {
+      await updatePost(post.id, content, post.attachments);
+      onSave(post.id, content);
+      onClose();
+    } catch (error) {
+      alert("แก้ไขไม่สำเร็จ");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+        <div className="p-6 border-b border-slate-50 flex justify-between items-center">
+          <h3 className="font-bold text-slate-800">แก้ไขโพสต์</h3>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">×</button>
+        </div>
+
+        <div className="p-6">
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className="w-full h-40 bg-slate-50 border-none rounded-2xl p-4 text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+            placeholder="เขียนเนื้อหาใหม่..."
+          />
+        </div>
+
+        <div className="p-6 bg-slate-50 flex gap-3 justify-end">
+          <button onClick={onClose} className="px-6 py-2 text-slate-500 font-bold text-sm">ยกเลิก</button>
+          <button
+            disabled={isSaving}
+            onClick={handleSubmit}
+            className="bg-blue-500 text-white px-8 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 transition-all disabled:opacity-50"
+          >
+            {isSaving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [showOptions, setShowOptions] = useState(false);
+  const menuRef = useRef(null);
+  const isOwner = currentUser?.uid === post.author?.uid;
+  const [showComments, setShowComments] = useState(false);
+  const [likes, setLikes] = useState(post.likes || []);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isHidden, setIsHidden] = useState(post.isHidden || false);
+
+
+  useEffect(() => {
+    setLikes(post.likes || []);
+    setIsLiked(post.likes?.includes(currentUser?.uid) || false);
+  }, [post.likes, currentUser?.uid]);
+
+  // ปิดเมนูเมื่อคลิกข้างนอก
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle Like
+  const handleLike = async () => {
+    if (!currentUser) return alert("กรุณาเข้าสู่ระบบ");
+
+    // Optimistic UI
+    const previousLikes = [...likes];
+    const previousIsLiked = isLiked;
+
+    if (isLiked) {
+      setLikes(prev => prev.filter(id => id !== currentUser.uid));
+      setIsLiked(false);
+    } else {
+      setLikes(prev => [...prev, currentUser.uid]);
+      setIsLiked(true);
+    }
+
+    try {
+      await toggleLikePost(post.id, currentUser.uid, isLiked);
+    } catch (error) {
+      // Revert on error
+      setLikes(previousLikes);
+      setIsLiked(previousIsLiked);
+      console.error(error);
+    }
+  };
+
+  // 1. ดึงคอมเมนต์เมื่อกดเปิดดู
+  const handleToggleComments = async () => {
+    if (!post?.id) {
+      console.error("Post ID is missing", post);
+      return;
+    }
+    if (!showComments) {
+      try {
+        const data = await getComments(post.id);
+        setComments(data);
+      } catch (error) {
+        console.error("Failed to load comments", error);
+      }
+    }
+    setShowComments(!showComments);
+  };
+
+  // 2. ฟังก์ชันส่งคอมเมนต์
+  const handleSendComment = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+
+    try {
+      const author = {
+        uid: currentUser.uid,
+        name: currentUser.displayName,
+        avatar: currentUser.photoURL
+      };
+
+      const newComment = await addComment(post.id, commentText, author);
+      setComments([...comments, newComment]); // อัปเดต UI ทันที
+      setCommentText(""); // ล้างช่องกรอก
+    } catch (error) {
+      alert("ไม่สามารถเพิ่มคอมเมนต์ได้");
+    }
+  };
+
+  const handleToggleHide = async () => {
+    try {
+      const newStatus = await toggleHidePost(post.id, isHidden);
+      setIsHidden(newStatus);
+      setShowOptions(false);
+      // alert(newStatus ? 'ซ่อนโพสต์เรียบร้อยแล้ว' : 'ยกเลิกการซ่อนโพสต์เรียบร้อยแล้ว');
+    } catch (error) {
+      alert('ไม่สามารถเปลี่ยนสถานะการซ่อนได้');
+    }
+  };
+
+
+
+  return (
+    <div className={`bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 group ${isHidden ? 'opacity-60' : ''}`}>
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-slate-50 p-1 shadow-sm">
+            <div className="w-full h-full rounded-xl overflow-hidden">
+              {post.author?.avatar ? (
+                <img src={post.author.avatar} alt="Author" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF917B] to-[#FF7B61] text-white font-bold text-lg">
+                  {post.author?.name?.[0] || 'U'}
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-800 text-lg">{post.author?.name}</h4>
+            <p className="text-xs text-slate-400 font-medium flex items-center gap-1">
+              {post.createdAt || 'เมื่อสักครู่'} • <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-slate-500">{post.author?.role || 'ครูผู้สอน'}</span>
+            </p>
+          </div>
+        </div>
+        {isOwner && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowOptions(!showOptions)}
+              className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+            >
+              <MoreVertical size={20} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showOptions && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in duration-200">
+                <>
+                  {/* ปุ่มที่คุณส่งมา */}
+                  <button
+                    onClick={() => { setIsEditModalOpen(true); setShowOptions(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Edit2 size={16} /> แก้ไขโพสต์
+                  </button>
+                </>
+
+                <button
+                  onClick={handleToggleHide}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  {isHidden ? (
+                    <>
+                      <Eye size={16} className="text-blue-500" />
+                      <span>แสดงโพสต์</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff size={16} />
+                      <span>ซ่อนโพสต์</span>
+                    </>
+                  )}
+                </button>
+                <div className="h-[1px] bg-slate-100 my-1 mx-2" />
+
+                <button
+                  onClick={() => {
+                    if (window.confirm('ยืนยันการลบโพสต์?')) {
+                      onDelete(post.id);
+                    }
+                    setShowOptions(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 size={16} /> ลบโพสต์
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="pl-[4.5rem]">
+        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed text-[0.95rem]">{post.content}</p>
+
+        {post.attachments && post.attachments.length > 0 && (
+          <div className="mt-4">
+            {post.attachments.map((attachment, index) => (
+              <div key={index} className="mb-2">
+                {attachment.type.startsWith('image/') ? (
+                  <img
+                    src={attachment.url}
+                    alt={`Attachment ${index}`}
+                    className="max-w-full h-auto rounded-lg"
+                  />
+                ) : (
+                  <a
+                    href={attachment.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline flex items-center gap-2"
+                  >
+                    <FileText size={16} /> {attachment.name}
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Post Actions */}
+        <div className="flex gap-4 mt-6 pt-4 border-t border-slate-50">
+          <button
+            onClick={handleLike}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-bold text-sm ${isLiked
+              ? 'bg-[#FFF0EE] text-[#FF917B]'
+              : 'text-slate-400 hover:bg-[#FFF0EE] hover:text-[#FF917B]'
+              }`}
+          >
+            <Heart size={18} className={isLiked ? 'fill-current' : ''} /> {likes.length} ถูกใจ
+          </button>
+          <button
+            onClick={handleToggleComments}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:bg-[#EBF5FF] hover:text-[#BEE1FF] transition-all font-bold text-sm"
+          >
+            <MessageSquare size={18} /> {post.commentCount || comments.length || 0} ความคิดเห็น
+          </button>
+        </div>
+
+        {/* Comment Section */}
+        {showComments && (
+          <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+            {/* รายการคอมเมนต์ */}
+            <div className="max-h-60 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+              {comments.length > 0 ? comments.map((comment, index) => (
+                <div key={index} className="flex gap-3 bg-slate-50 p-3 rounded-2xl">
+                  {/* รูป Profile เล็กๆ ในคอมเมนต์ */}
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-white border border-slate-100">
+                    {comment.author?.avatar ? (
+                      <img src={comment.author.avatar} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-blue-100 text-blue-500 font-bold text-[10px]">
+                        {comment.author?.name?.[0]}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-xs text-slate-700">{comment.author?.name}</span>
+                      <span className="text-[10px] text-slate-400">{comment.createdAt}</span>
+                    </div>
+                    <p className="text-slate-600 text-sm whitespace-pre-wrap">{comment.content}</p>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-center text-xs text-slate-400 py-4">ยังไม่มีความคิดเห็น เป็นคนแรกที่แสดงความคิดเห็นสิ!</p>
+              )}
+            </div>
+
+            {/* ช่องกรอกคอมเมนต์ */}
+            <div className="bg-white rounded-3xl p-4 mt-4 animate-in fade-in slide-in-from-top-2">
+              <form onSubmit={handleSendComment} className="flex gap-3">
+                <div className="flex-1 bg-slate-50 rounded-2xl flex items-center px-4 py-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="แสดงความคิดเห็น..."
+                    className="w-full bg-transparent border-none focus:ring-0 text-sm py-2"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={!commentText.trim()}
+                  className="bg-[#96C68E] text-white p-3 rounded-2xl hover:bg-[#85b57d] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                >
+                  <Send size={18} />
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ย้าย Modal มาไว้นอก Dropdown เพื่อไม่ให้หายไปเมื่อเมนูปิด */}
+        {isEditModalOpen && (
+          <EditPostModal
+            post={post}
+            onClose={() => setIsEditModalOpen(false)}
+            onSave={(postId, newContent) => onEdit && onEdit(postId, newContent)}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+
 };
 
 
@@ -191,6 +547,7 @@ export default function SchoolyScootLMS() {
   // Chat State
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [courses, setCourses] = useState([]); // Empty initially
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -199,7 +556,7 @@ export default function SchoolyScootLMS() {
   const [newCourseData, setNewCourseData] = useState({
     name: '', code: '', color: 'bg-[#96C68E]', description: '',
     startDate: '', endDate: '',
-    scheduleItems: [] // { dayOfWeek: 1, startTime: '08:30', endTime: '10:30', room: '421' }
+    scheduleItems: [] // {dayOfWeek: 1, startTime: '08:30', endTime: '10:30', room: '421' }
   });
   const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
   const [joinCode, setJoinCode] = useState(''); // State for student joining
@@ -249,14 +606,14 @@ export default function SchoolyScootLMS() {
         }
 
         // Update selected course data continuously
-        // setSelectedCourse(prev => ({ ...prev, ...courseData })); // Careful with recursion/re-renders if not handled
+        // setSelectedCourse(prev => ({...prev, ...courseData })); // Careful with recursion/re-renders if not handled
       }
     });
 
     return () => unsubscribe();
   }, [selectedCourse?.firestoreId]);
   const [activeQuiz, setActiveQuiz] = useState(null); // Which quiz is currently being taken
-  const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers { questionIndex: optionIndex }
+  const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers {questionIndex: optionIndex }
   const [quizResult, setQuizResult] = useState(null); // Stores final score
   const [quizzes, setQuizzes] = useState([]);
 
@@ -366,28 +723,40 @@ export default function SchoolyScootLMS() {
   // Post Feed State
   const [posts, setPosts] = useState([]);
   const [newPostContent, setNewPostContent] = useState('');
+  const [newPostFiles, setNewPostFiles] = useState([]);
+
+  // const [newPostFiles, setNewPostFiles] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch Posts when course selected
   useEffect(() => {
-    const fetchPosts = async () => {
-      if (selectedCourse?.firestoreId) {
-        try {
-          const loadedPosts = await getPostsByCourse(selectedCourse.firestoreId);
-          setPosts(loadedPosts);
-        } catch (error) {
-          console.error("Failed to load posts", error);
-        }
-      } else {
+    const fetchAllData = async () => {
+      // ตรวจสอบว่ามี selectedCourse หรือไม่
+      if (!selectedCourse?.firestoreId) {
         setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true); // เริ่มโหลด
+        const data = await getPostsByCourse(selectedCourse.firestoreId);
+        setPosts(data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false); // หยุดโหลดไม่ว่าจะสำเร็จหรือล้มเหลว
       }
     };
-    fetchPosts();
+
+    fetchAllData();
   }, [selectedCourse]);
 
   // Handle Create Post
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!newPostContent.trim()) return;
+    if (!newPostContent.trim() && newPostFiles.length === 0) return;
 
     try {
       const author = {
@@ -397,16 +766,48 @@ export default function SchoolyScootLMS() {
         role: profile.roleLabel
       };
 
-      const newPost = await createPost(selectedCourse.firestoreId, newPostContent, author);
+      // Pass files to createPost
+      const newPost = await createPost(selectedCourse.firestoreId, newPostContent, author, newPostFiles);
 
       // Update local state
       setPosts([newPost, ...posts]);
       setNewPostContent('');
+      setNewPostFiles([]); // Clear files
       // alert('โพสต์ประกาศเรียบร้อย');
     } catch (error) {
       console.error("Failed to create post", error);
-      alert('ไม่สามารถสร้างโพสต์ได้');
+      alert('ไม่สามารถสร้างโพสต์ได้: ' + error.message);
     }
+  };
+
+  // Handle Delete Post
+  const handleDeletePost = async (postId) => {
+    try {
+      await deletePost(postId);
+      // Update local state
+      setPosts(prev => prev.filter(p => p.id !== postId));
+    } catch (error) {
+      console.error("Failed to delete post", error);
+      alert('ไม่สามารถลบโพสต์ได้');
+    }
+  };
+
+  // Handle Edit Post
+  const handleEditPost = (postId, newContent) => {
+    setPosts(prev => prev.map(p =>
+      p.id === postId ? { ...p, content: newContent } : p
+    ));
+  };
+
+  const handlePostFileSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setNewPostFiles(prev => [...prev, ...files]);
+    }
+  };
+
+  const handleRemovePostFile = (index) => {
+    setNewPostFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   // Edit Profile State
@@ -2532,7 +2933,7 @@ export default function SchoolyScootLMS() {
     const renderSubTabContent = () => {
       switch (courseTab) {
         case 'home':
-        case 'home':
+
           return (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Left Sidebar - Class Info & Upcoming Work */}
@@ -2589,106 +2990,140 @@ export default function SchoolyScootLMS() {
 
               </div>
 
+
               {/* Main Feed Area */}
               <div className="md:col-span-3 space-y-6">
                 {/* Post Input Area */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 relative">
-                  <div className="flex gap-4">
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 relative">
+                  <div className="flex gap-4 mb-2">
                     <div className="w-14 h-14 rounded-full bg-slate-100 p-1 flex-shrink-0 border-2 border-white shadow-sm">
-                      <div className="w-full h-full rounded-full overflow-hidden">
-                        {profile.photoURL ? (
-                          <img src={profile.photoURL} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#BEE1FF] to-[#9acbff] text-white font-bold text-xl">
-                            {profile.firstName?.[0]}
-                          </div>
-                        )}
-                      </div>
+                      {profile.photoURL ? (
+                        <img src={profile.photoURL} className="w-full h-full rounded-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-full h-full rounded-full flex items-center justify-center bg-[#BEE1FF] text-white font-bold text-xl">
+                          {profile.firstName?.[0]}
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
-                      <form onSubmit={handleCreatePost} className="relative z-10">
-                        <div className="relative group">
-                          <textarea
-                            value={newPostContent}
-                            onChange={(e) => setNewPostContent(e.target.value)}
-                            placeholder={`ประกาศบางอย่างให้กับชั้นเรียน...`}
-                            className="w-full p-5 bg-[#F8FAFC] rounded-3xl border-2 border-transparent focus:border-[#BEE1FF]/50 focus:bg-white transition-all text-slate-700 resize-none min-h-[100px] shadow-inner placeholder:text-slate-400"
-                          />
-                          <div className="absolute right-3 bottom-3 flex gap-2">
-                            <button type="button" className="p-2 text-slate-400 hover:bg-[#FFE787] hover:text-[#B49216] rounded-xl transition-all duration-300">
-                              <Upload size={18} />
-                            </button>
-                            <button type="button" className="p-2 text-slate-400 hover:bg-[#96C68E] hover:text-[#2D5A27] rounded-xl transition-all duration-300">
-                              <FileText size={18} />
-                            </button>
-                          </div>
-                        </div>
+                      <textarea
+                        value={newPostContent}
+                        onChange={(e) => setNewPostContent(e.target.value)}
+                        placeholder={`ประกาศบางอย่างให้กับชั้นเรียน ${selectedCourse.name}`}
+                        className="w-full h-24 p-4 rounded-2xl bg-slate-50 border-none focus:ring-0 resize-none text-slate-700 placeholder-slate-400 text-lg transition-all"
+                      />
+                    </div>
+                  </div>
 
-                        <div className="flex justify-end mt-3">
+                  {/* File Previews */}
+                  {newPostFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-3 mt-3 pl-[4.5rem]">
+                      {newPostFiles.map((file, index) => (
+                        <div key={index} className="relative group animate-in zoom-in duration-200">
+                          {file.type.startsWith('image/') ? (
+                            <div className="relative rounded-xl overflow-hidden h-24 w-24 border border-slate-200 shadow-sm">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt="preview"
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600">
+                              <FileText size={18} className="text-slate-400" />
+                              <span className="max-w-[150px] truncate">{file.name}</span>
+                            </div>
+                          )}
                           <button
-                            type="submit"
-                            disabled={!newPostContent.trim()}
-                            className={`px-8 py-2.5 rounded-2xl font-bold transition-all transform hover:-translate-y-1 active:translate-y-0 ${newPostContent.trim() ? 'bg-gradient-to-r from-[#96C68E] to-[#7CB372] text-white shadow-lg shadow-green-200' : 'bg-slate-100 text-slate-300'}`}
+                            onClick={() => handleRemovePostFile(index)}
+                            className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-slate-100 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                           >
-                            ส่ง
+                            <X size={14} />
                           </button>
                         </div>
-                      </form>
+                      ))}
                     </div>
+                  )}
+
+                  {/* Toolbar */}
+                  <div className="flex justify-between items-center mt-2 pl-[4.5rem]">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="p-2.5 text-slate-400 hover:text-[#96C68E] hover:bg-[#F2F9F0] rounded-xl transition-all"
+                        title="Upload Image"
+                      >
+                        <ImageIcon size={22} strokeWidth={2} />
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handlePostFileSelect}
+                          className="hidden"
+                          multiple
+                          accept="image/*,application/pdf,.doc,.docx"
+                        />
+                      </button>
+                      <button className="p-2.5 text-slate-400 hover:text-[#96C68E] hover:bg-[#F2F9F0] rounded-xl transition-all" title="Attach File">
+                        <Paperclip size={22} strokeWidth={2} />
+                      </button>
+
+                    </div>
+                    <button
+                      onClick={handleCreatePost}
+                      disabled={!newPostContent.trim() && newPostFiles.length === 0}
+                      className={`px-8 py-2.5 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 ${newPostContent.trim() || newPostFiles.length > 0
+                        ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] hover:shadow-md active:scale-95'
+                        : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                        }`}
+                    >
+                      <Send size={18} strokeWidth={2.5} />
+                      โพสต์
+                    </button>
                   </div>
                 </div>
 
-                {/* Posts List */}
-                <div className="space-y-5">
-                  {posts.length > 0 ? posts.map(post => (
-                    <div key={post.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 group">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-50 p-1 shadow-sm">
-                            <div className="w-full h-full rounded-xl overflow-hidden">
-                              {post.author?.avatar ? (
-                                <img src={post.author.avatar} alt="Author" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF917B] to-[#FF7B61] text-white font-bold text-lg">
-                                  {post.author?.name?.[0] || 'U'}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-slate-800 text-lg">{post.author?.name}</h4>
-                            <p className="text-xs text-slate-400 font-medium flex items-center gap-1">
-                              {post.createdAt || 'เมื่อสักครู่'} • <span className="px-2 py-0.5 bg-slate-100 rounded-lg text-slate-500">ครูผู้สอน</span>
-                            </p>
-                          </div>
-                        </div>
-                        <button className="p-2 text-slate-300 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
-                          <MoreVertical size={20} />
-                        </button>
+                {/* ส่วนจัดการแสดงผล Feed */}
+                <div className="mt-8">
+                  {loading ? (
+                    // 1. แสดงตอนกำลังโหลด (Spinner)
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                      <div className="relative">
+                        {/* วงนอกจางๆ */}
+                        <div className="w-12 h-12 border-4 border-slate-100 rounded-full"></div>
+                        {/* วงในที่หมุน */}
+                        <div className="w-12 h-12 border-4 border-[#96C68E] border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
                       </div>
-
-                      <div className="pl-[4.5rem]">
-                        <p className="text-slate-700 whitespace-pre-wrap leading-relaxed text-[0.95rem]">{post.content}</p>
-
-                        {/* Post Actions */}
-                        <div className="flex gap-4 mt-6 pt-4 border-t border-slate-50">
-                          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:bg-[#FFF0EE] hover:text-[#FF917B] transition-all font-bold text-sm">
-                            <Heart size={18} className="group-hover:fill-current" /> ถูกใจ
-                          </button>
-                          <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:bg-[#EBF5FF] hover:text-[#BEE1FF] transition-all font-bold text-sm">
-                            <MessageSquare size={18} /> แสดงความคิดเห็น
-                          </button>
-                        </div>
-                      </div>
+                      <p className="mt-4 text-slate-400 font-medium animate-pulse text-sm">
+                        กำลังดึงข้อมูลประกาศ...
+                      </p>
                     </div>
-                  )) : (
-                    <div className="text-center py-16">
-                      <div className="w-24 h-24 bg-gradient-to-br from-slate-50 to-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-slate-50">
-                        <MessageSquare size={32} className="text-slate-200" />
+
+                  ) : posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).length > 0 ? (
+                    // 2. แสดงรายการโพสต์เมื่อโหลดเสร็จและมีข้อมูล
+                    <div className="space-y-6">
+                      {posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).map((post) => (
+                        <PostItem
+                          key={post.id}
+                          post={post}
+                          currentUser={{
+                            uid: auth.currentUser?.uid,
+                            displayName: `${profile.firstName} ${profile.lastName}`,
+                            photoURL: profile.photoURL
+                          }}
+                          onDelete={handleDeletePost}
+                          onEdit={handleEditPost}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    // 3. แสดงเมื่อโหลดเสร็จแล้วแต่ไม่มีข้อมูลจริงๆ (รูปที่คุณส่งมา)
+                    <div className="flex flex-col items-center justify-center py-20 opacity-60">
+                      <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                        <MessageSquare size={40} className="text-slate-200" />
                       </div>
-                      <h3 className="text-slate-800 font-bold text-lg mb-2">ยังไม่มีประกาศใหม่</h3>
-                      <p className="text-slate-400 max-w-xs mx-auto leading-relaxed">
-                        เมื่อครูมีการแจ้งเตือนหรือประกาศข่าวสาร <br />ข้อมูลจะปรากฏที่นี่เป็นที่แรก
+                      <h3 className="text-slate-900 font-bold text-lg mb-2">ยังไม่มีประกาศใหม่</h3>
+                      <p className="text-slate-400 text-sm text-center max-w-[280px] leading-relaxed">
+                        เมื่อครูมีการแจ้งเตือนหรือประกาศข่าวสาร ข้อมูลจะปรากฏที่นี่เป็นที่แรก
                       </p>
                     </div>
                   )}
@@ -2696,6 +3131,7 @@ export default function SchoolyScootLMS() {
               </div>
             </div>
           );
+
 
         case 'work': {
           // กรองงานเฉพาะของวิชานี้
@@ -2707,7 +3143,7 @@ export default function SchoolyScootLMS() {
           const renderCard = (data) => {
             const isDone = data.status === 'submitted';
             return (
-              <div key={data.id} className={`p-4 rounded-2xl border transition-all flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
+              <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border transition-all flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
                 }`}>
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-xl ${isDone ? 'bg-green-50' : 'bg-yellow-50'}`}>
@@ -2933,7 +3369,7 @@ export default function SchoolyScootLMS() {
                   </div>
                 )
               }
-            </div >
+            </div>
           );
         case 'grades':
           return (
@@ -3367,6 +3803,7 @@ export default function SchoolyScootLMS() {
       }
     };
 
+
     return (
       <div className="space-y-6 animate-in zoom-in duration-300">
         <button
@@ -3614,3 +4051,6 @@ export default function SchoolyScootLMS() {
     </div>
   );
 }
+
+
+
