@@ -60,3 +60,22 @@ export const deleteQuiz = async (quizId) => {
  * In a real app, you'd save the student's submission to a subcollection or separate collection.
  */
 // export const submitQuiz = async (quizId, studentId, answers, score) => { ... }
+
+
+
+/**
+ * Update a quiz
+ * @param {string} quizId 
+ * @param {Object} updateData 
+ */
+export const updateQuiz = async (quizId, updateData) => {
+    try {
+        const docRef = doc(db, 'quizzes', quizId);
+        await updateDoc(docRef, updateData);
+        return true;
+    } catch (error) {
+        console.error("Error updating quiz:", error);
+        throw error;
+    }
+};
+

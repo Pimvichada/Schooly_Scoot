@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
-import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
+import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
@@ -740,9 +740,10 @@ export default function SchoolyScootLMS() {
   const [uploadFile, setUploadFile] = useState([]);
   // Create Exam State
   const [newExam, setNewExam] = useState({
+    id: null,
     title: '',
     course: '', // विल be set dynamically
-    time: '30 นาที',
+    time: '',
     items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
   });
 
@@ -1273,14 +1274,13 @@ export default function SchoolyScootLMS() {
     }
 
     try {
-      const examToAdd = {
+      const examData = {
         title: newExam.title,
-        course: newExam.course || selectedCourse.name, // Use selected course or user choice
+        course: newExam.course || selectedCourse.name,
         questions: newExam.items.length,
         time: newExam.time,
-        status: 'available',
+        status: newExam.status || 'available', // Preserve status if editing, default available
         score: null,
-        // Deep copy items to avoid reference issues
         items: newExam.items.map(item => ({
           ...item,
           options: [...item.options]
@@ -1288,22 +1288,60 @@ export default function SchoolyScootLMS() {
         ownerId: auth.currentUser.uid
       };
 
-      const createdQuiz = await createQuiz(examToAdd);
+      if (newExam.id) {
+        // UPDATE EXISTING
+        await updateQuiz(newExam.id, examData);
+        setQuizzes(prev => prev.map(q => q.firestoreId === newExam.id ? { ...q, ...examData, firestoreId: newExam.id } : q));
+        alert('แก้ไขแบบทดสอบเรียบร้อย');
+      } else {
+        // CREATE NEW
+        const createdQuiz = await createQuiz(examData);
+        setQuizzes([...quizzes, createdQuiz]);
+        alert('สร้างแบบทดสอบเรียบร้อย');
+      }
 
-      setQuizzes([...quizzes, createdQuiz]);
       setActiveModal(null);
       // Reset form
       setNewExam({
+        id: null,
         title: '',
         course: '',
-        time: '',
+
         items: [{ q: '', options: ['', '', '', ''], correct: 0 }]
       });
-      alert('สร้างแบบทดสอบเรียบร้อย');
+
     } catch (error) {
-      console.error("Failed to create quiz", error);
-      alert('เกิดข้อผิดพลาดในการสร้างแบบทดสอบ');
+      console.error("Failed to save quiz", error);
+      alert('เกิดข้อผิดพลาดในการบันทึก');
     }
+  };
+
+  const handleToggleQuizStatus = async (quiz) => {
+    try {
+      if (!quiz.firestoreId) return;
+      const newStatus = quiz.status === 'available' ? 'closed' : 'available';
+      await updateQuiz(quiz.firestoreId, { status: newStatus });
+
+      // Update local
+      setQuizzes(prev => prev.map(q =>
+        q.firestoreId === quiz.firestoreId ? { ...q, status: newStatus } : q
+      ));
+    } catch (error) {
+      console.error("Failed to toggle status", error);
+      alert('ไม่สามารถเปลี่ยนสถานะได้');
+    }
+  };
+
+  const handleEditQuiz = (quiz) => {
+    setNewExam({
+      id: quiz.firestoreId,
+      title: quiz.title,
+      course: quiz.course,
+      time: parseInt(quiz.time) || 30,
+      status: quiz.status,
+      items: quiz.items.map(i => ({ ...i, options: [...i.options] })) // Deep copy
+    });
+    setActiveModal('createExam');
   };
 
   const handleDeleteQuiz = async (quizId) => {
@@ -1638,15 +1676,36 @@ export default function SchoolyScootLMS() {
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-600 mb-1">เวลาในการทำ (นาที)</label>
-                    <input
-                      type="text"
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                      placeholder="เช่น 30 นาที"
-                      value={newExam.time}
-                      onChange={(e) => setNewExam({ ...newExam, time: e.target.value })}
-                    />
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <input
+                          type="number"
+                          className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                          placeholder="ระบุเวลา (นาที)"
+                          value={newExam.time}
+                          onChange={(e) => setNewExam({ ...newExam, time: parseInt(e.target.value) || '' })}
+                        />
+                        <span className="absolute right-4 top-3.5 text-slate-400 text-sm font-bold">นาที</span>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {[15, 30, 45, 60, 90, 120].map(t => (
+                          <button
+                            key={t}
+                            onClick={() => setNewExam({ ...newExam, time: t })}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${newExam.time === t
+                              ? 'bg-[#96C68E] text-white border-[#96C68E]'
+                              : 'bg-white text-slate-500 border-slate-200 hover:border-[#96C68E] hover:text-[#96C68E]'
+                              }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+
 
                 {/* Question Editor */}
                 <div className="space-y-4">
@@ -1696,8 +1755,8 @@ export default function SchoolyScootLMS() {
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
                 <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
-                <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
-                  <Save size={20} className="mr-2" /> บันทึกแบบทดสอบ
+               <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
+                  <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
                 </button>
               </div>
             </div>
@@ -3764,7 +3823,7 @@ export default function SchoolyScootLMS() {
                 )}
               </div>
 
-              {userRole === 'teacher' ? (
+                         {userRole === 'teacher' ? (
                 // --- TEACHER VIEW: Management Table ---
                 <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
                   <table className="w-full text-left">
@@ -3777,56 +3836,66 @@ export default function SchoolyScootLMS() {
                         <th className="p-4 font-bold text-right">จัดการ</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody>
                       {quizzes.length > 0 ? quizzes.map((quiz) => (
-                        <tr key={quiz.firestoreId || quiz.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={quiz.firestoreId} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
                           <td className="p-4 font-bold text-slate-700">{quiz.title}</td>
                           <td className="p-4">
-                            <span className="bg-[#F0FDF4] text-[#96C68E] px-2 py-1 rounded-lg text-xs font-bold border border-[#96C68E]/20">
-                              เปิดใช้งาน
-                            </span>
-                          </td>
-                          <td className="p-4 text-slate-600 font-medium">{quiz.questions} ข้อ</td>
-                          <td className="p-4 text-slate-600 font-medium">{quiz.time}</td>
-                          <td className="p-4 text-right">
                             <button
-                              onClick={() => handleDeleteQuiz(quiz.firestoreId)}
-                              className="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
-                              title="ลบแบบทดสอบ"
-                            >
-                              <Trash size={18} />
+                              onClick={() => handleToggleQuizStatus(quiz)}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${quiz.status === 'available'
+                                ? 'bg-[#F0FDF4] text-[#96C68E] border-[#96C68E] hover:bg-red-50 hover:text-red-500 hover:border-red-200 hover:content-["ปิด"]'
+                                : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-[#F0FDF4] hover:text-[#96C68E] hover:border-[#96C68E]'
+                                }`}>
+                              {quiz.status === 'available' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                             </button>
+                          </td>
+                          <td className="p-4 text-slate-500">{quiz.questions} ข้อ</td>
+                          <td className="p-4 text-slate-500">{parseInt(quiz.time)} นาที</td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleEditQuiz(quiz)}
+                                className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                title="แก้ไข"
+                              >
+                                <Settings size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuiz(quiz.firestoreId)}
+                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                title="ลบ"
+                              >
+                                <Trash size={18} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       )) : (
-                        <tr>
-                          <td colSpan="5" className="p-8 text-center text-slate-400">
-                            ยังไม่มีแบบทดสอบในวิชานี้
-                          </td>
-                        </tr>
+                        <tr><td colSpan="5" className="p-8 text-center text-slate-400">ยังไม่มีแบบทดสอบ</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               ) : (
                 // --- STUDENT VIEW: Card Grid ---
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {quizzes.length > 0 ? quizzes.map((quiz) => (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {quizzes.filter(q => q.status !== 'closed').length > 0 ? quizzes.filter(q => q.status !== 'closed').map((quiz) => (
                     <div key={quiz.firestoreId || quiz.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
                       <div className="flex justify-between items-start mb-4">
                         <div className="w-12 h-12 bg-[#F0FDF4] rounded-2xl flex items-center justify-center text-[#96C68E] mb-2 group-hover:scale-110 transition-transform">
                           <ClipboardList size={24} />
                         </div>
-                        {/* Mock Status for now */}
-                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg self-start">Available</span>
+                        {/* Status badge hidden for students as they only see open ones */}
                       </div>
 
                       <h3 className="text-lg font-bold text-slate-800 mb-2 line-clamp-1">{quiz.title}</h3>
 
                       <div className="flex items-center gap-4 text-xs text-slate-500 mb-6 font-medium">
                         <span className="flex items-center"><HelpCircle size={14} className="mr-1" /> {quiz.questions} ข้อ</span>
-                        <span className="flex items-center"><Clock size={14} className="mr-1" /> {quiz.time}</span>
+                        <span className="flex items-center"><Clock size={14} className="mr-1" /> {parseInt(quiz.time)} นาที</span>
                       </div>
+
 
                       <button
                         onClick={() => {
