@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz } from './services/quizService';
@@ -672,15 +672,24 @@ export default function SchoolyScootLMS() {
       });
 
       // 3. Notify Students
-      if (selectedCourse && selectedCourse.studentIds) {
-        selectedCourse.studentIds.forEach(studentId => {
-          createNotification(
-            studentId,
-            `เข้าเรียน: ${meetingConfig.topic}`,
-            'meeting',
-            `วิชา ${selectedCourse.name} เริ่มการเรียนการสอนแล้ว! กดเพื่อเข้าร่วม`
-          );
-        });
+      // 3. Notify Students (Fetch latest data to ensure no one is missed)
+      const courseRef = doc(db, 'courses', selectedCourse.firestoreId);
+      const courseSnap = await getDoc(courseRef);
+
+      if (courseSnap.exists()) {
+        const latestCourseData = courseSnap.data();
+        if (latestCourseData.studentIds && latestCourseData.studentIds.length > 0) {
+          console.log("Sending notifications to:", latestCourseData.studentIds);
+          latestCourseData.studentIds.forEach(studentId => {
+            createNotification(
+              studentId,
+              `เข้าเรียน: ${meetingConfig.topic}`,
+              'meeting',
+              `วิชา ${selectedCourse.name} เริ่มการเรียนการสอนแล้ว! กดเพื่อเข้าร่วม`,
+              { courseId: selectedCourse.firestoreId, targetType: 'meeting' }
+            );
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to start meeting:", error);
@@ -1012,6 +1021,70 @@ export default function SchoolyScootLMS() {
     }
     if (selectedNotification && selectedNotification.firestoreId === id) {
       setSelectedNotification(prev => prev ? { ...prev, read: true } : prev);
+    }
+  };
+
+  // Smart Navigation Handler
+  const handleNotificationClick = (notif) => {
+    setSelectedNotification(notif);
+    markNotificationRead(notif.firestoreId);
+    setActiveModal('notificationDetail'); // Default open detail
+
+    // 1. Try Metadata Navigation (New System)
+    if (notif.courseId) {
+      const targetCourse = courses.find(c => c.firestoreId === notif.courseId);
+      if (targetCourse) {
+        setSelectedCourse(targetCourse);
+
+        if (notif.targetType === 'meeting') {
+          setCourseTab('meeting'); // Auto-open video tab
+          setActiveModal('videoConference'); // OR maybe just go to tab? Let's just go to tab for safety, or open modal if meeting active
+          // If we want to auto-join, we might need more logic. For now, go to tab.
+        } else if (notif.targetType === 'assignment' || notif.type === 'homework') {
+          setCourseTab('work');
+          if (notif.targetId) {
+            // Logic to open specific assignment if needed, or just list
+            // We can find assignment and open modal?
+            const assign = assignments.find(a => (a.firestoreId || a.id) === notif.targetId);
+            if (assign) {
+              if (userRole === 'teacher') openGradingModal(assign);
+              else { setSelectedAssignment(assign); setActiveModal('assignmentDetail'); }
+            }
+          }
+        } else if (notif.targetType === 'join_request') {
+          setCourseTab('people');
+          setActiveModal(null);
+        } else if (notif.targetType === 'join_approved') {
+          setCourseTab('home');
+          setActiveModal(null);
+        }
+        return; // Navigation handled
+      }
+    }
+
+    // 2. Legacy Fuzzy Match Navigation (Fallback)
+    if (notif.message.includes('คำขอเข้าห้องเรียน') && userRole === 'teacher') {
+      const courseName = notif.message.split(': ')[1];
+      const targetCourse = courses.find(c => c.name === courseName);
+      if (targetCourse) {
+        setSelectedCourse(targetCourse);
+        setCourseTab('people');
+        setActiveModal(null);
+      }
+    } else if (notif.message.includes('อนุมัติการเข้าห้องเรียน') && userRole === 'student') {
+      const courseName = notif.message.split(': ')[1];
+      const targetCourse = courses.find(c => c.name === courseName);
+      if (targetCourse) {
+        setSelectedCourse(targetCourse);
+        setCourseTab('home'); // Go to feed
+        setActiveModal(null);
+      }
+    } else if (notif.type === 'homework') {
+      // Fallback for old homework notifications without IDs
+      // Try to find course name from detail or message? Hard without structure.
+      // But renderAssignments filters by course.
+      // We can just open assignments tab if we can guess course.
+      // For now, just show detail modal is fine for legacy.
     }
   };
 
@@ -1836,40 +1909,7 @@ export default function SchoolyScootLMS() {
                     key={notif.firestoreId}
                     notif={notif}
                     isSelected={selectedNotification?.firestoreId === notif.firestoreId}
-                    onClick={() => {
-                      setSelectedNotification(notif);
-                      markNotificationRead(notif.firestoreId);
-
-                      // Smart Navigation Logic
-                      if (notif.message.includes('คำขอเข้าห้องเรียน') && userRole === 'teacher') {
-                        // Extract course name or find relevant course
-                        // NOTE: In a real app we'd store courseId in notification metadata.
-                        // Here we try to fuzzy match or just let teacher find it, BUT 
-                        // let's try to match by name if present in message, e.g. "คำขอเข้าห้องเรียน: Science"
-                        const courseName = notif.message.split(': ')[1];
-                        const targetCourse = courses.find(c => c.name === courseName);
-                        if (targetCourse) {
-                          setSelectedCourse(targetCourse);
-                          setCourseTab('people'); // Navigate to Members/Approvals
-                          setActiveModal(null); // Close modal
-                        } else {
-                          setActiveModal('notificationDetail');
-                        }
-                      } else if (notif.message.includes('อนุมัติการเข้าห้องเรียน') && userRole === 'student') {
-                        const courseName = notif.message.split(': ')[1];
-                        const targetCourse = courses.find(c => c.name === courseName);
-                        if (targetCourse) {
-                          setSelectedCourse(targetCourse);
-                          setCourseTab('home');
-                          setActiveModal(null);
-                        } else {
-                          setActiveModal('notificationDetail');
-                        }
-                      } else {
-                        // Default behavior
-                        setActiveModal('notificationDetail');
-                      }
-                    }}
+                    onClick={() => handleNotificationClick(notif)}
                   />
 
                 ))}
@@ -2281,7 +2321,8 @@ export default function SchoolyScootLMS() {
                             studentId,
                             `มีการบ้านใหม่: ${newAssignment.title}`,
                             'homework',
-                            `วิชา ${newAssignment.course} สั่งงานใหม่ กำหนดส่ง ${newAssignment.dueDate || 'ยังไม่กำหนด'}`
+                            `วิชา ${newAssignment.course} สั่งงานใหม่ กำหนดส่ง ${newAssignment.dueDate || 'ยังไม่กำหนด'}`,
+                            { courseId: currentCourse.firestoreId, targetType: 'assignment', targetId: createdAssign.firestoreId }
                           );
                         });
                       }
@@ -2572,11 +2613,7 @@ export default function SchoolyScootLMS() {
                 key={notif.firestoreId}
                 notif={notif}
                 isSelected={selectedNotification?.firestoreId === notif.firestoreId}
-                onClick={() => {
-                  setSelectedNotification(notif);
-                  markNotificationRead(notif.firestoreId);
-                  setActiveModal('notificationDetail');
-                }}
+                onClick={() => handleNotificationClick(notif)}
               />
             ))}
           </div>

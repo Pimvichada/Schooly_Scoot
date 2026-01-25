@@ -87,7 +87,7 @@ export const seedNotifications = async (userId) => {
  * @param {string} type - 'homework', 'system', 'user', etc.
  * @param {string} detail - Detailed description
  */
-export const createNotification = async (userId, message, type = 'system', detail = '') => {
+export const createNotification = async (userId, message, type = 'system', detail = '', metadata = {}) => {
     try {
         await addDoc(collection(db, 'notifications'), {
             userId,
@@ -96,7 +96,8 @@ export const createNotification = async (userId, message, type = 'system', detai
             detail,
             read: false,
             time: 'ตอนนี้', // You might want to format this or use relative time in UI
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            ...metadata // Spread optional metadata (e.g., courseId, targetId)
         });
     } catch (error) {
         console.error("Error creating notification:", error);

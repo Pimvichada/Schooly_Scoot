@@ -171,7 +171,8 @@ export const joinCourse = async (inviteCode, studentUser) => {
             courseData.ownerId,
             `คำขอเข้าห้องเรียน: ${courseData.name}`,
             'system',
-            `${studentName} ขอเข้าร่วมห้องเรียน ${courseData.name} (${courseData.code})`
+            `${studentName} ขอเข้าร่วมห้องเรียน ${courseData.name} (${courseData.code})`,
+            { courseId: courseDoc.id, targetType: 'join_request' }
         );
 
         return { ...courseData, firestoreId: courseDoc.id, status: 'pending' };
@@ -202,7 +203,8 @@ export const approveJoinRequest = async (courseId, studentId) => {
             studentId,
             `อนุมัติการเข้าห้องเรียน: ${courseData.name}`,
             'system',
-            `คุณครูได้อนุมัติให้คุณเข้าห้องเรียน ${courseData.name} แล้ว`
+            `คุณครูได้อนุมัติให้คุณเข้าห้องเรียน ${courseData.name} แล้ว`,
+            { courseId: courseId, targetType: 'join_approved' }
         );
 
         return true;
