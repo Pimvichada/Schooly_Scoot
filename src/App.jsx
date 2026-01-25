@@ -257,6 +257,8 @@ export default function SchoolyScootLMS() {
   const [activeQuiz, setActiveQuiz] = useState(null); // Which quiz is currently being taken
   const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers { questionIndex: optionIndex }
   const [quizResult, setQuizResult] = useState(null); // Stores final score
+  const [quizzes, setQuizzes] = useState([]);
+
 
   // Fetch quizzes when entering a course or changing tab to quizzes
   useEffect(() => {
@@ -683,17 +685,23 @@ export default function SchoolyScootLMS() {
   };
 
   const handleUpdateQuestion = (idx, field, value) => {
-    const updatedItems = [...newExam.items];
-    updatedItems[idx] = { ...updatedItems[idx], [field]: value };
-    setNewExam(prev => ({ ...prev, items: updatedItems }));
+    setNewExam(prev => {
+      const updatedItems = [...prev.items];
+      updatedItems[idx] = { ...updatedItems[idx], [field]: value };
+      return { ...prev, items: updatedItems };
+    });
   };
 
   const handleUpdateOption = (qIdx, optIdx, value) => {
-    const updatedItems = [...newExam.items];
-    const updatedOptions = [...updatedItems[qIdx].options];
-    updatedOptions[optIdx] = value;
-    updatedItems[qIdx].options = updatedOptions;
-    setNewExam(prev => ({ ...prev, items: updatedItems }));
+    setNewExam(prev => {
+      const updatedItems = [...prev.items];
+      const targetItem = { ...updatedItems[qIdx] };
+      const updatedOptions = [...targetItem.options];
+      updatedOptions[optIdx] = value;
+      targetItem.options = updatedOptions;
+      updatedItems[qIdx] = targetItem;
+      return { ...prev, items: updatedItems };
+    });
   };
 
   const handleSaveExam = async () => {
@@ -705,12 +713,16 @@ export default function SchoolyScootLMS() {
     try {
       const examToAdd = {
         title: newExam.title,
-        course: selectedCourse.name, // Use selected course
+        course: newExam.course || selectedCourse.name, // Use selected course or user choice
         questions: newExam.items.length,
         time: newExam.time,
         status: 'available',
         score: null,
-        items: newExam.items,
+        // Deep copy items to avoid reference issues
+        items: newExam.items.map(item => ({
+          ...item,
+          options: [...item.options]
+        })),
         ownerId: auth.currentUser.uid
       };
 
