@@ -2804,7 +2804,7 @@ export default function SchoolyScootLMS() {
                       <span className="text-xs text-slate-400">{assign.course}</span>
                     </div>
                     <h3 className="font-bold text-slate-800 text-lg">{assign.title}</h3>
-                    <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate}</p>
+                    <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
                   </div>
 
                   <div className="mt-4 md:mt-0 flex items-center gap-4">
@@ -3294,7 +3294,7 @@ export default function SchoolyScootLMS() {
 
                     <div className="flex items-center gap-2">
                       <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
-                        {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH')}` : 'ยังไม่มีกำหนดส่ง')}
+                        {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'ยังไม่มีกำหนดส่ง')}
                       </p>
 
                       {/* Overdue Text - Student Only */}
