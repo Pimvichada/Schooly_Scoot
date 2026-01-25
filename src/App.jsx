@@ -38,6 +38,7 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
 
   Info,
   Send,
@@ -1320,7 +1321,8 @@ export default function SchoolyScootLMS() {
           return {
             ...assign,
             status: 'submitted',
-            submittedFiles: uploadFile // Keep local file objects for UI display
+            submittedFiles: uploadFile,
+            submittedAt: new Date().toISOString() // Keep local file objects for UI display
           };
         }
         return assign;
@@ -1660,7 +1662,7 @@ export default function SchoolyScootLMS() {
                   <h2 className="text-2xl font-bold text-slate-800 flex items-center">
                     <ClipboardList className="mr-3 text-[#FF917B]" /> {activeQuiz.title}
                   </h2>
-            <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : 'bg-[#F0FDF4] text-[#96C68E]'}`}>
+                  <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : 'bg-[#F0FDF4] text-[#96C68E]'}`}>
                     <Clock size={18} className="mr-2" />
                     {quizRemainingSeconds > 0
                       ? `${Math.floor(quizRemainingSeconds / 60)}:${(quizRemainingSeconds % 60).toString().padStart(2, '0')} นาที`
@@ -3214,6 +3216,23 @@ export default function SchoolyScootLMS() {
           // สร้างฟังก์ชันช่วยวาดการ์ดงาน (เพื่อประหยัดพื้นที่โค้ดและลดความผิดพลาด)
           const renderCard = (data) => {
             const isDone = data.status === 'submitted';
+            let overdueDays = 0;
+            if (data.dueDate) {
+              const due = new Date(data.dueDate);
+              // If submitted (isDone), check based on submittedAt if available
+              // If no submittedAt but isDone, we assume on time or can't tell, so days=0
+              // But for pending, check now.
+              const compareDate = isDone && data.submittedAt ? new Date(data.submittedAt) : (isDone ? due : new Date());
+
+              if (compareDate > due) {
+                const diffTime = Math.abs(compareDate - due);
+                // Only count as overdue if pending OR if submitted late
+                if (!isDone || (isDone && data.submittedAt && new Date(data.submittedAt) > due)) {
+                  overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                }
+              }
+            }
+
             return (
               <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border transition-all flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
                 }`}>
@@ -3224,9 +3243,18 @@ export default function SchoolyScootLMS() {
                   <div>
                     <h4 className={`font-bold ${isDone ? 'text-slate-400' : 'text-slate-800'}`}>{data.title}</h4>
 
-                    <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
-                      {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${data.dueDate}` : 'ยังไม่มีกำหนดส่ง')}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
+                        {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH')}` : 'ยังไม่มีกำหนดส่ง')}
+                      </p>
+
+                      {/* Overdue Text - Student Only */}
+                      {overdueDays > 0 && userRole === 'student' && (
+                        <span className="text-xs font-bold text-red-500">
+                          (ล่าช้า {overdueDays} วัน)
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <button

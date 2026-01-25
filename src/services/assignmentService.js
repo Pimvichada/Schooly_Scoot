@@ -44,12 +44,13 @@ export const getAssignments = async (courseName, uid, role) => {
                             ...assignment,
                             status: 'submitted',
                             submittedFiles: files,
-                            score: submission.score
+                            score: submission.score,
+                            submittedAt: submission.submittedAt
                         };
                     }
 
                     // If no submission found for this student, force status to 'pending'
-                    // This overrides any global status (like in seeded data) to ensure accurate student view
+
                     return {
                         ...assignment,
                         status: 'pending',
