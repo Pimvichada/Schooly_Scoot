@@ -979,6 +979,7 @@ export default function SchoolyScootLMS() {
 
   // Notifications state
   const [notifications, setNotifications] = useState([]);
+  const hasUnread = notifications.some(n => !n.read);
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [submissionsLoading, setSubmissionsLoading] = useState(false); // New state
@@ -1003,13 +1004,13 @@ export default function SchoolyScootLMS() {
 
   const markNotificationRead = (id) => {
     // Optimistic update
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setNotifications(prev => prev.map(n => n.firestoreId === id ? { ...n, read: true } : n));
     // Sync with Firestore
-    const notif = notifications.find(n => n.id === id);
+    const notif = notifications.find(n => n.firestoreId === id);
     if (notif && notif.firestoreId) {
       markNotificationAsRead(notif.firestoreId);
     }
-    if (selectedNotification && selectedNotification.id === id) {
+    if (selectedNotification && selectedNotification.firestoreId === id) {
       setSelectedNotification(prev => prev ? { ...prev, read: true } : prev);
     }
   };
@@ -1832,12 +1833,12 @@ export default function SchoolyScootLMS() {
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar ">
                 {notifications.map((notif) => (
                   <NotificationItem
-                    key={notif.id}
+                    key={notif.firestoreId}
                     notif={notif}
-                    isSelected={selectedNotification?.id === notif.id}
+                    isSelected={selectedNotification?.firestoreId === notif.firestoreId}
                     onClick={() => {
                       setSelectedNotification(notif);
-                      markNotificationRead(notif.id);
+                      markNotificationRead(notif.firestoreId);
 
                       // Smart Navigation Logic
                       if (notif.message.includes('คำขอเข้าห้องเรียน') && userRole === 'teacher') {
@@ -2568,12 +2569,12 @@ export default function SchoolyScootLMS() {
             {notifications.slice(0, 4).map((notif) => (
               <NotificationItem
                 compact
-                key={notif.id}
+                key={notif.firestoreId}
                 notif={notif}
-                isSelected={selectedNotification?.id === notif.id}
+                isSelected={selectedNotification?.firestoreId === notif.firestoreId}
                 onClick={() => {
                   setSelectedNotification(notif);
-                  markNotificationRead(notif.id);
+                  markNotificationRead(notif.firestoreId);
                   setActiveModal('notificationDetail');
                 }}
               />
@@ -3998,7 +3999,7 @@ export default function SchoolyScootLMS() {
             className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center relative"
           >
             <Bell size={16} className="text-slate-600" />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            {hasUnread && <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>}
           </button>
         </header>
 
@@ -4026,7 +4027,7 @@ export default function SchoolyScootLMS() {
                   onClick={() => setActiveModal('notificationsList')}
                   className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center relative hover:bg-slate-50">
                   <Bell size={20} className="text-slate-600" />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>
+                  {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>}
                 </button>
               </div>
             </div>
