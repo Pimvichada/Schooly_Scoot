@@ -206,6 +206,17 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
 
     try {
       await toggleLikePost(post.id, currentUser.uid, isLiked);
+
+      // Notify if liking (and not self)
+      if (!isLiked && post.author?.uid && post.author.uid !== currentUser.uid) {
+        await createNotification(
+          post.author.uid,
+          `มีคนถูกใจโพสต์ของคุณ`,
+          'system',
+          `${currentUser.displayName || currentUser.email} ถูกใจโพสต์ของคุณ`,
+          { courseId: post.courseId, targetType: 'post', targetId: post.id }
+        );
+      }
     } catch (error) {
       // Revert on error
       setLikes(previousLikes);
@@ -244,6 +255,18 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
       };
 
       const newComment = await addComment(post.id, commentText, author);
+
+      // Notify if commenting (and not self)
+      if (post.author?.uid && post.author.uid !== currentUser.uid) {
+        await createNotification(
+          post.author.uid,
+          `ความคิดเห็นใหม่ในโพสต์ของคุณ`,
+          'system',
+          `${currentUser.displayName || currentUser.email} แสดงความคิดเห็น: "${commentText.substring(0, 20)}${commentText.length > 20 ? '...' : ''}"`,
+          { courseId: post.courseId, targetType: 'post', targetId: post.id }
+        );
+      }
+
       setComments([...comments, newComment]); // อัปเดต UI ทันที
       setCommentText(""); // ล้างช่องกรอก
     } catch (error) {
@@ -817,6 +840,21 @@ export default function SchoolyScootLMS() {
       // Pass files to createPost
       const newPost = await createPost(selectedCourse.firestoreId, newPostContent, author, newPostFiles);
 
+      // Notify Course Members
+      const recipients = new Set(selectedCourse.studentIds || []);
+      if (selectedCourse.ownerId) recipients.add(selectedCourse.ownerId);
+      recipients.delete(auth.currentUser.uid); // Don't notify self
+
+      recipients.forEach(async (uid) => {
+        await createNotification(
+          uid,
+          `โพสต์ใหม่ในวิชา ${selectedCourse.name}`,
+          'system',
+          `${profile.firstName} ได้โพสต์ประกาศใหม่`,
+          { courseId: selectedCourse.firestoreId, targetType: 'post', targetId: newPost.id }
+        );
+      });
+
       // Update local state
       setPosts([newPost, ...posts]);
       setNewPostContent('');
@@ -1314,6 +1352,17 @@ export default function SchoolyScootLMS() {
         `${profile.firstName} ${profile.lastName}`,
         fileData
       );
+
+      // Notify Teacher (Course Owner)
+      if (selectedCourse?.ownerId && selectedCourse.ownerId !== auth.currentUser.uid) {
+        await createNotification(
+          selectedCourse.ownerId,
+          `มีการส่งงาน: ${assignment.title}`,
+          'system',
+          `${profile.firstName} ส่งงานแล้ว`,
+          { courseId: selectedCourse.firestoreId, targetType: 'assignment', targetId: targetId }
+        );
+      }
 
       // Update Local State
       setAssignments(prev => prev.map(assign => {
