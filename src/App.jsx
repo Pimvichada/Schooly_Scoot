@@ -3268,7 +3268,7 @@ export default function SchoolyScootLMS() {
               {/* ส่วนควบคุม: หัวข้อ และ ปุ่มสลับ (Toggle) */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">ภารกิจในวิชา</h2>
+                  <h2 className="text-xl font-bold text-slate-800">งานในชั้นเรียน</h2>
                   <p className="text-xs text-slate-400">จัดการงานและการบ้านของคุณ</p>
                 </div>
 
@@ -3296,7 +3296,7 @@ export default function SchoolyScootLMS() {
                 <div className="space-y-6">
                   <section>
                     <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
-                      <Clock className="mr-2 text-yellow-500" size={18} /> งานที่ต้องทำ ({pendingWork.length})
+                      <Clock className="mr-2 text-yellow-500" size={18} /> งานทั้งหมด ({pendingWork.length})
                     </h3>
                     <div className="space-y-3">
                       {pendingWork.length > 0 ? pendingWork.map(renderCard) : (
@@ -3307,7 +3307,7 @@ export default function SchoolyScootLMS() {
                     </div>
                   </section>
 
-                  {submittedWork.length > 0 && (
+                  {userRole === 'student' && submittedWork.length > 0 && (
                     <section className="pt-4 border-t border-slate-100">
                       <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
                         <CheckCircle className="mr-2 text-green-500" size={18} /> ส่งแล้ว ({submittedWork.length})
