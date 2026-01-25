@@ -103,3 +103,25 @@ export const createNotification = async (userId, message, type = 'system', detai
         console.error("Error creating notification:", error);
     }
 };
+// Exporting this function explicitly to avoid import errors
+export const markAllNotificationsAsRead = async (userId) => {
+    try {
+        const notifCol = collection(db, 'notifications');
+        const q = query(
+            notifCol,
+            where('userId', '==', userId),
+            where('read', '==', false)
+        );
+
+        const snapshot = await getDocs(q);
+        const updatePromises = snapshot.docs.map(doc =>
+            updateDoc(doc.ref, { read: true })
+        );
+
+        await Promise.all(updatePromises);
+        return true;
+    } catch (error) {
+        console.error("Error marking all as read:", error);
+        return false;
+    }
+};

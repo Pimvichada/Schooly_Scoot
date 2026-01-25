@@ -6,11 +6,12 @@ import { getUserProfile, logoutUser, updateUserProfile } from './services/authSe
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
-import { getNotifications, seedNotifications, markNotificationAsRead, createNotification } from './services/notificationService';
+import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import { uploadFile } from './services/uploadService';
+
 import {
   BookOpen,
   Calendar,
@@ -1173,6 +1174,16 @@ export default function SchoolyScootLMS() {
     }
     if (selectedNotification && selectedNotification.firestoreId === id) {
       setSelectedNotification(prev => prev ? { ...prev, read: true } : prev);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    // Optimistic update
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+    // Call service
+    if (auth.currentUser) {
+      await markAllNotificationsAsRead(auth.currentUser.uid);
     }
   };
 
@@ -2785,9 +2796,18 @@ export default function SchoolyScootLMS() {
           {/* ALL NOTIFICATIONS LIST MODAL */}
           {activeModal === 'notificationsList' && (
             <div className="p-6 h-[80vh] flex flex-col">
-              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
-                <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
-              </h2>
+              <div className="flex items-center gap-4 mb-6">
+                <h2 className='text-2xl font-bold text-slate-800 flex items-center'>
+                  <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
+                </h2>
+                <button
+                  onClick={handleMarkAllRead}
+                  className="flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full transition-all shadow-sm text-[#96C68E] hover:text-white bg-white hover:bg-[#96C68E] border-[#96C68E] hover:shadow-md active:scale-95"
+                >
+                  <CheckCircle size={12} />
+                  อ่านทั้งหมด
+                </button>
+              </div>
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar ">
                 {notifications.map((notif) => (
                   <NotificationItem
