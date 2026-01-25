@@ -142,7 +142,7 @@ export const getPostsByCourse = async (courseId) => {
                 id: doc.id,
                 ...data,
                 createdAt: data.createdAt?.toDate
-                    ? data.createdAt.toDate().toLocaleString('th-TH')
+                    ? data.createdAt.toDate().toLocaleString('th-TH', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                     : "เมื่อสักครู่"
             };
         });
@@ -170,7 +170,7 @@ export const subscribeToPosts = (courseId, callback) => {
                 id: doc.id,
                 ...data,
                 createdAt: data.createdAt?.toDate
-                    ? data.createdAt.toDate().toLocaleString('th-TH')
+                    ? data.createdAt.toDate().toLocaleString('th-TH', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                     : "เมื่อสักครู่"
             };
         });
@@ -232,7 +232,7 @@ export const getComments = async (postId) => {
                 id: doc.id,
                 ...data,
                 createdAt: data.createdAt?.toDate
-                    ? data.createdAt.toDate().toLocaleString('th-TH')
+                    ? data.createdAt.toDate().toLocaleString('th-TH', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
                     : "เมื่อสักครู่"
             };
         });
