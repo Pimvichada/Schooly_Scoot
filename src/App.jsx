@@ -11,6 +11,7 @@ import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import { uploadFile } from './services/uploadService';
+import LandingPage from './components/LandingPage';
 
 import {
   BookOpen,
@@ -507,9 +508,11 @@ export default function SchoolyScootLMS() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [workView, setWorkView] = useState('current');
-  const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
+  // const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
   const [authLoading, setAuthLoading] = useState(true);
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]); // Store hidden course IDs locally
+  const [currentView, setCurrentView] = useState('landing'); // 'current' หรือ 'all'
+
 
   // Meeting State
   const [meetingConfig, setMeetingConfig] = useState({
@@ -544,14 +547,23 @@ export default function SchoolyScootLMS() {
     return messages[Math.floor(Math.random() * messages.length)];
   }, [userRole]);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          // Fetch user profile from Firestore
-          const userProfile = await getUserProfile(user.uid);
+ useEffect(() => {
+    let unsubscribeProfile = null;
 
-          if (userProfile) {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      // Unsubscribe from previous profile listener if exists
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
+      if (user) {
+        setAuthLoading(true);
+        // Real-time listener for user profile
+        const userRef = doc(db, "users", user.uid);
+        unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const userProfile = docSnap.data();
             setUserRole(userProfile.role);
             setProfile({
               firstName: userProfile.fullName.split(' ')[0] || 'User',
@@ -562,25 +574,36 @@ export default function SchoolyScootLMS() {
             });
             setHiddenCourseIds(userProfile.hiddenCourses || []);
             setIsLoggedIn(true);
+          } else {
+            // User exists in Auth but not yet in Firestore (creating...)
+            console.log("Waiting for user profile creation...");
           }
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-        }
+          setAuthLoading(false);
+        }, (error) => {
+          console.error("Error listening to user profile:", error);
+          setAuthLoading(false);
+        });
+
       } else {
         setIsLoggedIn(false);
         setProfile({
           firstName: '',
           lastName: '',
-          eLaemail: '',
-          rolbel: '',
-
+          email: '',
+          roleLabel: '',
+          photoURL: ''
         });
+        setAuthLoading(false);
       }
-      setAuthLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
+
+  
 
 
   // Chat State
@@ -5290,23 +5313,20 @@ export default function SchoolyScootLMS() {
   // IF NOT LOGGED IN, SHOW LOGIN PAGE
   // --- ส่วนตัดสินใจว่าจะแสดงหน้าไหนก่อนเข้าสู่ระบบ ---
   if (!isLoggedIn) {
-    if (currentView === 'login') {
-      return (
-        <LoginPage
-          onLogin={handleLogin}
-          onNavigateToRegister={() => setCurrentView('register')}
-        />
-      );
-    } else {
+    
+ if (currentView === 'register') {
       return (
         <RegisterPage
           onRegister={(data) => {
             console.log("Registration successful", data);
             // Auth state change will handle navigation to dashboard
           }}
-          onBackToLogin={() => setCurrentView('login')}
+          onBackToLogin={() => setCurrentView('landing')}
         />
       );
+    } else {
+      // Default to Landing Page (which contains Login)
+      return <LandingPage onNavigateToRegister={() => setCurrentView('register')} />;
     }
   }
 
