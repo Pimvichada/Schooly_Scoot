@@ -876,7 +876,7 @@ export default function SchoolyScootLMS() {
   }, [activeModal, quizResult, quizRemainingSeconds]);
 
 
-  // Fetch Posts when course selected
+  // Fetch Posts and Quiz Submissions when course selected
   useEffect(() => {
     const fetchAllData = async () => {
       // ตรวจสอบว่ามี selectedCourse หรือไม่
@@ -888,8 +888,39 @@ export default function SchoolyScootLMS() {
 
       try {
         setLoading(true); // เริ่มโหลด
-        const data = await getPostsByCourse(selectedCourse.firestoreId);
-        setPosts(data);
+
+        // 1. Fetch Posts
+        const postsData = await getPostsByCourse(selectedCourse.firestoreId);
+        setPosts(postsData);
+
+        // 2. Fetch Quiz Submissions (if Student)
+        if (auth.currentUser && userRole === 'student') {
+          const courseQuizzes = await getQuizzesByCourse(selectedCourse.name); // Note: Current logic matches by course name or ID? checking createExam.. it uses course name.
+          // Wait, getQuizzesByCourse logic in App might depend on how quizzes are linked. Use logic similar to what we might expect.
+          // Actually, let's look at how quizzes are filtered in render: "const quizzes = allQuizzes.filter..."
+          // But wait, "quizzes" state might not be loaded yet if we only rely on this effect?
+          // The "quizzes" state seems to be global or fetched elsewhere?
+          // Let's check where "quizzes" comes from.
+          // If I look at line 1408: setQuizzes([...quizzes, createdQuiz]);
+          // It seems "quizzes" is a state.
+          // I should probably fetch quizzes here too if they aren't already?
+          // OR iterate over `quizzes` if it's already there?
+          // Issue: this effect runs on `selectedCourse`.
+          // Let's just fetch them for sure to be safe and accurate.
+
+          // Re-reading quizService: getQuizzesByCourse(courseName)
+          const fetchedQuizzes = await getQuizzesByCourse(selectedCourse.name);
+
+          const submissionsMap = {};
+          await Promise.all(fetchedQuizzes.map(async (q) => {
+            const sub = await checkSubmission(q.firestoreId, auth.currentUser.uid);
+            if (sub) {
+              submissionsMap[q.firestoreId] = sub;
+            }
+          }));
+          setMySubmissions(submissionsMap);
+        }
+
       } catch (error) {
         console.error(error);
       } finally {
@@ -898,7 +929,7 @@ export default function SchoolyScootLMS() {
     };
 
     fetchAllData();
-  }, [selectedCourse]);
+  }, [selectedCourse, auth.currentUser, userRole]);
 
   // Handle Create Post
   const handleCreatePost = async (e) => {
@@ -2213,8 +2244,37 @@ export default function SchoolyScootLMS() {
                                     </div>
                                   </td>
                                   <td className="p-4 pr-6 text-right">
-                                    <div className="text-2xl font-black text-slate-800">
-                                      {sub.score} <span className="text-sm font-medium text-slate-400">/ {sub.total}</span>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <div className="flex items-center gap-1">
+                                        <input
+                                          type="number" // Change to number
+                                          defaultValue={sub.score}
+                                          className="w-16 p-1 text-center font-black text-slate-800 border border-transparent hover:border-slate-300 focus:border-[#96C68E] rounded-lg text-2xl outline-none transition-all"
+                                          id={`quiz-score-${sub.firestoreId}`}
+                                          onClick={(e) => e.stopPropagation()} // Prevent row click
+                                        />
+                                        <span className="text-sm font-medium text-slate-400">/ {sub.total}</span>
+                                      </div>
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          const input = document.getElementById(`quiz-score-${sub.firestoreId}`);
+                                          const newScore = input.value;
+                                          try {
+                                            await updateQuizSubmissionScore(sub.firestoreId, newScore);
+                                            // Optimistic Update
+                                            setCourseSubmissions(prev => prev.map(s => s.firestoreId === sub.firestoreId ? { ...s, score: Number(newScore) } : s));
+                                            alert('บันทึกคะแนนสอบเรียบร้อย');
+                                          } catch (err) {
+                                            console.error(err);
+                                            alert('บันทึกไม่สำเร็จ');
+                                          }
+                                        }}
+                                        className="p-2 text-slate-300 hover:text-green-500 hover:bg-green-50 rounded-lg transition-all"
+                                        title="บันทึกคะแนน"
+                                      >
+                                        <Save size={20} />
+                                      </button>
                                     </div>
                                   </td>
                                 </tr>
@@ -4385,6 +4445,7 @@ export default function SchoolyScootLMS() {
                   <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
                     <tr>
                       <th className="p-4 font-bold">รายการสอบ</th>
+                      <th className="p-4 font-bold">คะแนน</th>
                       <th className="p-4 font-bold">วันที่สอบ</th>
                       <th className="p-4 font-bold text-right">ผลลัพธ์</th>
                     </tr>
@@ -4398,7 +4459,17 @@ export default function SchoolyScootLMS() {
                         <tr key={quiz.firestoreId} className="hover:bg-slate-50 transition-colors">
                           <td className="p-4">
                             <div className="font-bold text-slate-700">{quiz.title}</div>
-                            <div className="text-xs text-slate-400">{quiz.questions} ข้อ</div>
+                          </td>
+                          <td className="p-4 text-sm font-bold text-slate-700">
+                            {userRole === 'teacher' ? (
+                              <span>{quiz.questions} คะแนน</span>
+                            ) : (
+                              isSubmitted ? (
+                                <span className="text-green-600">{submission.score} / {submission.total}</span>
+                              ) : (
+                                <span className="text-slate-400">เต็ม {quiz.questions}</span>
+                              )
+                            )}
                           </td>
                           <td className="p-4 text-sm text-slate-500">
                             {submission ? new Date(submission.submittedAt).toLocaleDateString('th-TH') : '-'}
@@ -4413,11 +4484,11 @@ export default function SchoolyScootLMS() {
                               </button>
                             ) : (
                               isSubmitted ? (
-                                <span className="inline-block px-3 py-1 bg-green-50 text-green-600 border border-green-100 rounded-lg font-bold">
-                                  {submission.score} / {submission.total}
+                                <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">
+                                  <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-sm">ยังไม่ทำ</span>
+                                <span className="text-slate-400 text-xs">-</span>
                               )
                             )}
                           </td>
@@ -4425,9 +4496,74 @@ export default function SchoolyScootLMS() {
                       );
                     }) : (
                       <tr>
-                        <td colSpan="3" className="p-8 text-center text-slate-400">ยังไม่มีรายการสอบ</td>
+                        <td colSpan="4" className="p-8 text-center text-slate-400">ยังไม่มีรายการสอบ</td>
                       </tr>
                     )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Assignment Scores Section */}
+              <div className="flex justify-between items-center mb-4 mt-8">
+                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                  <FileText className="mr-2 text-[#FF917B]" /> คะแนนงาน
+                </h2>
+              </div>
+              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
+                    <tr>
+                      <th className="p-4 font-bold">ชื่องาน</th>
+                      <th className="p-4 font-bold">คะแนน</th>
+                      <th className="p-4 font-bold">กำหนดส่ง</th>
+                      <th className="p-4 font-bold text-right">ผลลัพธ์</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {(() => {
+                      // Filter assignments for this course
+                      const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
+
+                      return courseAssignments.length > 0 ? courseAssignments.map((assign) => (
+                        <tr key={assign.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="p-4">
+                            <div className="font-bold text-slate-700">{assign.title}</div>
+                          </td>
+                          <td className="p-4 text-sm font-bold text-slate-700">
+                            {assign.score ? (
+                              <span className="text-green-600">{assign.score} / {assign.maxScore || 10}</span>
+                            ) : (
+                              <span className="text-slate-400">{userRole === 'teacher' ? (assign.maxScore || 10) : '-'}</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-sm text-slate-500">
+                            {assign.dueDate ? new Date(assign.dueDate).toLocaleDateString('th-TH') : '-'}
+                          </td>
+                          <td className="p-4 text-right">
+                            {userRole === 'teacher' ? (
+                              <button
+                                onClick={() => openGradingModal(assign)}
+                                className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg text-xs font-bold hover:bg-amber-100"
+                              >
+                                <CheckSquare size={14} className="inline mr-1" /> ตรวจงาน
+                              </button>
+                            ) : (
+                              assign.status === 'submitted' ? (
+                                <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">
+                                  <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-xs">ยังไม่ส่ง</span>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan="4" className="p-8 text-center text-slate-400">ยังไม่มีการบ้าน</td>
+                        </tr>
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>
@@ -5065,8 +5201,7 @@ export default function SchoolyScootLMS() {
           <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
 
-          <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 mt-6 tracking-wider">อื่นๆ</p>
-          <SidebarItem id="messages" label="ข้อความ" icon={MessageSquare} activeTab={activeTab} onSelect={() => { setActiveTab('messages'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+
 
         </nav>
 

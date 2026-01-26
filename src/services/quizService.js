@@ -142,3 +142,19 @@ export const updateQuiz = async (quizId, updateData) => {
     }
 };
 
+
+/**
+ * Update a quiz submission score (Teacher Only)
+ * @param {string} submissionId 
+ * @param {number|string} newScore 
+ */
+export const updateQuizSubmissionScore = async (submissionId, newScore) => {
+    try {
+        const docRef = doc(db, 'quiz_submissions', submissionId);
+        await updateDoc(docRef, { score: Number(newScore) });
+        return true;
+    } catch (error) {
+        console.error("Error updating quiz score:", error);
+        throw error;
+    }
+};
