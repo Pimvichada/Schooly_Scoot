@@ -4647,7 +4647,7 @@ export default function SchoolyScootLMS() {
                             )}
                           </td>
                           <td className="p-4 text-sm text-slate-500">
-                            {submission ? new Date(submission.submittedAt).toLocaleDateString('th-TH') : '-'}
+                            {submission ? new Date(submission.submittedAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
                           </td>
                           <td className="p-4 text-right">
                             {userRole === 'teacher' ? (
@@ -4690,7 +4690,7 @@ export default function SchoolyScootLMS() {
                     <tr>
                       <th className="p-4 font-bold">ชื่องาน</th>
                       <th className="p-4 font-bold">คะแนน</th>
-                      <th className="p-4 font-bold">กำหนดส่ง</th>
+                      <th className="p-4 font-bold">วันที่ส่ง</th>
                       <th className="p-4 font-bold text-right">ผลลัพธ์</th>
                     </tr>
                   </thead>
@@ -4712,7 +4712,7 @@ export default function SchoolyScootLMS() {
                             )}
                           </td>
                           <td className="p-4 text-sm text-slate-500">
-                            {assign.dueDate ? new Date(assign.dueDate).toLocaleDateString('th-TH') : '-'}
+                            {assign.status === 'submitted' && assign.submittedAt ? new Date(assign.submittedAt).toLocaleDateString('th-TH') : '-'}
                           </td>
                           <td className="p-4 text-right">
                             {userRole === 'teacher' ? (
