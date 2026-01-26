@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
-import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions } from './services/quizService';
+import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
@@ -109,10 +109,10 @@ const getCourseIcon = (type) => {
     case 'square': return <MascotSquare className="w-12 h-12" />;
     case 'circle': return <MascotCircle className="w-12 h-12" />;
     case 'triangle': return <MascotTriangle className="w-12 h-12" />;
-    case 'star': return <MascotStar className="w-12 h-12" />; 
+    case 'star': return <MascotStar className="w-12 h-12" />;
     case 'cute1': return <Cute1 className="w-12 h-12" />;
     default: return <MascotStar className="w-12 h-12" />;
-    
+
   }
 };
 
@@ -881,9 +881,13 @@ export default function SchoolyScootLMS() {
           return userRight === p.right;
         });
       } else if (item.type === 'text') {
-        const userText = (answer || '').trim().toLowerCase();
-        const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
-        isCorrect = keywords.some(k => userText.includes(k));
+        if (item.manualGrading) {
+          isCorrect = false;
+        } else {
+          const userText = (answer || '').trim().toLowerCase();
+          const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
+          isCorrect = keywords.some(k => userText.includes(k));
+        }
       }
 
       if (isCorrect) score++;
@@ -908,6 +912,17 @@ export default function SchoolyScootLMS() {
           ...prev,
           [activeQuiz.firestoreId]: savedSub
         }));
+
+        // NOTIFY TEACHER
+        if (selectedCourse?.ownerId && selectedCourse.ownerId !== auth.currentUser.uid) {
+          await createNotification(
+            selectedCourse.ownerId,
+            `มีการส่งแบบทดสอบ: ${activeQuiz.title}`,
+            'system',
+            `${submissionData.studentName} ได้ส่งแบบทดสอบแล้ว`,
+            { courseId: activeQuiz.courseId || selectedCourse.firestoreId, targetType: 'quiz_result', targetId: activeQuiz.firestoreId }
+          );
+        }
       } catch (error) {
         console.error("Failed to submit quiz:", error);
         alert("เกิดข้อผิดพลาดในการส่งคำตอบ แต่คะแนนถูกคำนวณแล้ว");
@@ -1579,7 +1594,8 @@ export default function SchoolyScootLMS() {
         // Notify Students
         if (selectedCourse?.studentIds) {
           const recipients = selectedCourse.studentIds.filter(id => id !== auth.currentUser.uid);
-          for (const studentId of recipients) {
+
+          await Promise.all(recipients.map(async (studentId) => {
             const isScheduled = !!examData.scheduledAt;
             const message = isScheduled
               ? `มีแบบทดสอบใหม่กำหนดสอบวันที่ ${new Date(examData.scheduledAt).toLocaleString('th-TH', {
@@ -1587,14 +1603,14 @@ export default function SchoolyScootLMS() {
               })}`
               : `มีแบบทดสอบใหม่ "${examData.title}" เปิดให้ทำแล้ว`;
 
-            await createNotification(
+            return createNotification(
               studentId,
               `แบบทดสอบใหม่: ${examData.title}`,
               'quiz',
               message,
               { courseId: selectedCourse.firestoreId, targetType: 'quiz', targetId: createdQuiz.firestoreId }
             );
-          }
+          }));
         }
       }
 
@@ -2253,7 +2269,19 @@ export default function SchoolyScootLMS() {
                         {/* CASE: TEXT / FILL IN BLANK */}
                         {item.type === 'text' && (
                           <div>
-                            <p className="text-xs font-bold text-slate-500 mb-2">คำตอบที่ถูกต้อง (Keywords)</p>
+                            <label className="flex items-center gap-2 mb-4 bg-yellow-50 p-3 rounded-xl border border-yellow-100 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="w-5 h-5 accent-yellow-500 rounded"
+                                checked={!!item.manualGrading}
+                                onChange={(e) => handleUpdateQuestion(idx, 'manualGrading', e.target.checked)}
+                              />
+                              <span className="font-bold text-slate-700 text-sm">ต้องการตรวจคำตอบเอง (Manual Grading)</span>
+                            </label>
+
+                            {!item.manualGrading && (
+                              <p className="text-xs font-bold text-slate-500 mb-2">คำตอบที่ถูกต้อง (Keywords)</p>
+                            )}
                             <p className="text-[10px] text-slate-400 mb-2">ระบบจะตรวจคำตอบว่ามีคำเหล่านี้หรือไม่ (คั่นด้วยจุลภาค ,)</p>
                             <input
                               type="text"
@@ -2430,6 +2458,17 @@ export default function SchoolyScootLMS() {
                                             // Optimistic Update
                                             setCourseSubmissions(prev => prev.map(s => s.firestoreId === sub.firestoreId ? { ...s, score: Number(newScore) } : s));
                                             alert('บันทึกคะแนนสอบเรียบร้อย');
+
+                                            // NOTIFY STUDENT
+                                            if (sub.studentId) {
+                                              await createNotification(
+                                                sub.studentId,
+                                                `คะแนนสอบ: ${activeQuiz?.title}`,
+                                                'system',
+                                                `คุณครูได้ตรวจและบันทึกคะแนนสอบของคุณแล้ว`,
+                                                { courseId: selectedCourse.firestoreId, targetType: 'grades', targetId: activeQuiz.firestoreId }
+                                              );
+                                            }
                                           } catch (err) {
                                             console.error(err);
                                             alert('บันทึกไม่สำเร็จ');
@@ -2527,9 +2566,13 @@ export default function SchoolyScootLMS() {
                           return userRight === p.right;
                         });
                       } else if (item.type === 'text') {
-                        const userText = (answer || '').toString().trim().toLowerCase();
-                        const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
-                        isCorrect = keywords.some(k => userText.includes(k));
+                        if (item.manualGrading) {
+                          isCorrect = false;
+                        } else {
+                          const userText = (answer || '').toString().trim().toLowerCase();
+                          const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
+                          isCorrect = keywords.some(k => userText.includes(k));
+                        }
                       }
 
                       return (
@@ -2541,7 +2584,11 @@ export default function SchoolyScootLMS() {
                               </span>
                               <h3 className="font-bold text-slate-700 text-lg">{item.q}</h3>
                             </div>
-                            {isCorrect ? (
+                            {item.manualGrading ? (
+                              <span className="bg-yellow-100 text-yellow-700 px-4 py-1.5 rounded-xl text-sm font-bold flex items-center h-fit">
+                                <AlertCircle size={18} className="mr-2" /> รอตรวจ (Manual)
+                              </span>
+                            ) : isCorrect ? (
                               <span className="bg-green-100 text-green-600 px-4 py-1.5 rounded-xl text-sm font-bold flex items-center h-fit">
                                 <CheckCircle2 size={18} className="mr-2" /> ถูกต้อง
                               </span>
