@@ -132,8 +132,8 @@ const EditPostModal = ({ post, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
         <div className="p-6 border-b border-slate-50 flex justify-between items-center">
           <h3 className="font-bold text-slate-800">แก้ไขโพสต์</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">×</button>
@@ -292,7 +292,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
 
 
   return (
-    <div className={`bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 group ${isHidden ? 'opacity-60' : ''}`}>
+    <div className={`bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group ${isHidden ? 'opacity-60' : ''}`}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex gap-4">
           <div className="w-12 h-12 rounded-2xl bg-slate-50 p-1 shadow-sm">
@@ -324,7 +324,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
 
             {/* Dropdown Menu */}
             {showOptions && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in duration-200">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
                 <>
                   {/* ปุ่มที่คุณส่งมา */}
                   <button
@@ -419,7 +419,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
 
         {/* Comment Section */}
         {showComments && (
-          <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
+          <div className="mt-4 space-y-4">
             {/* รายการคอมเมนต์ */}
             <div className="max-h-60 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200">
               {comments.length > 0 ? comments.map((comment, index) => (
@@ -448,7 +448,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
             </div>
 
             {/* ช่องกรอกคอมเมนต์ */}
-            <div className="bg-white rounded-3xl p-4 mt-4 animate-in fade-in slide-in-from-top-2">
+            <div className="bg-white rounded-3xl p-4 mt-4">
               <form onSubmit={handleSendComment} className="flex gap-3">
                 <div className="flex-1 bg-slate-50 rounded-2xl flex items-center px-4 py-2 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                   <input
@@ -1904,7 +1904,7 @@ export default function SchoolyScootLMS() {
     };
 
     return (
-      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'takeQuiz', 'createExam', 'create'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
           {activeModal !== 'grading' && (
             <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
@@ -2001,7 +2001,7 @@ export default function SchoolyScootLMS() {
                     <p className="text-sm text-slate-500 ml-8 mb-3">หากกำหนดเวลา นักเรียนจะไม่เห็นข้อสอบจนกว่าจะถึงเวลาที่กำหนด</p>
 
                     {newExam.scheduledAt && (
-                      <div className="ml-8 animate-in slide-in-from-top-2 duration-200">
+                      <div className="ml-8">
                         <input
                           type="datetime-local"
                           className="w-full md:w-1/2 p-3 rounded-xl border border-orange-200 focus:border-orange-400 outline-none bg-white font-medium text-slate-700"
@@ -2244,7 +2244,7 @@ export default function SchoolyScootLMS() {
           {/* VIEW RESULTS MODAL */}
           {activeModal === 'viewResults' && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden">
                 {/* HEADER */}
                 <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
                   <div className="flex items-center space-x-4">
@@ -2310,7 +2310,7 @@ export default function SchoolyScootLMS() {
                           </div>
                           <p className="text-4xl font-black text-slate-800">
                             {courseSubmissions.length}
-                            <span className="text-lg text-slate-400 font-medium ml-1">คน</span>
+                            <span className="text-lg text-slate-400 font-medium ml-1">/ {selectedCourse?.studentIds?.length || 0} คน</span>
                           </p>
                         </div>
                       </div>
@@ -2334,7 +2334,7 @@ export default function SchoolyScootLMS() {
                               return (
                                 <tr
                                   key={sub.firestoreId}
-                                  className="hover:bg-indigo-50/30 cursor-pointer transition-all hover:scale-[1.005] duration-200 group"
+                                  className="cursor-pointer group"
                                   onClick={() => {
                                     setSelectedSubmission(sub);
                                     setActiveModal('viewAnswerDetail');
@@ -2367,7 +2367,7 @@ export default function SchoolyScootLMS() {
                                         <input
                                           type="number" // Change to number
                                           defaultValue={sub.score}
-                                          className="w-16 p-1 text-center font-black text-slate-800 border border-transparent hover:border-slate-300 focus:border-[#96C68E] rounded-lg text-2xl outline-none transition-all"
+                                          className="w-16 p-1 text-center font-black text-slate-800 border border-transparent hover:border-slate-300 focus:border-[#96C68E] rounded-lg text-2xl outline-none"
                                           id={`quiz-score-${sub.firestoreId}`}
                                           onClick={(e) => e.stopPropagation()} // Prevent row click
                                         />
@@ -2430,7 +2430,7 @@ export default function SchoolyScootLMS() {
           {/* VIEW ANSWER DETAIL MODAL */}
           {activeModal === 'viewAnswerDetail' && selectedSubmission && activeQuiz && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden">
                 {/* HEADER */}
                 <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
                   <div className="flex items-center space-x-4">
@@ -2640,7 +2640,7 @@ export default function SchoolyScootLMS() {
               </div>
 
               {quizResult ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center animate-in zoom-in">
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
                   <div className="w-32 h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-6 shadow-lg">
                     <MascotStar className="w-24 h-24" />
                   </div>
@@ -3593,7 +3593,7 @@ export default function SchoolyScootLMS() {
 
 
   const renderDashboard = () => (
-    <div className="h-screen space-y-6 animate-in fade-in duration-500">
+    <div className="h-screen space-y-6">
       {/* Welcome Section */}
       <div className="bg-[#BEE1FF] rounded-3xl p-6 md:p-10 relative overflow-hidden group">
         <div className="relative z-10 max-w-[70%]">
@@ -3829,7 +3829,7 @@ export default function SchoolyScootLMS() {
     });
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-slate-800 flex items-center">
             <CheckSquare className="mr-3 text-[#FF917B]" />
@@ -3840,7 +3840,7 @@ export default function SchoolyScootLMS() {
           <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
             <button
               onClick={() => setAssignmentFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
             >
               ทั้งหมด ({userAssignments.length})
@@ -3848,13 +3848,13 @@ export default function SchoolyScootLMS() {
             <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
               <button
                 onClick={() => setAssignmentFilter('pending')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 ยังไม่ส่ง ({userAssignments.filter(a => a.status !== 'submitted').length})
               </button>
               <button
                 onClick={() => setAssignmentFilter('submitted')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 ส่งแล้ว ({userAssignments.filter(a => a.status === 'submitted').length})
               </button>
@@ -3866,7 +3866,7 @@ export default function SchoolyScootLMS() {
           <div className="space-y-4">
             {filteredAssignments.length > 0 ? (
               filteredAssignments.map((assign) => (
-                <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 transition-all cursor-pointer">
+                <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 cursor-pointer">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${assign.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
@@ -3896,7 +3896,7 @@ export default function SchoolyScootLMS() {
                           setActiveModal('assignmentDetail');
                         }
                       }}
-                      className={`px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 ${userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
+                      className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
                         }`}>
                       {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
                     </button>
@@ -3952,7 +3952,7 @@ export default function SchoolyScootLMS() {
   // renderExams removed
 
   const renderSchedule = () => (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold text-slate-800 flex items-center"><Calendar className="mr-3 text-[#96C68E]" /> {userRole === 'teacher' ? 'ตารางสอน' : 'ตารางเรียน'}</h1>
 
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
@@ -4006,7 +4006,7 @@ export default function SchoolyScootLMS() {
     const activeChat = chats.find(c => c.id === activeChatId);
 
     return (
-      <div className="space-y-6 animate-in fade-in duration-500 h-[calc(100vh-140px)] flex flex-col">
+      <div className="space-y-6 h-[calc(100vh-140px)] flex flex-col">
         <h1 className="text-2xl font-bold text-slate-800 flex items-center"><MessageSquare className="mr-3 text-[#BEE1FF]" /> ข้อความ</h1>
         <div className="flex-1 bg-white rounded-3xl shadow-sm border border-slate-100 flex overflow-hidden">
           {/* Chat List */}
@@ -4146,9 +4146,9 @@ export default function SchoolyScootLMS() {
               {/* Left Sidebar - Class Info & Upcoming Work */}
               <div className="md:col-span-1 space-y-6">
                 {/* About Course Card */}
-                <div className="relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-sm group hover:shadow-md transition-all duration-300">
+                <div className="relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                   {/* Decorative Gradient Blob */}
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient[#FFE787]  opacity-20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient[#FFE787] opacity-20 rounded-full blur-2xl"></div>
 
                   <h3 className="relative font-bold text-slate-800 mb-6 flex items-center gap-2">
                     <div className="bg-[#E3F2FD] p-2 rounded-xl text-[#BEE1FF]">
@@ -4173,7 +4173,7 @@ export default function SchoolyScootLMS() {
                         รหัสเข้าเรียน <Star size={12} className="text-[#FFE787] fill-[#FFE787]" />
                       </p>
                       <div
-                        className="relative overflow-hidden flex items-center justify-between bg-[#FFF0EE] p-4 rounded-2xl border-2 border-dashed border-[#FF917B] cursor-pointer hover:bg-[#FFE5E2] transition-colors group/code"
+                        className="relative overflow-hidden flex items-center justify-between bg-[#FFF0EE] p-4 rounded-2xl border-2 border-dashed border-[#FF917B] cursor-pointer hover:bg-[#FFE5E2] transition-colors"
                         onClick={() => {
                           navigator.clipboard.writeText(selectedCourse.inviteCode);
                         }}
@@ -4183,7 +4183,7 @@ export default function SchoolyScootLMS() {
                         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FF917B_1px,transparent_1px)] [background-size:8px_8px]"></div>
 
                         <code className="relative text-[#FF917B] font-black text-xl tracking-widest">{selectedCourse.inviteCode}</code>
-                        <div className="relative bg-white p-2 rounded-xl shadow-sm group-hover/code:scale-110 transition-transform">
+                        <div className="relative bg-white p-2 rounded-xl shadow-sm">
                           <Copy size={16} className="text-[#FF917B]" />
                         </div>
                       </div>
@@ -4201,7 +4201,7 @@ export default function SchoolyScootLMS() {
               {/* Main Feed Area */}
               <div className="md:col-span-3 space-y-6">
                 {/* Post Input Area */}
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 relative">
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative">
                   <div className="flex gap-4 mb-2">
                     <div className="w-14 h-14 rounded-full bg-slate-100 p-1 flex-shrink-0 border-2 border-white shadow-sm">
                       {profile.photoURL ? (
@@ -4226,7 +4226,7 @@ export default function SchoolyScootLMS() {
                   {newPostFiles.length > 0 && (
                     <div className="flex flex-wrap gap-3 mt-3 pl-[4.5rem]">
                       {newPostFiles.map((file, index) => (
-                        <div key={index} className="relative group animate-in zoom-in duration-200">
+                        <div key={index} className="relative group">
                           {file.type.startsWith('image/') ? (
                             <div className="relative rounded-xl overflow-hidden h-24 w-24 border border-slate-200 shadow-sm">
                               <img
@@ -4367,7 +4367,7 @@ export default function SchoolyScootLMS() {
             }
 
             return (
-              <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border transition-all flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
+              <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
                 }`}>
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-xl ${isDone ? 'bg-green-50' : 'bg-yellow-50'}`}>
@@ -4458,7 +4458,7 @@ export default function SchoolyScootLMS() {
           };
 
           return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6">
 
               {/* ส่วนควบคุม: หัวข้อ และ ปุ่มสลับ (Toggle) */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
@@ -4515,7 +4515,7 @@ export default function SchoolyScootLMS() {
                 </div>
               ) : (
                 /* แสดงงานทั้งหมดแบบรวมกัน */
-                <div className="space-y-3 animate-in slide-in-from-bottom-2">
+                <div className="space-y-3">
                   {courseAssignments.length > 0 ? (
                     courseAssignments.map(renderCard)
                   ) : (
@@ -4629,7 +4629,7 @@ export default function SchoolyScootLMS() {
                       const isSubmitted = !!submission;
 
                       return (
-                        <tr key={quiz.firestoreId} className="hover:bg-slate-50 transition-colors">
+                        <tr key={quiz.firestoreId} className="">
                           <td className="p-4">
                             <div className="font-bold text-slate-700">{quiz.title}</div>
                           </td>
@@ -4698,7 +4698,7 @@ export default function SchoolyScootLMS() {
                       const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
 
                       return courseAssignments.length > 0 ? courseAssignments.map((assign) => (
-                        <tr key={assign.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={assign.id} className="">
                           <td className="p-4">
                             <div className="font-bold text-slate-700">{assign.title}</div>
                           </td>
@@ -4963,7 +4963,7 @@ export default function SchoolyScootLMS() {
 
         case 'quizzes':
           return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6">
               <div className="flex justify-between items-center mb-2">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center">
                   <ClipboardList className="mr-2 text-[#96C68E]" /> แบบทดสอบ
@@ -5020,7 +5020,7 @@ export default function SchoolyScootLMS() {
                               {/* View Results Button */}
                               <button
                                 onClick={() => handleViewResults(quiz)}
-                                className="p-2 text-slate-300 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-all"
+                                className="p-2 text-slate-300 "
                                 title="ดูคะแนน"
                               >
                                 <Trophy size={18} />
@@ -5062,7 +5062,7 @@ export default function SchoolyScootLMS() {
                       const isSubmitted = !!submission;
 
                       return (
-                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm transition-all group relative overflow-hidden ${isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100 hover:shadow-md'}`}>
+                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm relative overflow-hidden ${isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100'}`}>
                           {isLocked && !isSubmitted && (
                             <div className="absolute top-0 right-0 bg-orange-100 text-orange-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10">
                               <Clock size={12} className="mr-1" /> เริ่ม: {scheduledTime.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' })}
@@ -5128,7 +5128,7 @@ export default function SchoolyScootLMS() {
 
         case 'meeting':
           return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="space-y-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-slate-800 flex items-center">
                   <Video className="mr-2 text-[#96C68E]" /> ห้องเรียนออนไลน์
@@ -5137,8 +5137,8 @@ export default function SchoolyScootLMS() {
 
               {userRole === 'teacher' ? (
                 meetingConfig.isActive ? (
-                  <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center animate-in fade-in">
-                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                  <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
+                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                       <Video size={48} className="text-green-600" />
                     </div>
                     <h3 className="text-2xl font-bold text-slate-800 mb-2">กำลังมีการเรียนการสอน</h3>
@@ -5184,7 +5184,7 @@ export default function SchoolyScootLMS() {
                       />
                       <button
                         onClick={handleStartMeeting}
-                        className="w-full py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg hover:shadow-green-200 transition-all transform hover:-translate-y-1"
+                        className="w-full py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg transition-all"
                       >
                         เริ่มการสอนทันที 🚀
                       </button>
@@ -5195,7 +5195,7 @@ export default function SchoolyScootLMS() {
                 <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
                   {meetingConfig.isActive ? (
                     <>
-                      <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                      <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Video size={48} className="text-green-600" />
                       </div>
                       <h3 className="text-2xl font-bold text-slate-800 mb-2">กำลังมีการเรียนการสอน!</h3>
@@ -5204,7 +5204,7 @@ export default function SchoolyScootLMS() {
 
                       <button
                         onClick={() => setActiveModal('videoConference')}
-                        className="px-10 py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg hover:shadow-green-200 transition-all transform hover:-translate-y-1 animate-bounce"
+                        className="px-10 py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg transition-all"
                       >
                         เข้าห้องเรียน
                       </button>
@@ -5228,7 +5228,7 @@ export default function SchoolyScootLMS() {
 
 
     return (
-      <div className="space-y-6 animate-in zoom-in duration-300">
+      <div className="space-y-6">
         <button
           onClick={() => setSelectedCourse(null)}
           className="text-slate-500 hover:text-slate-800 flex items-center text-sm font-bold mb-4"
@@ -5254,7 +5254,7 @@ export default function SchoolyScootLMS() {
               <button
                 key={tab}
                 onClick={() => setCourseTab(tabKey)}
-                className={`relative px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${courseTab === tabKey
+                className={`relative px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap ${courseTab === tabKey
                   ? 'bg-slate-800 text-white shadow-md'
                   : 'bg-transparent text-slate-500 hover:bg-slate-100'
                   }`}
@@ -5306,7 +5306,7 @@ export default function SchoolyScootLMS() {
 
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {activeModal === 'videoConference' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
           <div className="bg-white w-[95vw] h-[90vh] rounded-3xl overflow-hidden flex flex-col relative shadow-2xl">
             {/* Header */}
             <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
