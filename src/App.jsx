@@ -3005,6 +3005,7 @@ export default function SchoolyScootLMS() {
                   <NotificationItem
                     key={notif.firestoreId}
                     notif={notif}
+                    displayTime={notif.date ? new Date(notif.date).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                     isSelected={selectedNotification?.firestoreId === notif.firestoreId}
                     onClick={() => handleNotificationClick(notif)}
                   />
@@ -3048,7 +3049,7 @@ export default function SchoolyScootLMS() {
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-slate-800">{currentAssignmentData.title}</h2>
-                  <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate}</p>
+                  <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate ? new Date(currentAssignmentData.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
                 </div>
                 <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold whitespace-nowrap">
                   {currentAssignmentData.maxScore || 10} คะแนน
@@ -3729,6 +3730,7 @@ export default function SchoolyScootLMS() {
                 compact
                 key={notif.firestoreId}
                 notif={notif}
+                displayTime={notif.date ? new Date(notif.date).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                 isSelected={selectedNotification?.firestoreId === notif.firestoreId}
                 onClick={() => handleNotificationClick(notif)}
               />
@@ -4146,7 +4148,7 @@ export default function SchoolyScootLMS() {
               {/* Left Sidebar - Class Info & Upcoming Work */}
               <div className="md:col-span-1 space-y-6">
                 {/* About Course Card */}
-                <div className="relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <div className="relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-sm !animate-none !transition-none !transform-none">
                   {/* Decorative Gradient Blob */}
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient[#FFE787] opacity-20 rounded-full blur-2xl"></div>
 
@@ -4874,7 +4876,7 @@ export default function SchoolyScootLMS() {
           return (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-1 space-y-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm !animate-none !transition-none !transform-none">
                   <h3 className="font-bold text-slate-700 mb-2">เกี่ยวกับรายวิชา</h3>
                   <p className="text-sm text-slate-500 mb-4">{selectedCourse.description}</p>
 
