@@ -75,6 +75,7 @@ import StatCard from './components/StatCard';
 import CourseCard from './components/CourseCard';
 import SidebarItem from './components/SidebarItem';
 import NotificationItem from './components/NotificationItem';
+import VideoConference from './components/VideoConference';
 import RegisterPage from './components/RegisterPage';
 import CalendarPage from './components/CalendarPage';
 import logo_no_text from './assets/logo_no_tex3.png';
@@ -113,7 +114,9 @@ const getCourseIcon = (type) => {
 };
 
 
-
+/**
+ * Modal for editing a post
+ */
 const EditPostModal = ({ post, onClose, onSave }) => {
   const [content, setContent] = useState(post.content);
   const [isSaving, setIsSaving] = useState(false);
@@ -163,6 +166,8 @@ const EditPostModal = ({ post, onClose, onSave }) => {
   );
 };
 
+
+
 const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
@@ -191,6 +196,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
 
   // Handle Like
   const handleLike = async () => {
@@ -290,7 +296,6 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
   };
 
 
-
   return (
     <div className={`bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group ${isHidden ? 'opacity-60' : ''}`}>
       <div className="flex justify-between items-start mb-4">
@@ -326,7 +331,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
             {showOptions && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50">
                 <>
-                  {/* ปุ่มที่คุณส่งมา */}
+
                   <button
                     onClick={() => { setIsEditModalOpen(true); setShowOptions(false); }}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
@@ -335,6 +340,8 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
                   </button>
                 </>
 
+
+                {/* ปุ่มซ่อน/แสดง */}
                 <button
                   onClick={handleToggleHide}
                   className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
@@ -351,8 +358,9 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
                     </>
                   )}
                 </button>
-                <div className="h-[1px] bg-slate-100 my-1 mx-2" />
 
+                {/* ปุ่มลบ */}
+                <div className="h-[1px] bg-slate-100 my-1 mx-2" />
                 <button
                   onClick={() => {
                     if (window.confirm('ยืนยันการลบโพสต์?')) {
@@ -364,11 +372,14 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
                 >
                   <Trash2 size={16} /> ลบโพสต์
                 </button>
+
+
               </div>
             )}
           </div>
         )}
       </div>
+
 
       <div className="pl-[4.5rem]">
         <p className="text-slate-700 whitespace-pre-wrap leading-relaxed text-[0.95rem]">{post.content}</p>
@@ -525,8 +536,6 @@ export default function SchoolyScootLMS() {
     lastName: '',
     email: '',
     roleLabel: '',
-    // level: 1,
-    // xp: 0,
     photoURL: ''
   });
 
@@ -549,8 +558,6 @@ export default function SchoolyScootLMS() {
               lastName: userProfile.fullName.split(' ').slice(1).join(' ') || '',
               email: user.email,
               roleLabel: userProfile.role === 'student' ? 'นักเรียน' : 'ครูผู้สอน',
-              level: userProfile.level || 1,
-              xp: userProfile.xp || 0,
               photoURL: userProfile.photoURL || user.photoURL || ''
             });
             setHiddenCourseIds(userProfile.hiddenCourses || []);
@@ -564,10 +571,9 @@ export default function SchoolyScootLMS() {
         setProfile({
           firstName: '',
           lastName: '',
-          email: '',
-          roleLabel: '',
-          level: 1,
-          xp: 0
+          eLaemail: '',
+          rolbel: '',
+
         });
       }
       setAuthLoading(false);
@@ -594,7 +600,10 @@ export default function SchoolyScootLMS() {
   const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
   const [joinCode, setJoinCode] = useState(''); // State for student joining
 
-  // Fetch Courses
+
+
+
+
   // Fetch Courses
   useEffect(() => {
     const fetchCourses = async () => {
@@ -669,6 +678,8 @@ export default function SchoolyScootLMS() {
         // setSelectedCourse(prev => ({...prev, ...courseData })); // Careful with recursion/re-renders if not handled
       }
     });
+
+
 
     return () => unsubscribe();
   }, [selectedCourse?.firestoreId]);
@@ -768,6 +779,7 @@ export default function SchoolyScootLMS() {
     }
   };
 
+  // งาน
   const [assignments, setAssignments] = useState([]);
   const [assignmentFilter, setAssignmentFilter] = useState('pending');
   // ฟอร์มสร้างงาน
@@ -2782,27 +2794,13 @@ export default function SchoolyScootLMS() {
 
           {/* VIDEO CALL MODAL */}
           {activeModal === 'video' && (
-            <div className="flex flex-col h-[600px] bg-slate-900 rounded-3xl overflow-hidden relative group">
-              <div className="absolute top-6 left-6 z-20 flex items-center space-x-3">
-                <div className="bg-red-500 px-3 py-1 rounded-full flex items-center animate-pulse">
-                  <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
-                  <span className="text-white text-xs font-bold uppercase tracking-wider">Live</span>
-                </div>
-              </div>
-
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="w-24 h-24 rounded-full bg-slate-800 mx-auto mb-4 flex items-center justify-center text-4xl animate-bounce">👨‍🏫</div>
-                  <h3 className="text-2xl font-bold mb-2">กำลังรอให้ครูอนุญาต...</h3>
-                  <p className="text-slate-400">ห้องเรียน: คณิตศาสตร์</p>
-                </div>
-              </div>
-
-              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent flex justify-center gap-4">
-                <button onClick={closeModal} className="p-4 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition-transform hover:scale-110"><PhoneOff size={24} /></button>
-                <button className="p-4 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-transform hover:scale-110"><MicOff size={24} /></button>
-                <button className="p-4 rounded-full bg-slate-700 hover:bg-slate-600 text-white transition-transform hover:scale-110"><VideoOff size={24} /></button>
-              </div>
+            <div className="h-[80vh] w-full max-w-6xl bg-slate-900 rounded-[2rem] overflow-hidden relative shadow-2xl">
+              <VideoConference
+                roomName={`SchoolyScoot-${selectedCourse?.firestoreId || 'demo'}`}
+                userName={userRole === 'teacher' ? (profile.firstName ? `Cru ${profile.firstName}` : 'Teacher') : (profile.firstName || 'Student')}
+                isTeacher={userRole === 'teacher'}
+                onLeave={closeModal}
+              />
             </div>
           )}
 
@@ -5302,45 +5300,59 @@ export default function SchoolyScootLMS() {
     }
   }
 
+  
+ 
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans">
       {renderModal()}
-
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {activeModal === 'videoConference' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
-          <div className="bg-white w-[95vw] h-[90vh] rounded-3xl overflow-hidden flex flex-col relative shadow-2xl">
-            {/* Header */}
-            <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="bg-red-500 p-2 rounded-lg"><Video size={20} className="text-white" /></div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2D3436]/60 backdrop-blur-md p-4">
+          <div className="bg-white w-[95vw] h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col relative shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-4 border-white">
+
+            {/* Header - ใช้สีฟ้า #BEE1FF เป็นพื้นหลังหลัก */}
+            <div className="bg-[#BEE1FF] p-5 flex justify-between items-center border-b-2 border-[#96C68E]/20">
+              <div className="flex items-center gap-4">
+                {/* Icon Box - ใช้สีส้ม #FF917B */}
+                <div className="bg-[#FF917B] p-3 rounded-2xl shadow-sm rotate-3">
+                  <Video size={24} className="text-white" />
+                </div>
                 <div>
-                  <h3 className="font-bold text-lg">{meetingConfig.topic || 'ห้องเรียนออนไลน์'}</h3>
-                  <p className="text-xs text-slate-400">Schooly Scoot Conference</p>
+                  <h3 className="font-black text-[#4A4A4A] text-xl tracking-tight leading-none">
+                    {meetingConfig.topic || 'ห้องเรียนออนไลน์'}
+                  </h3>
+                  <p className="text-xs font-bold text-[#96C68E] mt-1 uppercase tracking-wider">
+                    Schooly Scoot Conference
+                  </p>
                 </div>
               </div>
+
               <button
-                onClick={() => {
-                  // Just close the modal, don't end the meeting logic
-                  setActiveModal(null);
-                }}
-                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl transition-all font-bold text-sm"
+                onClick={() => setActiveModal(null)}
+                className="bg-white hover:bg-[#FFE787] text-[#4A4A4A] px-6 py-2.5 rounded-2xl transition-all font-bold text-sm shadow-sm border-2 border-transparent hover:border-[#FF917B] active:scale-95"
               >
                 ปิดหน้าต่าง
               </button>
             </div>
 
-            {/* Jitsi Iframe */}
-            <div className="flex-1 bg-black relative">
+            {/* Jitsi Iframe Container */}
+            <div className="flex-1 bg-[#F8FAFC] relative">
               <iframe
                 src={`https://meet.jit.si/${meetingConfig.roomName}#config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName="${profile.firstName} ${profile.lastName}"`}
-                className="w-full h-full border-0"
+                className="w-full h-full border-0 relative z-10"
                 allow="camera; microphone; fullscreen; display-capture; autoplay"
               ></iframe>
 
-              {/* Overlay Loading */}
-              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center -z-10">
-                <span className="text-slate-500 flex items-center gap-2"><div className="w-4 h-4 bg-slate-500 rounded-full animate-bounce"></div> กำลังโหลดห้องเรียน...</span>
+              {/* Overlay Loading - ใช้สีเหลือง #FFE787 เป็นพื้นหลังตอนโหลด */}
+              <div className="absolute inset-0 bg-[#FFE787]/30 flex flex-col items-center justify-center z-0">
+                <div className="flex gap-2 mb-4">
+                  <div className="w-3 h-3 bg-[#FF917B] rounded-full animate-bounce"></div>
+                  <div className="w-3 h-3 bg-[#96C68E] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                  <div className="w-3 h-3 bg-[#BEE1FF] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                </div>
+                <span className="text-[#4A4A4A] font-bold text-lg animate-pulse">
+                  กำลังจัดเตรียมห้องเรียน...
+                </span>
               </div>
             </div>
           </div>
@@ -5352,7 +5364,12 @@ export default function SchoolyScootLMS() {
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
-      {/* Sidebar */}
+
+
+
+
+
+      {/* Sidebar แถบตัวเลือกข้างๆ */}
       <aside className={`
         fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F0F4F8] p-4 flex flex-col transition-transform duration-300 border-r border-white
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -5375,11 +5392,9 @@ export default function SchoolyScootLMS() {
           <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} activeTab={activeTab} onSelect={() => { setActiveTab('courses'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
           <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-
-
-
         </nav>
 
+        {/* โปรไฟล์ ด้านล่าง*/}
         <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
           <div
             className="flex items-center cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-xl"
@@ -5410,6 +5425,7 @@ export default function SchoolyScootLMS() {
         </div>
       </aside>
 
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
         <header className="md:hidden bg-white p-4 flex items-center justify-between shadow-sm z-10">
@@ -5425,6 +5441,7 @@ export default function SchoolyScootLMS() {
             {hasUnread && <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>}
           </button>
         </header>
+
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
