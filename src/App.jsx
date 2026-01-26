@@ -794,6 +794,7 @@ export default function SchoolyScootLMS() {
       q: '',
       image: null,
       options: ['', '', '', ''],
+      optionImages: [null, null, null, null],
       correct: 0,
       keywords: [],
       correctAnswer: true,
@@ -1422,15 +1423,74 @@ export default function SchoolyScootLMS() {
     });
   };
 
-  const handleQuestionImageUpload = async (idx, file) => {
+  const handleQuestionImageUpload = (idx, file) => {
     if (!file) return;
-    try {
-      const url = await uploadFile(file, 'quiz_questions');
-      handleUpdateQuestion(idx, 'image', url);
-    } catch (error) {
-      console.error("Failed to upload question image", error);
-      alert("อัปโหลดรูปภาพไม่สำเร็จ");
+
+    // Check file size (e.g., 2MB limit)
+    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_SIZE) {
+      alert("รูปภาพต้องมีขนาดไม่เกิน 2MB");
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result;
+      handleUpdateQuestion(idx, 'image', base64String);
+    };
+    reader.onerror = () => {
+      console.error("Failed to read file");
+      alert("เกิดข้อผิดพลาดในการอ่านไฟล์รูปภาพ");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleOptionImageUpload = (qIdx, optIdx, file) => {
+    // Delete Case
+    if (file === null) {
+      setNewExam(prev => {
+        const updatedItems = [...prev.items];
+        const targetItem = { ...updatedItems[qIdx] };
+        if (targetItem.optionImages) {
+          const updatedOptionImages = [...targetItem.optionImages];
+          updatedOptionImages[optIdx] = null;
+          targetItem.optionImages = updatedOptionImages;
+        }
+        updatedItems[qIdx] = targetItem;
+        return { ...prev, items: updatedItems };
+      });
+      return;
+    }
+
+    if (!file) return;
+
+    // ... (rest is same)
+    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_SIZE) {
+      alert("รูปภาพต้องมีขนาดไม่เกิน 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setNewExam(prev => {
+        const updatedItems = [...prev.items];
+        const targetItem = { ...updatedItems[qIdx] };
+        // Initialize optionImages if not present
+        if (!targetItem.optionImages) {
+          targetItem.optionImages = [null, null, null, null];
+        }
+        const updatedOptionImages = [...targetItem.optionImages];
+        updatedOptionImages[optIdx] = reader.result;
+        targetItem.optionImages = updatedOptionImages;
+        updatedItems[qIdx] = targetItem;
+        return { ...prev, items: updatedItems };
+      });
+    };
+    reader.onerror = () => {
+      alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveExam = async () => {
@@ -1451,6 +1511,7 @@ export default function SchoolyScootLMS() {
         items: newExam.items.map(item => ({
           ...item,
           options: item.options ? [...item.options] : [],
+          optionImages: item.optionImages ? [...item.optionImages] : [null, null, null, null],
           keywords: item.keywords ? [...item.keywords] : [],
           pairs: item.pairs ? item.pairs.map(p => ({ ...p })) : []
         })),
@@ -1497,7 +1558,7 @@ export default function SchoolyScootLMS() {
         title: '',
         course: '',
         time: 30,
-        items: [{ q: '', options: ['', '', '', ''], correct: 0 }],
+        items: [{ q: '', options: ['', '', '', ''], optionImages: [null, null, null, null], correct: 0 }],
         scheduledAt: ''
       });
 
@@ -1531,7 +1592,11 @@ export default function SchoolyScootLMS() {
       time: parseInt(quiz.time) || 30,
       scheduledAt: quiz.scheduledAt || '',
       status: quiz.status,
-      items: quiz.items.map(i => ({ ...i, options: [...i.options] })) // Deep copy
+      items: quiz.items.map(i => ({
+        ...i,
+        options: [...i.options],
+        optionImages: i.optionImages ? [...i.optionImages] : [null, null, null, null]
+      })) // Deep copy
     });
     setActiveModal('createExam');
   };
@@ -2017,21 +2082,45 @@ export default function SchoolyScootLMS() {
                         {(!item.type || item.type === 'choice') && (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {item.options.map((opt, optIdx) => (
-                              <div key={optIdx} className="flex items-center bg-white p-2 rounded-lg border border-slate-200 focus-within:border-[#96C68E] focus-within:ring-1 focus-within:ring-[#96C68E]">
-                                <input
-                                  type="radio"
-                                  name={`correct-${idx}`}
-                                  checked={item.correct === optIdx}
-                                  onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
-                                  className="mr-3 w-4 h-4 accent-[#96C68E]"
-                                />
-                                <input
-                                  type="text"
-                                  className="flex-1 text-sm outline-none text-slate-600 font-medium"
-                                  placeholder={`ตัวเลือก ${optIdx + 1}`}
-                                  value={opt}
-                                  onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
-                                />
+                              <div key={optIdx} className="bg-white p-3 rounded-xl border border-slate-200 focus-within:border-[#96C68E] focus-within:ring-1 focus-within:ring-[#96C68E] relative">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="radio"
+                                    name={`correct-${idx}`}
+                                    checked={item.correct === optIdx}
+                                    onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
+                                    className="w-4 h-4 accent-[#96C68E]"
+                                  />
+                                  <input
+                                    type="text"
+                                    className="flex-1 text-sm outline-none text-slate-600 font-medium bg-transparent"
+                                    placeholder={`ตัวเลือก ${optIdx + 1}`}
+                                    value={opt}
+                                    onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
+                                  />
+                                  <label className="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer text-slate-400 hover:text-[#96C68E] transition-colors" title="เพิ่มรูปภาพ">
+                                    <ImageIcon size={16} />
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept="image/*"
+                                      onChange={(e) => handleOptionImageUpload(idx, optIdx, e.target.files[0])}
+                                    />
+                                  </label>
+                                </div>
+
+                                {item.optionImages && item.optionImages[optIdx] && (
+                                  <div className="relative w-full h-32 bg-slate-50 rounded-lg overflow-hidden border border-slate-100 mt-2 group/img">
+                                    <img src={item.optionImages[optIdx]} alt={`Option ${optIdx + 1}`} className="w-full h-full object-contain" />
+                                    <button
+                                      onClick={() => handleOptionImageUpload(idx, optIdx, null)} // This will need a slight adjustment in handleOptionImageUpload or a new handler if we pass null to delete
+                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover/img:opacity-100 transition-opacity transform hover:scale-110"
+                                      title="ลบรูปภาพ"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -2426,7 +2515,7 @@ export default function SchoolyScootLMS() {
                             {/* TYPE: CHOICE */}
                             {(!item.type || item.type === 'choice') && (
                               item.options.map((opt, optIdx) => {
-                                let optionClass = "p-4 rounded-xl border flex items-center justify-between transition-all ";
+                                let optionClass = "p-4 rounded-xl border flex items-center justify-between transition-all relative overflow-hidden ";
                                 if (optIdx === item.correct) {
                                   optionClass += "bg-green-50 border-green-200 text-green-700 font-bold shadow-sm";
                                 } else if (optIdx === answer) {
@@ -2435,15 +2524,22 @@ export default function SchoolyScootLMS() {
                                   optionClass += "bg-white border-slate-100 text-slate-500 opacity-60";
                                 }
                                 return (
-                                  <div key={optIdx} className={optionClass}>
-                                    <span className="flex items-center gap-3">
-                                      <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-[10px] opacity-50">
-                                        {['A', 'B', 'C', 'D'][optIdx]}
+                                  <div key={optIdx} className="mb-2"> {/* Wrapper for layout */}
+                                    <div className={optionClass}>
+                                      <span className="flex items-center gap-3 relative z-10">
+                                        <span className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-[10px] opacity-50">
+                                          {['A', 'B', 'C', 'D'][optIdx]}
+                                        </span>
+                                        {opt}
                                       </span>
-                                      {opt}
-                                    </span>
-                                    {optIdx === item.correct && <CheckCircle size={20} className="text-green-500" />}
-                                    {optIdx === answer && optIdx !== item.correct && <X size={20} className="text-red-500" />}
+                                      {optIdx === item.correct && <CheckCircle size={20} className="text-green-500 relative z-10" />}
+                                      {optIdx === answer && optIdx !== item.correct && <X size={20} className="text-red-500 relative z-10" />}
+                                    </div>
+                                    {item.optionImages && item.optionImages[optIdx] && (
+                                      <div className={`mt-2 rounded-xl border-2 border-dashed ${optIdx === item.correct ? 'border-green-200 bg-green-50/50' : 'border-slate-100 bg-slate-50/50'} p-2 w-fit`}>
+                                        <img src={item.optionImages[optIdx]} alt="Option" className="h-32 rounded-lg object-contain" />
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })
@@ -2577,18 +2673,25 @@ export default function SchoolyScootLMS() {
                           {(!item.type || item.type === 'choice') && (
                             <div className="space-y-3">
                               {item.options.map((opt, optIdx) => (
-                                <label key={optIdx} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
+                                <label key={optIdx} className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
                                   ? 'bg-[#F0FDF4] border-[#96C68E] shadow-sm'
                                   : 'bg-white border-slate-100 hover:border-[#96C68E]'
                                   }`}>
-                                  <input
-                                    type="radio"
-                                    name={`q-${idx}`}
-                                    className="mr-3 w-5 h-5 accent-[#96C68E]"
-                                    onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
-                                    checked={quizAnswers[idx] === optIdx}
-                                  />
-                                  <span className="text-slate-700 font-medium">{opt}</span>
+                                  <div className="flex items-center w-full">
+                                    <input
+                                      type="radio"
+                                      name={`q-${idx}`}
+                                      className="mr-3 w-5 h-5 accent-[#96C68E] flex-shrink-0"
+                                      onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
+                                      checked={quizAnswers[idx] === optIdx}
+                                    />
+                                    <span className="text-slate-700 font-medium">{opt}</span>
+                                  </div>
+                                  {item.optionImages && item.optionImages[optIdx] && (
+                                    <div className="ml-8 mt-3 w-fit">
+                                      <img src={item.optionImages[optIdx]} alt="Option" className="h-40 rounded-lg object-contain border border-slate-100" />
+                                    </div>
+                                  )}
                                 </label>
                               ))}
                             </div>
