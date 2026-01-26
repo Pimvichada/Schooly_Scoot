@@ -547,7 +547,7 @@ export default function SchoolyScootLMS() {
     return messages[Math.floor(Math.random() * messages.length)];
   }, [userRole]);
 
- useEffect(() => {
+  useEffect(() => {
     let unsubscribeProfile = null;
 
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
@@ -603,7 +603,7 @@ export default function SchoolyScootLMS() {
     };
   }, []);
 
-  
+
 
 
   // Chat State
@@ -3579,25 +3579,7 @@ export default function SchoolyScootLMS() {
                               className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
                               id={`score-${student.firestoreId || student.id}`}
                             />
-                            <button
-                              onClick={async () => {
-                                const input = document.getElementById(`score-${student.firestoreId || student.id}`);
-                                const newScore = input.value;
-                                try {
-                                  const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
-                                  await gradeSubmission(targetId, student.firestoreId || student.id, newScore);
-                                  alert('บันทึกคะแนนเรียบร้อย');
-                                  // Be nice and update local state to reflect persistence
-                                  setSubmissions(prev => prev.map(s => s.id === student.id ? { ...s, score: newScore } : s));
-                                } catch (e) {
-                                  alert('บันทึกคะแนนไม่สำเร็จ');
-                                }
-                              }}
-                              className="bg-[#96C68E] text-white p-2 rounded-lg hover:bg-[#85b57d] shadow-sm"
-                              title="บันทึกคะแนน"
-                            >
-                              <Save size={16} />
-                            </button>
+
                           </td>
                         </tr>
                       )) : (
@@ -3609,9 +3591,49 @@ export default function SchoolyScootLMS() {
               </div>
 
               <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ปิด</button>
-              </div>
+                {/* ปุ่มปิดเดิม */}
+                <button
+                  onClick={closeModal}
+                  className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                >
+                  ปิด
+                </button>
 
+                {/* ปุ่มบันทึกทั้งหมดที่เพิ่มใหม่ */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
+
+                      // รวบรวมข้อมูลคะแนนจากทุกคนในตาราง
+                      const savePromises = submissions.map(async (student) => {
+                        const input = document.getElementById(`score-${student.firestoreId || student.id}`);
+                        const newScore = input.value;
+
+                        // ส่งไปบันทึก (เรียก function เดิมที่คุณมี)
+                        return gradeSubmission(targetId, student.firestoreId || student.id, newScore);
+                      });
+
+                      await Promise.all(savePromises);
+                      alert('บันทึกคะแนนทั้งหมดเรียบร้อยแล้ว');
+
+                      // ปรับปรุงข้อมูลในหน้าจอให้เป็นปัจจุบัน
+                      setSubmissions(prev => prev.map(s => {
+                        const scoreVal = document.getElementById(`score-${s.firestoreId || s.id}`).value;
+                        return { ...s, score: scoreVal };
+                      }));
+
+                    } catch (e) {
+                      console.error(e);
+                      alert('บันทึกคะแนนไม่สำเร็จ');
+                    }
+                  }}
+                  className="px-6 py-3 rounded-xl bg-[#96C68E] hover:bg-[#85b57d] font-bold text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
+                >
+                  <Save size={18} />
+                  บันทึกคะแนนทั้งหมด
+                </button>
+              </div>
 
             </div>
           )}
@@ -5313,8 +5335,8 @@ export default function SchoolyScootLMS() {
   // IF NOT LOGGED IN, SHOW LOGIN PAGE
   // --- ส่วนตัดสินใจว่าจะแสดงหน้าไหนก่อนเข้าสู่ระบบ ---
   if (!isLoggedIn) {
-    
- if (currentView === 'register') {
+
+    if (currentView === 'register') {
       return (
         <RegisterPage
           onRegister={(data) => {
