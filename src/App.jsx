@@ -1243,23 +1243,33 @@ export default function SchoolyScootLMS() {
   const [submissionsLoading, setSubmissionsLoading] = useState(false); // New state
 
   // Fetch Notifications & Chats
+  // ค้นหาช่วง useEffect นี้ในไฟล์ของคุณ
   useEffect(() => {
     const fetchData = async () => {
+      // เช็คให้ชัวร์ว่า user login แล้วจริงๆ
       if (auth.currentUser) {
-        // Notifications
-        await seedNotifications(auth.currentUser.uid);
-        const notifs = await getNotifications(auth.currentUser.uid);
-        setNotifications(notifs);
+        try {
+          /* 1. ลบบรรทัด seedNotifications ออก */
+          // await seedNotifications(auth.currentUser.uid); // <--- ลบทิ้ง หรือ Comment ไว้
 
-        // Chats
-        await seedChats(auth.currentUser.uid);
-        const chatData = await getChats(auth.currentUser.uid);
-        setChats(chatData);
+          /* 2. ดึงข้อมูลจริงจาก Firestore */
+          const notifs = await getNotifications(auth.currentUser.uid);
+          setNotifications(notifs);
+
+          /* 3. จัดการเรื่องแชท (ถ้าแชทหายเหมือนกัน ให้ลบ seedChats ออกด้วย) */
+          // await seedChats(auth.currentUser.uid); 
+          const chatData = await getChats(auth.currentUser.uid);
+          setChats(chatData);
+
+        } catch (error) {
+          console.error("Error loading data:", error);
+        }
       }
     };
-    fetchData();
-  }, [auth.currentUser]);
 
+    // เรียกฟังก์ชันเมื่อ auth.currentUser เปลี่ยนแปลง หรือตอนโหลดหน้า
+    fetchData();
+  }, [auth.currentUser, isLoggedIn]); // เพิ่ม isLoggedIn เข้าไปใน dependency
   const markNotificationRead = (id) => {
     // Optimistic update
     setNotifications(prev => prev.map(n => n.firestoreId === id ? { ...n, read: true } : n));
