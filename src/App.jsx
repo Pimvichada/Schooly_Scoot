@@ -3137,14 +3137,24 @@ export default function SchoolyScootLMS() {
                       ))}
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setAssignments(prev => prev.map(a => a.id === currentAssignmentData.id ? { ...a, status: 'pending', submittedFiles: [] } : a));
-                      }}
-                      className="text-sm text-red-400 hover:underline mt-2"
-                    >
-                      ยกเลิกการส่งเพื่อแก้ไข
-                    </button>
+                    <div className="w-full flex justify-end">
+                      <button
+                        onClick={() => {
+                          setAssignments(prev =>
+                            prev.map(a =>
+                              a.id === currentAssignmentData.id
+                                ? { ...a, status: 'pending', submittedFiles: [] }
+                                : a
+                            )
+                          );
+                        }}
+                        className="text-sm text-red-400 hover:underline mt-2"
+                      >
+                        ยกเลิกการส่งเพื่อแก้ไข
+                      </button>
+                    </div>
+
+
                   </div>
                 ) : (
                   /* 2. กรณีรอส่งงาน (UI สำหรับอัปโหลด) */
@@ -5300,8 +5310,8 @@ export default function SchoolyScootLMS() {
     }
   }
 
-  
- 
+
+
   return (
     <div className="flex h-screen bg-[#F8FAFC] font-sans">
       {renderModal()}
