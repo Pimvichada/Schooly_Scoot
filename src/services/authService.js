@@ -11,7 +11,7 @@ import {
     browserLocalPersistence,
     browserSessionPersistence,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 /**
  * Register a new user
@@ -224,5 +224,30 @@ export const setAuthPersistence = async (rememberMe) => {
         await setPersistence(auth, type);
     } catch (error) {
         console.error("Error setting persistence:", error);
+    }
+};
+
+/**
+ * Toggle hidden status of a course for a user
+ * @param {string} uid 
+ * @param {string} courseId 
+ * @param {boolean} shouldHide - true to hide, false to unhide
+ */
+export const toggleHiddenCourse = async (uid, courseId, shouldHide) => {
+    try {
+        const userRef = doc(db, "users", uid);
+        if (shouldHide) {
+            await updateDoc(userRef, {
+                hiddenCourses: arrayUnion(courseId)
+            });
+        } else {
+            await updateDoc(userRef, {
+                hiddenCourses: arrayRemove(courseId)
+            });
+        }
+        return true;
+    } catch (error) {
+        console.error("Error toggling hidden course:", error);
+        throw error;
     }
 };

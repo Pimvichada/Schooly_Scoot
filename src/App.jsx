@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { getUserProfile, logoutUser, updateUserProfile } from './services/authService';
+import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
@@ -498,6 +498,7 @@ export default function SchoolyScootLMS() {
   const [workView, setWorkView] = useState('current');
   const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
   const [authLoading, setAuthLoading] = useState(true);
+  const [hiddenCourseIds, setHiddenCourseIds] = useState([]); // Store hidden course IDs locally
 
   // Meeting State
   const [meetingConfig, setMeetingConfig] = useState({
@@ -552,6 +553,7 @@ export default function SchoolyScootLMS() {
               xp: userProfile.xp || 0,
               photoURL: userProfile.photoURL || user.photoURL || ''
             });
+            setHiddenCourseIds(userProfile.hiddenCourses || []);
             setIsLoggedIn(true);
           }
         } catch (error) {
@@ -615,7 +617,34 @@ export default function SchoolyScootLMS() {
       }
     };
     fetchCourses();
+    fetchCourses();
   }, [isLoggedIn, userRole]); // Re-fetch when login state or role changes
+
+  const handleToggleHideCourse = async (course) => {
+    if (!auth.currentUser) return;
+    const isHidden = hiddenCourseIds.includes(course.firestoreId);
+
+    // Optimistic Update
+    setHiddenCourseIds(prev =>
+      isHidden ? prev.filter(id => id !== course.firestoreId) : [...prev, course.firestoreId]
+    );
+
+    try {
+      await toggleHiddenCourse(auth.currentUser.uid, course.firestoreId, !isHidden);
+    } catch (error) {
+      console.error("Failed to toggle hide", error);
+      // Revert if failed
+      setHiddenCourseIds(prev =>
+        isHidden ? [...prev, course.firestoreId] : prev.filter(id => id !== course.firestoreId)
+      );
+    }
+  };
+
+  // Filter visible and hidden courses
+  const visibleCourses = courses.filter(c => !hiddenCourseIds.includes(c.firestoreId));
+  const hiddenCoursesList = courses.filter(c => hiddenCourseIds.includes(c.firestoreId));
+  const [showHiddenCourses, setShowHiddenCourses] = useState(false);
+
 
   // Real-time listener for selected course
   useEffect(() => {
@@ -3611,29 +3640,70 @@ export default function SchoolyScootLMS() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-slate-800">ห้องเรียนของฉัน</h1>
-        {userRole === 'teacher' ? (
-          <button onClick={() => setActiveModal('create')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]">
-            <Plus size={20} className="mr-2" /> สร้างห้องเรียน
-          </button>
-        ) : (
-          <button onClick={() => setActiveModal('join')} className="bg-white text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-slate-50">
-            <Search size={20} className="mr-2" /> เข้าร่วมด้วยรหัส
-          </button>
-        )}
+        <div className="flex gap-3">
+          {hiddenCoursesList.length > 0 && (
+            <button
+              onClick={() => setShowHiddenCourses(!showHiddenCourses)}
+              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${showHiddenCourses ? 'bg-slate-200 text-slate-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+            >
+              {showHiddenCourses ? <EyeOff size={18} /> : <Eye size={18} />}
+              {showHiddenCourses ? 'ซ่อนห้องที่ถูกซ่อน' : `ดูห้องที่ซ่อนไว้ (${hiddenCoursesList.length})`}
+            </button>
+          )}
+          {userRole === 'teacher' ? (
+            <button onClick={() => setActiveModal('create')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]">
+              <Plus size={20} className="mr-2" /> สร้างห้องเรียน
+            </button>
+          ) : (
+            <button onClick={() => setActiveModal('join')} className="bg-white text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-slate-50">
+              <Search size={20} className="mr-2" /> เข้าร่วมด้วยรหัส
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {courses.map(course => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            onClick={() => setSelectedCourse(course)}
-            isTeacher={userRole === 'teacher'}
-            onDelete={handleDeleteCourse}
-          />
-        ))}
+      {visibleCourses.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {visibleCourses.map(course => (
+            <CourseCard
+              key={course.id || course.firestoreId}
+              course={{ ...course, isHidden: false, onToggleHide: handleToggleHideCourse }} // Explicitly pass handlers
+              onClick={() => setSelectedCourse(course)}
+              isTeacher={userRole === 'teacher'}
+              onDelete={handleDeleteCourse}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-100 border-dashed">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={32} className="text-slate-300" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-600">ยังไม่มีห้องเรียนที่แสดง</h3>
+          <p className="text-slate-400 text-sm mt-1">สร้างหรือเข้าร่วมห้องเรียนเพื่อเริ่มต้น หรือดูห้องที่ซ่อนไว้</p>
+        </div>
+      )}
 
-      </div>
+      {/* Hidden Courses Section */}
+      {showHiddenCourses && hiddenCoursesList.length > 0 && (
+        <div className="animate-in fade-in slide-in-from-top-4 duration-300 mt-8 pt-8 border-t-2 border-dashed border-slate-200">
+          <h2 className="text-lg font-bold text-slate-500 mb-6 flex items-center">
+            <EyeOff size={20} className="mr-2" /> ห้องเรียนที่ซ่อนไว้
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 opacity-75">
+            {hiddenCoursesList.map(course => (
+              <CourseCard
+                key={course.id || course.firestoreId}
+                course={{ ...course, isHidden: true, onToggleHide: handleToggleHideCourse }}
+                onClick={() => setSelectedCourse(course)}
+                isTeacher={userRole === 'teacher'}
+                onDelete={handleDeleteCourse}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 
