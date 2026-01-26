@@ -70,7 +70,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 
-import { MascotCircle, MascotSquare, MascotTriangle, MascotStar } from './components/Mascots';
+import { MascotCircle, MascotSquare, MascotTriangle, MascotStar, Cute1 } from './components/Mascots';
 import LoginPage from './components/LoginPage';
 import StatCard from './components/StatCard';
 import CourseCard from './components/CourseCard';
@@ -109,8 +109,10 @@ const getCourseIcon = (type) => {
     case 'square': return <MascotSquare className="w-12 h-12" />;
     case 'circle': return <MascotCircle className="w-12 h-12" />;
     case 'triangle': return <MascotTriangle className="w-12 h-12" />;
-    case 'star': return <MascotStar className="w-12 h-12" />; // Default
+    case 'star': return <MascotStar className="w-12 h-12" />; 
+    case 'cute1': return <Cute1 className="w-12 h-12" />;
     default: return <MascotStar className="w-12 h-12" />;
+    
   }
 };
 
@@ -3695,7 +3697,7 @@ export default function SchoolyScootLMS() {
         {/* Decorative Mascots with Hover Animation */}
         <div className="absolute right-4 top-1/2 transform -translate-y-1/2 md:right-10 flex space-x-[-20px] items-center">
           <div className="transition-transform duration-300 hover:-translate-y-4 hover:rotate-6 cursor-pointer">
-            <MascotCircle className="w-24 h-24 md:w-40 md:h-40" />
+            <Cute1 className="w-24 h-24 md:w-40 md:h-40" />
           </div>
           <div className="transition-transform duration-300 hover:-translate-y-4 hover:-rotate-6 cursor-pointer delay-75">
             <MascotTriangle className="w-20 h-20 md:w-32 md:h-32" />

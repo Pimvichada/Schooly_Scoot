@@ -43,3 +43,12 @@ export const MascotStar = ({ className = "w-16 h-16" }) => (
     <path d="M 45 65 Q 50 70 55 65" stroke="#b39d49" strokeWidth="2" fill="none" strokeLinecap="round" />
   </svg>
 );
+
+export const Cute1 = ({ className = "w-16 h-16" }) => (
+  <svg viewBox="0 0 100 100" className={className}>
+    <path d="M50,5 L55,15 L65,10 L68,20 L78,15 L78,25 L88,25 L85,35 L95,38 L90,48 L100,53 L90,58 L95,68 L85,71 L88,81 L78,81 L78,91 L68,86 L65,96 L55,91 L50,100 L45,91 L35,96 L32,86 L22,91 L22,81 L12,81 L15,71 L5,68 L10,58 L0,53 L10,48 L5,38 L15,35 L12,25 L22,25 L22,15 L32,20 L35,10 L45,15 Z" fill="#ffef92" />
+    <circle cx="45" cy="50" r="2" fill="black" />
+    <circle cx="55" cy="50" r="2" fill="black" />
+    <path d="M48,58 Q50,61 52,58" stroke="black" fill="none" strokeWidth="1.5" />
+  </svg>
+);
