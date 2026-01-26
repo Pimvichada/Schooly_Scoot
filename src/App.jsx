@@ -3620,12 +3620,27 @@ export default function SchoolyScootLMS() {
                         const input = document.getElementById(`score-${student.firestoreId || student.id}`);
                         const newScore = input.value;
 
-                        // ส่งไปบันทึก (เรียก function เดิมที่คุณมี)
-                        return gradeSubmission(targetId, student.firestoreId || student.id, newScore);
+                        // 1. ส่งไปบันทึกคะแนนลง Database
+                        await gradeSubmission(targetId, student.firestoreId || student.id, newScore);
+
+                        // 2. --- เพิ่มส่วนแจ้งเตือนนักเรียนตรงนี้ ---
+                        if (newScore !== "" && newScore !== null) {
+                          await createNotification(
+                            student.userId || student.id, // ID ของนักเรียน
+                            `ประกาศคะแนน: ${selectedAssignment.title}`,
+                            'grade', // ประเภทแจ้งเตือน
+                            `คุณครูได้ตรวจงานและให้คะแนนวิชา ${selectedAssignment.course} แล้ว ได้คะแนน ${newScore}/${selectedAssignment.maxScore || 10}`,
+                            {
+                              courseId: selectedCourse.firestoreId,
+                              targetType: 'assignment',
+                              targetId: targetId
+                            }
+                          );
+                        }
                       });
 
                       await Promise.all(savePromises);
-                      alert('บันทึกคะแนนทั้งหมดเรียบร้อยแล้ว');
+                      alert('บันทึกคะแนนและส่งการแจ้งเตือนเรียบร้อยแล้ว');
 
                       // ปรับปรุงข้อมูลในหน้าจอให้เป็นปัจจุบัน
                       setSubmissions(prev => prev.map(s => {
