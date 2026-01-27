@@ -1,5 +1,5 @@
 import { db } from '../../firebase';
-import { collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
 
 /**
  * Create a new quiz
@@ -155,6 +155,25 @@ export const updateQuizSubmissionScore = async (submissionId, newScore) => {
         return true;
     } catch (error) {
         console.error("Error updating quiz score:", error);
+        throw error;
+    }
+};
+
+/**
+ * Get a single quiz by ID
+ * @param {string} quizId 
+ */
+export const getQuiz = async (quizId) => {
+    try {
+        const docRef = doc(db, 'quizzes', quizId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { ...docSnap.data(), firestoreId: docSnap.id };
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting quiz:", error);
         throw error;
     }
 };

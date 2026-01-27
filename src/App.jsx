@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
-import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore } from './services/quizService';
+import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore, getQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
@@ -434,6 +434,8 @@ const PostItem = ({ post, currentUser, onDelete, onEdit }) => {
         {/* Comment Section */}
         {showComments && (
           <div className="mt-4 space-y-4">
+
+
             {/* รายการคอมเมนต์ */}
             <div className="max-h-60 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-slate-200">
               {comments.length > 0 ? comments.map((comment, index) => (
@@ -526,6 +528,10 @@ export default function SchoolyScootLMS() {
   // Time State
   const [currentTime, setCurrentTime] = useState(new Date());
   const [quizRemainingSeconds, setQuizRemainingSeconds] = useState(0);
+
+  // Schedule Editing State
+  const [scheduleForm, setScheduleForm] = useState({ day: '1', start: '', end: '', room: '' });
+  const [editingScheduleIndex, setEditingScheduleIndex] = useState(null);
 
 
 
@@ -1311,7 +1317,7 @@ export default function SchoolyScootLMS() {
   };
 
   // Smart Navigation Handler
-  const handleNotificationClick = (notif) => {
+  const handleNotificationClick = async (notif) => {
     setSelectedNotification(notif);
     markNotificationRead(notif.firestoreId);
     setActiveModal('notificationDetail'); // Default open detail
@@ -1323,20 +1329,47 @@ export default function SchoolyScootLMS() {
         setSelectedCourse(targetCourse);
 
         if (notif.targetType === 'meeting') {
-          setCourseTab('meeting'); // Auto-open video tab
-          setActiveModal('videoConference'); // OR maybe just go to tab? Let's just go to tab for safety, or open modal if meeting active
-          // If we want to auto-join, we might need more logic. For now, go to tab.
+          setCourseTab('meeting');
+          setActiveModal('videoConference');
         } else if (notif.targetType === 'assignment' || notif.type === 'homework') {
           setCourseTab('work');
           if (notif.targetId) {
-            // Logic to open specific assignment if needed, or just list
-            // We can find assignment and open modal?
             const assign = assignments.find(a => (a.firestoreId || a.id) === notif.targetId);
             if (assign) {
               if (userRole === 'teacher') openGradingModal(assign);
               else { setSelectedAssignment(assign); setActiveModal('assignmentDetail'); }
             }
           }
+        } else if (notif.targetType === 'quiz') { // NEW: Student -> Take Quiz
+          setCourseTab('quizzes');
+          if (notif.targetId) {
+            try {
+              const quiz = await getQuiz(notif.targetId);
+              if (quiz) {
+                setActiveQuiz(quiz);
+                // Check locked
+                const scheduledTime = quiz.scheduledAt ? new Date(quiz.scheduledAt) : null;
+                const isLocked = scheduledTime && scheduledTime > new Date();
+                if (!isLocked) {
+                  const minutes = parseInt(quiz.time) || 0;
+                  setQuizRemainingSeconds(minutes * 60);
+                  setActiveModal('takeQuiz');
+                }
+              }
+            } catch (e) { console.error(e); }
+          }
+        } else if (notif.targetType === 'quiz_result') { // NEW: Teacher -> View Results
+          setCourseTab('quizzes');
+          if (notif.targetId) {
+            try {
+              const quiz = await getQuiz(notif.targetId);
+              if (quiz) {
+                handleViewResults(quiz);
+              }
+            } catch (e) { console.error(e); }
+          }
+        } else if (notif.targetType === 'grades') { // NEW: Student -> View Grades
+          setCourseTab('grades');
         } else if (notif.targetType === 'join_request') {
           setCourseTab('people');
           setActiveModal(null);
@@ -1956,6 +1989,12 @@ export default function SchoolyScootLMS() {
     const currentAssignmentData = assignments.find(a => a.id === selectedAssignment?.id);
 
     const closeModal = () => {
+      // If teacher is viewing assignment detail (from grading), go back to grading
+      if ((activeModal === 'assignmentDetail' || activeModal === 'grading_detail') && userRole === 'teacher') {
+        setActiveModal('grading');
+        return;
+      }
+
       setActiveModal(null);
       // setSelectedAssignment(null);
       // setSelectedNotification(null);
@@ -1968,8 +2007,8 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'takeQuiz', 'createExam', 'create'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
-          {activeModal !== 'grading' && (
+        <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'grading_detail', 'takeQuiz', 'createExam', 'create', 'assignmentDetail'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
+          {!['grading', 'grading_detail'].includes(activeModal) && (
             <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
               <X size={20} className="text-slate-600" />
             </button>
@@ -3183,6 +3222,7 @@ export default function SchoolyScootLMS() {
                 )}
               </div>
 
+
               <div className="border-t border-slate-100 pt-6">
                 <h3 className="font-bold text-slate-800 mb-4">งานของคุณ</h3>
 
@@ -3285,6 +3325,7 @@ export default function SchoolyScootLMS() {
               </div>
             </div>
           )}
+
 
           {/* EDIT PROFILE MODAL */}
           {activeModal === 'editProfile' && (
@@ -3561,154 +3602,211 @@ export default function SchoolyScootLMS() {
 
 
           {/* TEACHER GRADING MODAL */}
-          {activeModal === 'grading' && selectedAssignment && (
-            <div className="p-8 h-[80vh] flex flex-col">
-              <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">ตรวจงาน: {selectedAssignment.title}</h2>
-                  <p className="text-slate-500">{selectedAssignment.course}</p>
-                </div>
-                <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
-                  คะแนนเต็ม: {selectedAssignment.maxScore || 10}
-                </div>
-              </div>
-
-
-              {/* Grading List */}
-              <div className="flex-1 overflow-y-auto mt-4">
-                {submissionsLoading ? (
-                  <div className="flex items-center justify-center h-full py-10">
-                    <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-[#96C68E]"></div>
+          {(activeModal === 'grading' || activeModal === 'grading_detail') && selectedAssignment && (
+            <div className="h-[80vh] flex flex-col relative">
+              {/* Overlay for Detail View */}
+              {activeModal === 'grading_detail' && (
+                <div className="absolute inset-0 z-50 bg-white p-8 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="bg-[#FFE787] p-3 rounded-2xl">
+                      <FileText size={32} className="text-slate-700" />
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold text-slate-800">{selectedAssignment.title}</h2>
+                      <p className="text-slate-500">{selectedAssignment.course} • ครบกำหนด {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
+                    </div>
+                    <button
+                      onClick={() => setActiveModal('grading')}
+                      className="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors"
+                    >
+                      <X size={24} className="text-slate-500" />
+                    </button>
                   </div>
-                ) : (
-                  <table className="w-full">
-                    <thead className="text-left text-slate-500 text-sm border-b border-slate-100">
-                      <tr>
-                        <th className="pb-2">ชื่อ-นามสกุล</th>
-                        <th className="pb-2">สถานะ</th>
-                        <th className="pb-2">ไฟล์แนบ</th>
-                        <th className="pb-2 text-center">คะแนน</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {submissions.length > 0 ? submissions.map((student) => (
-                        <tr key={student.firestoreId || student.id} className="group hover:bg-slate-50">
-                          <td className="py-3 font-medium text-slate-700">{student.userName || 'Unknown'}</td>
-                          <td className="py-3">
-                            <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
-                          </td>
-                          <td className="py-3">
-                            {student.file ? (
-                              <div className="flex flex-col gap-1">
-                                {(() => {
-                                  const files = Array.isArray(student.file) ? student.file : [student.file];
-                                  if (files.length === 0) return <span className="text-red-400 text-xs font-bold">ไฟล์ว่างเปล่า (Empty)</span>;
 
-                                  return files.map((f, idx) => (
-                                    <button
-                                      key={idx}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        if (f.content) {
-                                          openBase64InNewTab(f.content, f.type || 'application/pdf');
-                                        } else {
-                                          alert(`ไม่พบเนื้อหาไฟล์: ${f.name}`);
-                                        }
-                                      }}
-                                      className="text-left font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 bg-slate-50 border border-slate-200 px-2 py-1 rounded cursor-pointer text-sm max-w-full"
-                                      title={f.name || `File ${idx + 1}`}
-                                    >
-                                      <FileText size={16} className="text-blue-500 flex-shrink-0" />
-                                      <span className="truncate">{f.name || `ไฟล์แนบ ${idx + 1}`}</span>
-                                    </button>
-                                  ));
-                                })()}
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-6 flex-1 overflow-y-auto custom-scrollbar">
+                    <h3 className="font-bold text-slate-700 mb-4 text-lg border-b border-slate-200 pb-2">คำชี้แจง</h3>
+                    <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{selectedAssignment.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+
+                    {/* Display attached files */}
+                    {selectedAssignment.files && selectedAssignment.files.length > 0 && (
+                      <div className="mt-6 pt-4 border-t border-slate-200">
+                        <h4 className="text-sm font-bold text-slate-600 mb-3 flex items-center gap-2">
+                          <Paperclip size={18} /> ไฟล์แนบ ({selectedAssignment.files.length})
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {selectedAssignment.files.map((file, idx) => (
+                            <div key={idx} className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl hover:border-[#96C68E] transition-colors group cursor-pointer"
+                              onClick={() => {
+                                if (file.content) openBase64InNewTab(file.content, file.type || 'application/pdf');
+                                else alert('ไม่สามารถเปิดไฟล์ได้');
+                              }}
+                            >
+                              <div className="bg-[#F0FDF4] p-2 rounded-lg">
+                                <FileText className="text-[#96C68E]" size={20} />
                               </div>
-                            ) : (
-                              <span className="text-red-400 text-xs font-bold flex items-center gap-1">
-                                <AlertCircle size={12} /> ไม่พบไฟล์แนบ
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3 text-center flex items-center justify-center gap-2">
-                            <input
-                              type="text"
-                              placeholder="-"
-                              defaultValue={student.score}
-                              className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
-                              id={`score-${student.firestoreId || student.id}`}
-                            />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
+                                <p className="text-xs text-slate-400">{(file.size ? (file.size / 1024).toFixed(1) : 0)} KB</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-                          </td>
+              <div className="p-8 flex flex-col h-full">
+                <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800">ตรวจงาน: {selectedAssignment.title}</h2>
+                    <div className="flex items-center gap-3 text-slate-500">
+                      <p>{selectedAssignment.course}</p>
+                      <div className="h-1 w-1 rounded-full bg-slate-300"></div>
+                      <button
+                        onClick={() => setActiveModal('grading_detail')}
+                        className="hover:text-[#96C68E] cursor-pointer transition-colors flex items-center gap-1 font-bold text-sm bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 hover:border-[#96C68E]"
+                        title="ดูรายละเอียดงานต้นฉบับ"
+                      >
+                        <Eye size={16} /> ดูโจทย์
+                      </button>
+                    </div>
+                  </div>
+                  <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
+                    คะแนนเต็ม: {selectedAssignment.maxScore || 10}
+                  </div>
+                </div>
+
+                {/* Grading List */}
+                <div className="flex-1 overflow-y-auto mt-4">
+                  {submissionsLoading ? (
+                    <div className="flex items-center justify-center h-full py-10">
+                      <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-[#96C68E]"></div>
+                    </div>
+                  ) : (
+                    <table className="w-full">
+                      <thead className="text-left text-slate-500 text-sm border-b border-slate-100">
+                        <tr>
+                          <th className="pb-2">ชื่อ-นามสกุล</th>
+                          <th className="pb-2">สถานะ</th>
+                          <th className="pb-2">ไฟล์แนบ</th>
+                          <th className="pb-2 text-center">คะแนน</th>
                         </tr>
-                      )) : (
-                        <tr><td colSpan="4" className="text-center py-4 text-slate-400">ยังไม่มีใครส่งงาน</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {submissions.length > 0 ? submissions.map((student) => (
+                          <tr key={student.firestoreId || student.id} className="group hover:bg-slate-50">
+                            <td className="py-3 font-medium text-slate-700">{student.userName || 'Unknown'}</td>
+                            <td className="py-3">
+                              <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
+                            </td>
+                            <td className="py-3">
+                              {student.file ? (
+                                <div className="flex flex-col gap-1">
+                                  {(() => {
+                                    const files = Array.isArray(student.file) ? student.file : [student.file];
+                                    if (files.length === 0) return <span className="text-red-400 text-xs font-bold">ไฟล์ว่างเปล่า (Empty)</span>;
+
+                                    return files.map((f, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          if (f.content) {
+                                            openBase64InNewTab(f.content, f.type || 'application/pdf');
+                                          } else {
+                                            alert(`ไม่พบเนื้อหาไฟล์: ${f.name}`);
+                                          }
+                                        }}
+                                        className="text-left font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 bg-slate-50 border border-slate-200 px-2 py-1 rounded cursor-pointer text-sm max-w-full"
+                                        title={f.name || `File ${idx + 1}`}
+                                      >
+                                        <FileText size={16} className="text-blue-500 flex-shrink-0" />
+                                        <span className="truncate">{f.name || `ไฟล์แนบ ${idx + 1}`}</span>
+                                      </button>
+                                    ));
+                                  })()}
+                                </div>
+                              ) : (
+                                <span className="text-red-400 text-xs font-bold flex items-center gap-1">
+                                  <AlertCircle size={12} /> ไม่พบไฟล์แนบ
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 text-center flex items-center justify-center gap-2">
+                              {/* Unique ID for input using student ID */}
+                              <input
+                                type="text"
+                                placeholder="-"
+                                defaultValue={student.score}
+                                className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
+                                id={`score-${student.firestoreId || student.id}`}
+                              />
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="4" className="text-center py-4 text-slate-400">ยังไม่มีใครส่งงาน</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
+                  <button
+                    onClick={closeModal}
+                    className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                  >
+                    ปิด
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
+                        const savePromises = submissions.map(async (student) => {
+                          const input = document.getElementById(`score-${student.firestoreId || student.id}`);
+                          if (!input) return; // guard against missing element
+                          const newScore = input.value;
+
+                          await gradeSubmission(targetId, student.firestoreId || student.id, newScore);
+
+                          if (newScore !== "" && newScore !== null) {
+                            await createNotification(
+                              student.userId || student.id,
+                              `ประกาศคะแนน: ${selectedAssignment.title}`,
+                              'grade',
+                              `คุณครูได้ตรวจงานและให้คะแนนวิชา ${selectedAssignment.course} แล้ว ได้คะแนน ${newScore}/${selectedAssignment.maxScore || 10}`,
+                              {
+                                courseId: selectedCourse.firestoreId,
+                                targetType: 'assignment',
+                                targetId: targetId
+                              }
+                            );
+                          }
+                        });
+
+                        await Promise.all(savePromises);
+                        alert('บันทึกคะแนนและส่งการแจ้งเตือนเรียบร้อยแล้ว');
+
+                        setSubmissions(prev => prev.map(s => {
+                          const el = document.getElementById(`score-${s.firestoreId || s.id}`);
+                          return el ? { ...s, score: el.value } : s;
+                        }));
+
+                      } catch (e) {
+                        console.error(e);
+                        alert('บันทึกคะแนนไม่สำเร็จ');
+                      }
+                    }}
+                    className="px-6 py-3 rounded-xl bg-[#96C68E] hover:bg-[#85b57d] font-bold text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
+                  >
+                    <Save size={18} />
+                    บันทึกคะแนนทั้งหมด
+                  </button>
+                </div>
               </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
-                {/* ปุ่มปิดเดิม */}
-                <button
-                  onClick={closeModal}
-                  className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
-                >
-                  ปิด
-                </button>
-
-                {/* ปุ่มบันทึกทั้งหมดที่เพิ่มใหม่ */}
-                <button
-                  onClick={async () => {
-                    try {
-                      const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
-
-                      // รวบรวมข้อมูลคะแนนจากทุกคนในตาราง
-                      const savePromises = submissions.map(async (student) => {
-                        const input = document.getElementById(`score-${student.firestoreId || student.id}`);
-                        const newScore = input.value;
-
-                        // 1. ส่งไปบันทึกคะแนนลง Database
-                        await gradeSubmission(targetId, student.firestoreId || student.id, newScore);
-
-                        // 2. --- เพิ่มส่วนแจ้งเตือนนักเรียนตรงนี้ ---
-                        if (newScore !== "" && newScore !== null) {
-                          await createNotification(
-                            student.userId || student.id, // ID ของนักเรียน
-                            `ประกาศคะแนน: ${selectedAssignment.title}`,
-                            'grade', // ประเภทแจ้งเตือน
-                            `คุณครูได้ตรวจงานและให้คะแนนวิชา ${selectedAssignment.course} แล้ว ได้คะแนน ${newScore}/${selectedAssignment.maxScore || 10}`,
-                            {
-                              courseId: selectedCourse.firestoreId,
-                              targetType: 'assignment',
-                              targetId: targetId
-                            }
-                          );
-                        }
-                      });
-
-                      await Promise.all(savePromises);
-                      alert('บันทึกคะแนนและส่งการแจ้งเตือนเรียบร้อยแล้ว');
-
-                      // ปรับปรุงข้อมูลในหน้าจอให้เป็นปัจจุบัน
-                      setSubmissions(prev => prev.map(s => {
-                        const scoreVal = document.getElementById(`score-${s.firestoreId || s.id}`).value;
-                        return { ...s, score: scoreVal };
-                      }));
-
-                    } catch (e) {
-                      console.error(e);
-                      alert('บันทึกคะแนนไม่สำเร็จ');
-                    }
-                  }}
-                  className="px-6 py-3 rounded-xl bg-[#96C68E] hover:bg-[#85b57d] font-bold text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
-                >
-                  <Save size={18} />
-                  บันทึกคะแนนทั้งหมด
-                </button>
-              </div>
-
             </div>
           )}
         </div>
@@ -4029,17 +4127,7 @@ export default function SchoolyScootLMS() {
                         }`}>
                       {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
                     </button>
-                    {userRole === 'teacher' && (
-                      <button
-                        onClick={() => {
-                          setSelectedAssignment(assign);
-                          setActiveModal('assignmentDetail');
-                        }}
-                        className="px-6 py-2 rounded-xl font-bold text-sm transition-all hover:scale-105 active:scale-95 bg-[#BEE1FF] text-slate-800"
-                      >
-                        ดูรายละเอียด
-                      </button>
-                    )}
+
                     {userRole === 'teacher' && (
                       <button
                         onClick={async (e) => {
@@ -4915,46 +5003,92 @@ export default function SchoolyScootLMS() {
                       <label className="block text-sm font-bold text-slate-600 mb-1">จัดการตารางเรียน</label>
                       <div className="bg-slate-50 p-4 rounded-xl space-y-3">
                         <div className="flex flex-wrap gap-2 items-center">
-                          <select id="editDaySelect" className="p-2 rounded-lg border border-slate-200 text-sm">
+                          <select
+                            value={scheduleForm.day}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, day: e.target.value })}
+                            className="p-2 rounded-lg border border-slate-200 text-sm"
+                          >
                             <option value="1">จันทร์</option>
                             <option value="2">อังคาร</option>
                             <option value="3">พุธ</option>
                             <option value="4">พฤหัส</option>
                             <option value="5">ศุกร์</option>
                           </select>
-                          <input id="editStartTime" type="time" className="p-2 rounded-lg border border-slate-200 text-sm" />
+                          <input
+                            type="time"
+                            value={scheduleForm.start}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, start: e.target.value })}
+                            className="p-2 rounded-lg border border-slate-200 text-sm"
+                          />
                           <span className="self-center">-</span>
-                          <input id="editEndTime" type="time" className="p-2 rounded-lg border border-slate-200 text-sm" />
-                          <input id="editRoom" type="text" placeholder="ห้อง" className="p-2 rounded-lg border border-slate-200 text-sm w-20" />
+                          <input
+                            type="time"
+                            value={scheduleForm.end}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, end: e.target.value })}
+                            className="p-2 rounded-lg border border-slate-200 text-sm"
+                          />
+                          <input
+                            type="text"
+                            placeholder="ห้อง"
+                            value={scheduleForm.room}
+                            onChange={(e) => setScheduleForm({ ...scheduleForm, room: e.target.value })}
+                            className="p-2 rounded-lg border border-slate-200 text-sm w-20"
+                          />
                           <button onClick={() => {
                             const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์' };
-                            const day = document.getElementById('editDaySelect').value;
-                            const start = document.getElementById('editStartTime').value;
-                            const end = document.getElementById('editEndTime').value;
-                            const room = document.getElementById('editRoom').value;
-                            if (start && end) {
-                              setEditingCourse({
-                                ...editingCourse,
-                                scheduleItems: [...(editingCourse.scheduleItems || []), {
-                                  dayOfWeek: parseInt(day),
-                                  startTime: start,
-                                  endTime: end,
-                                  room: room,
-                                  dayLabel: dayMap[day]
-                                }]
-                              });
+                            if (scheduleForm.start && scheduleForm.end) {
+                              const newItem = {
+                                dayOfWeek: parseInt(scheduleForm.day),
+                                startTime: scheduleForm.start,
+                                endTime: scheduleForm.end,
+                                room: scheduleForm.room,
+                                dayLabel: dayMap[scheduleForm.day]
+                              };
+
+                              if (editingScheduleIndex !== null) {
+                                // Update existing
+                                const newItems = [...(editingCourse.scheduleItems || [])];
+                                newItems[editingScheduleIndex] = newItem;
+                                setEditingCourse({ ...editingCourse, scheduleItems: newItems });
+                                setEditingScheduleIndex(null);
+                              } else {
+                                // Add new
+                                setEditingCourse({
+                                  ...editingCourse,
+                                  scheduleItems: [...(editingCourse.scheduleItems || []), newItem]
+                                });
+                              }
+                              // Reset form
+                              setScheduleForm({ day: '1', start: '', end: '', room: '' });
                             }
-                          }} className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600"><Plus size={16} /></button>
+                          }} className={`${editingScheduleIndex !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2 rounded-lg`}>
+                            {editingScheduleIndex !== null ? <Save size={16} /> : <Plus size={16} />}
+                          </button>
                         </div>
 
                         <div className="space-y-2 mt-2">
                           {(editingCourse.scheduleItems || []).map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 text-sm">
+                            <div key={idx} className={`flex justify-between items-center bg-white p-2 rounded-lg border text-sm ${editingScheduleIndex === idx ? 'border-amber-500 bg-amber-50' : 'border-slate-100'}`}>
                               <span>{item.dayLabel || ['', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'][item.dayOfWeek]} {item.startTime}-{item.endTime} ({item.room})</span>
-                              <button onClick={() => {
-                                const newItems = editingCourse.scheduleItems.filter((_, i) => i !== idx);
-                                setEditingCourse({ ...editingCourse, scheduleItems: newItems });
-                              }} className="text-red-400 hover:text-red-600"><X size={14} /></button>
+                              <div className="flex gap-2">
+                                <button onClick={() => {
+                                  setScheduleForm({
+                                    day: item.dayOfWeek.toString(),
+                                    start: item.startTime,
+                                    end: item.endTime,
+                                    room: item.room || ''
+                                  });
+                                  setEditingScheduleIndex(idx);
+                                }} className="text-amber-400 hover:text-amber-600"><Edit2 size={14} /></button>
+                                <button onClick={() => {
+                                  const newItems = editingCourse.scheduleItems.filter((_, i) => i !== idx);
+                                  setEditingCourse({ ...editingCourse, scheduleItems: newItems });
+                                  if (editingScheduleIndex === idx) {
+                                    setEditingScheduleIndex(null);
+                                    setScheduleForm({ day: '1', start: '', end: '', room: '' });
+                                  }
+                                }} className="text-red-400 hover:text-red-600"><X size={14} /></button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -5581,14 +5715,6 @@ export default function SchoolyScootLMS() {
                         activeTab === 'messages' ? 'ข้อความ' : 'ตั้งค่า'}
               </h2>
               <div className="flex items-center gap-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    type="text"
-                    placeholder="ค้นหา..."
-                    className="pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#BEE1FF] w-64 text-sm"
-                  />
-                </div>
                 <button
                   onClick={() => setActiveModal('notificationsList')}
                   className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center relative hover:bg-slate-50">
