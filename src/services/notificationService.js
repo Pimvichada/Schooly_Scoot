@@ -1,5 +1,5 @@
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, query, where, updateDoc, doc, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc, orderBy, serverTimestamp, onSnapshot } from 'firebase/firestore';
 
 /**
  * Fetch notifications for a specific user
@@ -26,6 +26,30 @@ export const getNotifications = async (userId) => {
         console.error("Error getting notifications:", error);
         return [];
     }
+};
+
+/**
+ * Subscribe to real-time notifications
+ * @param {string} userId 
+ * @param {function} callback - Function to call with new notifications
+ */
+export const subscribeToNotifications = (userId, callback) => {
+    const notifCol = collection(db, 'notifications');
+    const q = query(
+        notifCol,
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const notifications = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            firestoreId: doc.id
+        }));
+
+        // Pass both full list and changes to the callback
+        callback(notifications, snapshot.docChanges());
+    });
 };
 
 /**

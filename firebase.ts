@@ -20,11 +20,14 @@ const firebaseConfig = {
 
 import { getStorage } from "firebase/storage";
 
+import { getMessaging } from "firebase/messaging";
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const messaging = getMessaging(app);
 
-export { app, auth, db, analytics, storage };
+export { app, auth, db, analytics, storage, messaging };

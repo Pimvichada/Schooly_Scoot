@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { auth, db } from '../firebase';
+import { auth, db, messaging } from '../firebase';
+import { getToken, onMessage } from "firebase/messaging";
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore, getQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
-import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead } from './services/notificationService';
+import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead, subscribeToNotifications } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
@@ -79,6 +80,8 @@ import NotificationItem from './components/NotificationItem';
 import VideoConference from './components/VideoConference';
 import RegisterPage from './components/RegisterPage';
 import CalendarPage from './components/CalendarPage';
+import ToastNotification from './components/ToastNotification';
+import notiSoundUrl from './assets/notisound.mp3';
 import logo_no_text from './assets/logo_no_tex3.png';
 
 const WELCOME_MESSAGES = {
@@ -584,7 +587,6 @@ export default function SchoolyScootLMS() {
             setIsLoggedIn(true);
           } else {
             // User exists in Auth but not yet in Firestore (creating...)
-            console.log("Waiting for user profile creation...");
           }
           setAuthLoading(false);
         }, (error) => {
@@ -757,6 +759,112 @@ export default function SchoolyScootLMS() {
   }, [authLoading, userRole, auth.currentUser]);
 
   //  Assignment State (สำคัญมาก)
+
+  // Notification System
+  const [activeNotifications, setActiveNotifications] = useState([]);
+
+  const addNotification = useCallback((notification) => {
+    const noti = { ...notification, id: notification.id || Date.now().toString() };
+    setActiveNotifications(prev => {
+      // Prevent exact duplicates if checking by firestoreId within short timeframe
+      if (noti.firestoreId && prev.some(n => n.firestoreId === noti.firestoreId)) {
+        return prev;
+      }
+      return [...prev, noti];
+    });
+    // Play Sound
+    const audio = new Audio(notiSoundUrl);
+    audio.play().catch(e => console.log("Audio play failed:", e));
+  }, []);
+
+  const removeNotification = useCallback((id) => {
+    setActiveNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    let isInitialLoad = true;
+
+    const unsubscribe = subscribeToNotifications(auth.currentUser.uid, (notifications, changes) => {
+      // Always update the full list (if we were storing it, but here we just used it for "newest" check previously)
+      // If you had a state for notification count, you'd update it here.
+
+      if (isInitialLoad) {
+        isInitialLoad = false;
+        return;
+      }
+
+      if (changes) {
+        changes.forEach(change => {
+          if (change.type === 'added') {
+            const newNoti = change.doc.data();
+            // Check if unread (optional, but good practice)
+            // Check if unread (optional, but good practice)
+            if (!newNoti.read) {
+              addNotification({ ...newNoti, firestoreId: change.doc.id });
+            }
+          }
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth.currentUser?.uid]);
+
+  // FCM Push Notifications
+  useEffect(() => {
+    if (!auth.currentUser) return;
+
+    const setupFCM = async () => {
+      try {
+        // Request permission
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          console.log('Notification permission granted.');
+          // Get Token
+          // VAPID Key is required here if not set in firebase-messaging-sw.js or config
+          // But usually needed for getToken.
+          // IMPORTANT: Replace with your actual VAPID key from Firebase Console -> Cloud Messaging -> Web Push certificates
+          // สำคัญ: เอา VAPID Key มาใส่ตรงนี้ (ดูจาก Firebase Console -> Cloud Messaging -> Web Push certificates)
+          const token = await getToken(messaging, {
+            vapidKey: import.meta.env.VITE_VAPID_KEY
+          });
+
+          if (token) {
+            console.log('FCM Token:', token);
+            // Send token to backend
+            await fetch('http://localhost:3000/save-token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: auth.currentUser.uid, token })
+            });
+          } else {
+            console.log('No registration token available. Request permission to generate one.');
+          }
+        } else {
+          console.log('Unable to get permission to notify.');
+        }
+      } catch (error) {
+        console.error('An error occurred while retrieving token. ', error);
+      }
+    };
+
+    setupFCM();
+
+    // Foreground Message Handler
+    const unsubscribeFCM = onMessage(messaging, (payload) => {
+      console.log('Message received. ', payload);
+      addNotification({
+        message: payload.notification.body,
+        type: 'system', // Default type for push notifs
+      });
+    });
+
+    return () => {
+      if (unsubscribeFCM) unsubscribeFCM();
+    };
+  }, [auth.currentUser?.uid]);
 
 
 
@@ -5682,6 +5790,47 @@ export default function SchoolyScootLMS() {
             </div>
             <button onClick={(e) => { e.stopPropagation(); handleLogout(); }} className="text-slate-400 hover:text-red-400"><LogOut size={18} /></button>
           </div>
+          {/* <button
+            onClick={() => {
+              const testNoti = {
+                message: "ทดสอบการแจ้งเตือน!",
+                type: "system",
+                id: "test-" + Date.now()
+              };
+              addNotification(testNoti);
+            }}
+            className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-blue-500 hover:bg-slate-50 rounded-xl transition-all text-xs border border-dashed border-slate-200"
+          >
+            <Bell size={14} /> ทดสอบแจ้งเตือน (Local)
+          </button>
+          <button
+            onClick={async () => {
+              if (!auth.currentUser) return;
+              try {
+                const res = await fetch('http://localhost:3000/send-notification', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    userId: auth.currentUser.uid,
+                    title: "Test Cloud Push",
+                    body: "This message came from the server!"
+                  })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  alert("Sent! Check for notification.");
+                } else {
+                  alert("Failed: " + JSON.stringify(data));
+                }
+              } catch (e) {
+                alert("Error connecting to server. Is it running?");
+                console.error(e);
+              }
+            }}
+            className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-purple-500 hover:bg-purple-50 rounded-xl transition-all text-xs border border-dashed border-purple-200"
+          >
+            <Bell size={14} /> ทดสอบ Cloud Push
+          </button> */}
         </div>
       </aside>
 
@@ -5741,6 +5890,20 @@ export default function SchoolyScootLMS() {
         </div>
 
       </main>
+
+      {/* Notification Stack Container */}
+      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end pointer-events-none">
+        {activeNotifications.map((noti) => (
+          <ToastNotification
+            key={noti.id}
+            message={noti.message}
+            type={noti.type}
+            duration={20000} // 20 seconds
+            onClose={() => removeNotification(noti.id)}
+          />
+        ))}
+      </div>
+
     </div>
   );
 }
