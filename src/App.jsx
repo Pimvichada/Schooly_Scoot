@@ -12,8 +12,11 @@ import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import { uploadFile } from './services/uploadService';
 import LandingPage from './components/LandingPage';
+import AnalyticsView from './components/AnalyticsView';
+
 
 import {
+  TrendingUp,
   BookOpen,
   Calendar,
   CheckSquare,
@@ -67,7 +70,6 @@ import {
   Eye,
   Trash2,
   BarChart3,
-  TrendingUp
 } from 'lucide-react';
 
 import { MascotCircle, MascotSquare, MascotTriangle, MascotStar, Cute1 } from './components/Mascots';
@@ -4033,8 +4035,8 @@ export default function SchoolyScootLMS() {
             <button onClick={() => setActiveTab('schedule')} className="bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
               ดูตารางเรียน
             </button>
-            <button onClick={() => setActiveTab('assignments')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
-              {userRole === 'student' ? 'การบ้านคงเหลือ' : 'ตรวจการบ้าน'}
+            <button onClick={() => setActiveTab('analytics')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
+              <TrendingUp size={18} className="inline mr-1" /> วิเคราะห์การเรียน
             </button>
           </div>
         </div>
@@ -5906,7 +5908,7 @@ export default function SchoolyScootLMS() {
             </div>
             <button onClick={(e) => { e.stopPropagation(); handleLogout(); }} className="text-slate-400 hover:text-red-400"><LogOut size={18} /></button>
           </div>
-          <button
+          {/* <button
             onClick={() => {
               const testNoti = {
                 message: "ทดสอบการแจ้งเตือน!",
@@ -5918,7 +5920,7 @@ export default function SchoolyScootLMS() {
             className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-blue-500 hover:bg-slate-50 rounded-xl transition-all text-xs border border-dashed border-slate-200"
           >
             <Bell size={14} /> ทดสอบแจ้งเตือน (Local)
-          </button>
+          </button> */}
 
         </div>
       </aside>
@@ -5970,6 +5972,7 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'schedule' && renderSchedule()}
                 {activeTab === 'messages' && renderMessages()}
                 {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} />}
+                {activeTab === 'analytics' && <AnalyticsView setView={setActiveTab} courses={courses} assignments={assignments} userRole={userRole} userId={auth.currentUser?.uid} />}
 
               </>
             )}

@@ -67,6 +67,8 @@ export const getAssignments = async (courseName, uid, role) => {
 
         // If teacher, check if there are ANY submissions to categorize as "submitted" (Active/Grading)
         // versus "pending" (No submissions yet)
+        // If teacher, check if there are ANY submissions to categorize as "submitted" (Active/Grading)
+        // versus "pending" (No submissions yet)
         if (role === 'teacher') {
             const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
                 try {
@@ -83,32 +85,24 @@ export const getAssignments = async (courseName, uid, role) => {
 
                     // Strict Completion Rule:
                     // 1. Fetch Course to get total students
-                    let totalStudents = 0;
-                    try {
-                        // Optimally, we should query courses once, but for now per-assignment is safer for correctness
-                        const coursesCol = collection(db, 'courses');
-                        // Assuming assignment.course is the Name. It's better if we had courseId in assignment.
-                        // If assignment has 'courseId' field use it, else query by name.
-                        // Existing code uses 'course' as name.
-                        const qCourse = query(coursesCol, where('name', '==', assignment.course)); // assignment.course is Name
-                        const courseSnap = await getDocs(qCourse);
-                        if (!courseSnap.empty) {
-                            const courseData = courseSnap.docs[0].data();
-                            totalStudents = courseData.studentIds ? courseData.studentIds.length : 0;
-                        }
-                    } catch (e) {
-                        console.error("Error fetching course for assignment:", e);
+                    // Optimally, we should query courses once, but for now per-assignment is safer for correctness
+                    const coursesCol = collection(db, 'courses');
+                    // Assuming assignment.course is the Name. It's better if we had courseId in assignment.
+                    const qCourse = query(coursesCol, where('name', '==', assignment.course)); // assignment.course is Name
+                    // const courseSnap = await getDocs(qCourse); // Unused for now but kept logic flow
+
+                    if (!subSnapshot.empty) {
+                        const subs = subSnapshot.docs.map(doc => doc.data());
+                        return {
+                            ...assignment,
+                            status: 'submitted',
+                            submissionCount: subSnapshot.size,
+                            submissions: subs // Return full details
+                        };
                     }
-
-                    const submissionCount = subSnapshot.size;
-                    const isFullyCompleted = (submissionCount >= totalStudents) && (pendingCount === 0) && (totalStudents > 0);
-
                     return {
                         ...assignment,
-                        status: isFullyCompleted ? 'submitted' : 'pending',
-                        submissionCount,
-                        pendingSubmissionCount: pendingCount,
-                        totalStudents
+                        submissions: []
                     };
                 } catch (err) {
                     console.error("Error checking teacher submissions:", err);
