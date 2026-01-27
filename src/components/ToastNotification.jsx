@@ -7,7 +7,7 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 20000
 
     useEffect(() => {
         // Animation in
-        requestAnimationFrame(() => setIsVisible(true));
+        setTimeout(() => setIsVisible(true), 10);
 
         const timer = setTimeout(() => {
             setIsVisible(false);

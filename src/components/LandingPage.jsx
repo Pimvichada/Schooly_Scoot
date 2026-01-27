@@ -97,7 +97,9 @@ const LandingPage = ({ onGetStarted }) => {
     };
 
     const handleGoogleLogin = async () => {
+        if (loading) return; // Prevent double click
         setError('');
+        setLoading(true); // Set loading immediately
         try {
             const { user, isNewUser } = await authenticateWithGoogle();
             if (isNewUser) {
@@ -108,7 +110,17 @@ const LandingPage = ({ onGetStarted }) => {
             // If existing user, auth listener handles it
         } catch (err) {
             console.error(err);
+            if (err.code === 'auth/cancelled-popup-request') {
+                // Ignore popup cancellation (user closed it)
+                return;
+            }
             setError('เกิดข้อผิดพลาดกับ Google Login');
+        } finally {
+            // Only unset loading if NOT showing modal (waiting for registration) 
+            // and NOT successful login (which redirects). 
+            // Actually, redirects happen via listener, so we might want to keep loading?
+            // But if specific error, we must turn off loading.
+            if (!showGoogleModal) setLoading(false);
         }
     };
 
@@ -431,10 +443,10 @@ const LandingPage = ({ onGetStarted }) => {
                     <div className="max-w-6xl mx-auto px-4">
                         <div className="text-center mb-16 relative">
                             <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-4">
-                                ทีมผู้พัฒนา 
+                                ทีมผู้พัฒนา
                             </h2>
                             <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto">
-                                พวกเราคือทีมเล็กๆ ที่มีความฝันยิ่งใหญ่ อยากให้การเรียนการสอนเป็นเรื่องสนุกสำหรับทุกคน! 
+                                พวกเราคือทีมเล็กๆ ที่มีความฝันยิ่งใหญ่ อยากให้การเรียนการสอนเป็นเรื่องสนุกสำหรับทุกคน!
                             </p>
                         </div>
 
@@ -444,7 +456,7 @@ const LandingPage = ({ onGetStarted }) => {
                                 <div className="absolute inset-0 bg-[#96C68E] rounded-[2rem] rotate-3 group-hover:rotate-6 transition-transform opacity-20"></div>
                                 <div className="bg-white border-4 border-white shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
                                     <div className="w-32 h-32 mx-auto bg-[#96C68E]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
-                                       
+
                                     </div>
                                     <h3 className="text-xl font-black text-slate-800 mb-1">Pimvichada</h3>
                                     <p className="text-[#96C68E] font-bold text-sm mb-4">6504780</p>
@@ -463,7 +475,7 @@ const LandingPage = ({ onGetStarted }) => {
                                 <div className="bg-white border-4 border-white shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
                                     <div className="w-32 h-32 mx-auto bg-[#FF917B]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
                                         😎
-                                      
+
                                     </div>
                                     <h3 className="text-xl font-black text-slate-800 mb-1">Lalitwadee</h3>
                                     <p className="text-[#FF917B] font-bold text-sm mb-4">6504551</p>
@@ -483,7 +495,7 @@ const LandingPage = ({ onGetStarted }) => {
                                     </div>
                                     <h3 className="text-xl font-black text-slate-800 mb-1">Onphairin</h3>
                                     <p className="text-[#BEE1FF] font-bold text-sm mb-4">6504552</p>
-                                    <p className="text-slate-500 text-sm leading-relaxed mb-6">"นักศึกษาชั้นปีที่ 4"</p>   
+                                    <p className="text-slate-500 text-sm leading-relaxed mb-6">"นักศึกษาชั้นปีที่ 4"</p>
                                     <div className="flex justify-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
                                         <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#BEE1FF] hover:text-white transition-colors cursor-pointer text-xs">IG</span>
                                     </div>

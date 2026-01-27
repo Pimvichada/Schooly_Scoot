@@ -35,10 +35,11 @@ export const getNotifications = async (userId) => {
  */
 export const subscribeToNotifications = (userId, callback) => {
     const notifCol = collection(db, 'notifications');
+    // REMOVED orderBy to avoid "Missing Index" error for now.
+    // We will sort client-side in the callback.
     const q = query(
         notifCol,
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', userId)
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -47,8 +48,17 @@ export const subscribeToNotifications = (userId, callback) => {
             firestoreId: doc.id
         }));
 
+        // Sort client-side (Newest first)
+        notifications.sort((a, b) => {
+            const timeA = a.createdAt?.seconds || 0;
+            const timeB = b.createdAt?.seconds || 0;
+            return timeB - timeA;
+        });
+
         // Pass both full list and changes to the callback
         callback(notifications, snapshot.docChanges());
+    }, (error) => {
+        console.error("Firestore Listener Error:", error);
     });
 };
 

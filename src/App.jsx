@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { auth, db, messaging } from '../firebase';
-import { getToken, onMessage } from "firebase/messaging";
+import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse } from './services/authService';
@@ -784,24 +783,28 @@ export default function SchoolyScootLMS() {
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    let isInitialLoad = true;
+    // Store page load time to filter old notifications from popping up
+    const pageLoadTime = Date.now();
 
     const unsubscribe = subscribeToNotifications(auth.currentUser.uid, (notifications, changes) => {
-      // Always update the full list (if we were storing it, but here we just used it for "newest" check previously)
-      // If you had a state for notification count, you'd update it here.
-
-      if (isInitialLoad) {
-        isInitialLoad = false;
-        return;
-      }
+      // Update the notifications list (optional if you want to show list)
 
       if (changes) {
         changes.forEach(change => {
           if (change.type === 'added') {
             const newNoti = change.doc.data();
-            // Check if unread (optional, but good practice)
-            // Check if unread (optional, but good practice)
-            if (!newNoti.read) {
+
+            // Check creation time
+            let notiTime = 0;
+            if (newNoti.createdAt) {
+              // Handle standard ISO string or Firestore Timestamp
+              notiTime = new Date(newNoti.createdAt).getTime();
+            }
+
+            // Show popup ONLY if:
+            // 1. It is unread
+            // 2. It was created AFTER this page loaded (with 2s buffer)
+            if (!newNoti.read && notiTime > (pageLoadTime - 2000)) {
               addNotification({ ...newNoti, firestoreId: change.doc.id });
             }
           }
@@ -812,59 +815,7 @@ export default function SchoolyScootLMS() {
     return () => unsubscribe();
   }, [auth.currentUser?.uid]);
 
-  // FCM Push Notifications
-  useEffect(() => {
-    if (!auth.currentUser) return;
 
-    const setupFCM = async () => {
-      try {
-        // Request permission
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          console.log('Notification permission granted.');
-          // Get Token
-          // VAPID Key is required here if not set in firebase-messaging-sw.js or config
-          // But usually needed for getToken.
-          // IMPORTANT: Replace with your actual VAPID key from Firebase Console -> Cloud Messaging -> Web Push certificates
-          // สำคัญ: เอา VAPID Key มาใส่ตรงนี้ (ดูจาก Firebase Console -> Cloud Messaging -> Web Push certificates)
-          const token = await getToken(messaging, {
-            vapidKey: import.meta.env.VITE_VAPID_KEY
-          });
-
-          if (token) {
-            console.log('FCM Token:', token);
-            // Send token to backend
-            await fetch('http://localhost:3000/save-token', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: auth.currentUser.uid, token })
-            });
-          } else {
-            console.log('No registration token available. Request permission to generate one.');
-          }
-        } else {
-          console.log('Unable to get permission to notify.');
-        }
-      } catch (error) {
-        console.error('An error occurred while retrieving token. ', error);
-      }
-    };
-
-    setupFCM();
-
-    // Foreground Message Handler
-    const unsubscribeFCM = onMessage(messaging, (payload) => {
-      console.log('Message received. ', payload);
-      addNotification({
-        message: payload.notification.body,
-        type: 'system', // Default type for push notifs
-      });
-    });
-
-    return () => {
-      if (unsubscribeFCM) unsubscribeFCM();
-    };
-  }, [auth.currentUser?.uid]);
 
 
 
@@ -1377,19 +1328,20 @@ export default function SchoolyScootLMS() {
   // ค้นหาช่วง useEffect นี้ในไฟล์ของคุณ
   useEffect(() => {
     const fetchData = async () => {
-      // เช็คให้ชัวร์ว่า user login แล้วจริงๆ
-      if (auth.currentUser) {
+      // เช็คให้ชัวร์ว่า user login แล้วจริงๆ (Re-check inside async)
+      const user = auth.currentUser;
+      if (user) {
         try {
           /* 1. ลบบรรทัด seedNotifications ออก */
-          // await seedNotifications(auth.currentUser.uid); // <--- ลบทิ้ง หรือ Comment ไว้
+          // await seedNotifications(user.uid); // <--- ลบทิ้ง หรือ Comment ไว้
 
           /* 2. ดึงข้อมูลจริงจาก Firestore */
-          const notifs = await getNotifications(auth.currentUser.uid);
+          const notifs = await getNotifications(user.uid);
           setNotifications(notifs);
 
           /* 3. จัดการเรื่องแชท (ถ้าแชทหายเหมือนกัน ให้ลบ seedChats ออกด้วย) */
-          // await seedChats(auth.currentUser.uid); 
-          const chatData = await getChats(auth.currentUser.uid);
+          // await seedChats(user.uid); 
+          const chatData = await getChats(user.uid);
           setChats(chatData);
 
         } catch (error) {
@@ -5790,7 +5742,7 @@ export default function SchoolyScootLMS() {
             </div>
             <button onClick={(e) => { e.stopPropagation(); handleLogout(); }} className="text-slate-400 hover:text-red-400"><LogOut size={18} /></button>
           </div>
-          {/* <button
+          <button
             onClick={() => {
               const testNoti = {
                 message: "ทดสอบการแจ้งเตือน!",
@@ -5803,34 +5755,7 @@ export default function SchoolyScootLMS() {
           >
             <Bell size={14} /> ทดสอบแจ้งเตือน (Local)
           </button>
-          <button
-            onClick={async () => {
-              if (!auth.currentUser) return;
-              try {
-                const res = await fetch('http://localhost:3000/send-notification', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    userId: auth.currentUser.uid,
-                    title: "Test Cloud Push",
-                    body: "This message came from the server!"
-                  })
-                });
-                const data = await res.json();
-                if (data.success) {
-                  alert("Sent! Check for notification.");
-                } else {
-                  alert("Failed: " + JSON.stringify(data));
-                }
-              } catch (e) {
-                alert("Error connecting to server. Is it running?");
-                console.error(e);
-              }
-            }}
-            className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2 text-slate-400 hover:text-purple-500 hover:bg-purple-50 rounded-xl transition-all text-xs border border-dashed border-purple-200"
-          >
-            <Bell size={14} /> ทดสอบ Cloud Push
-          </button> */}
+
         </div>
       </aside>
 
