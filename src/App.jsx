@@ -4103,7 +4103,7 @@ export default function SchoolyScootLMS() {
               const todaySchedule = courses.flatMap(c =>
                 (c.schedule || [])
                   .filter(s => s.dayOfWeek === today)
-                  .map(s => ({ ...s, subject: c.name }))
+                  .map(s => ({ ...s, subject: c.name, course: c }))
               ).sort((a, b) => a.startTime.localeCompare(b.startTime));
 
               if (todaySchedule.length === 0) {
@@ -4122,11 +4122,12 @@ export default function SchoolyScootLMS() {
                 const [eH, eM] = slot.endTime.split(':').map(Number);
                 const startHm = sH * 60 + sM;
                 const endHm = eH * 60 + eM;
-                const isActive = currentHm >= startHm && currentHm < endHm;
+                const isTimeActive = currentHm >= startHm && currentHm < endHm;
+                const isMeetingActive = slot.course.meeting?.isActive;
 
                 return (
-                  <div key={idx} className={`flex items-center p-4 rounded-2xl transition-all ${isActive ? 'bg-[#F0FDF4] border border-[#96C68E] shadow-sm scale-[1.02]' : 'bg-slate-50 border border-slate-50'}`}>
-                    <div className={`w-28 font-bold ${isActive ? 'text-[#96C68E]' : 'text-slate-500'}`}>
+                  <div key={idx} className={`flex items-center p-4 rounded-2xl transition-all ${isTimeActive ? 'bg-[#F0FDF4] border border-[#96C68E] shadow-sm scale-[1.02]' : 'bg-slate-50 border border-slate-50'}`}>
+                    <div className={`w-28 font-bold ${isTimeActive ? 'text-[#96C68E]' : 'text-slate-500'}`}>
                       {slot.startTime} - {slot.endTime}
                     </div>
                     <div className="flex-1 px-4 border-l border-slate-200 ml-4">
@@ -4135,8 +4136,15 @@ export default function SchoolyScootLMS() {
                         <span className="bg-slate-200 px-2 py-0.5 rounded text-xs mr-2">ห้อง {slot.room}</span>
                       </div>
                     </div>
-                    {isActive && (
-                      <button onClick={() => setActiveModal('video')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d] shadow-sm animate-pulse">
+                    {isMeetingActive && (
+                      <button
+                        onClick={() => {
+                          setSelectedCourse(slot.course);
+                          setCourseTab('meeting');
+                          setActiveModal('videoConference');
+                        }}
+                        className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d] shadow-sm animate-pulse"
+                      >
                         <Video size={16} className="mr-1" /> เข้าเรียน
                       </button>
                     )}
