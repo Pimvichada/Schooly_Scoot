@@ -2146,15 +2146,23 @@ export default function SchoolyScootLMS() {
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-600 mb-1">วิชา</label>
-                    <select
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none bg-white"
-                      value={newExam.course}
-                      onChange={(e) => setNewExam({ ...newExam, course: e.target.value })}
-                    >
-
-
-                      {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                    </select>
+                    {selectedCourse ? (
+                      <input
+                        type="text"
+                        className="w-full p-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-bold outline-none cursor-not-allowed"
+                        value={selectedCourse.name}
+                        readOnly
+                      />
+                    ) : (
+                      <select
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none bg-white"
+                        value={newExam.course}
+                        onChange={(e) => setNewExam({ ...newExam, course: e.target.value })}
+                      >
+                        <option value="">-- เลือกวิชา --</option>
+                        {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-slate-600 mb-1">เวลาในการทำ (นาที)</label>
@@ -5428,7 +5436,10 @@ export default function SchoolyScootLMS() {
                 </h2>
                 {userRole === 'teacher' && (
                   <button
-                    onClick={() => setActiveModal('createExam')}
+                    onClick={() => {
+                      setNewExam(prev => ({ ...prev, course: selectedCourse.name }));
+                      setActiveModal('createExam');
+                    }}
                     className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]"
                   >
                     <Plus size={18} className="mr-2" /> สร้างแบบทดสอบ
