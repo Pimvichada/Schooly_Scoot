@@ -103,6 +103,25 @@ const WELCOME_MESSAGES = {
 
 
 
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+};
+
+const isOverlap = (item1, item2) => {
+  if (parseInt(item1.dayOfWeek) !== parseInt(item2.dayOfWeek)) return false;
+  const start1 = timeToMinutes(item1.startTime);
+  const end1 = timeToMinutes(item1.endTime);
+  const start2 = timeToMinutes(item2.startTime);
+  const end2 = timeToMinutes(item2.endTime);
+
+  // Overlap if (Start1 < End2) and (End1 > Start2)
+  return (start1 < end2) && (end1 > start2);
+};
+
+
+
 /**
  * Helper to map iconType string back to Component
  */
@@ -615,6 +634,8 @@ export default function SchoolyScootLMS() {
 
 
 
+
+
   // Chat State
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
@@ -624,13 +645,15 @@ export default function SchoolyScootLMS() {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseTab, setCourseTab] = useState('home');
   // State for creating course
+  const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
   const [newCourseData, setNewCourseData] = useState({
     name: '', code: '', color: 'bg-[#96C68E]', description: '',
     startDate: '', endDate: '',
     scheduleItems: [] // {dayOfWeek: 1, startTime: '08:30', endTime: '10:30', room: '421' }
   });
-  const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
   const [joinCode, setJoinCode] = useState(''); // State for student joining
+
+
 
 
 
@@ -2067,7 +2090,7 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div className={`bg-white rounded-3xl shadow-2xl w-full ${['grading', 'grading_detail', 'takeQuiz', 'createExam', 'create', 'assignmentDetail'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
+        <div className={`bg-white rounded-3xl shadow-2xl w-full ${activeModal === 'createExam' ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
           {!['grading', 'grading_detail'].includes(activeModal) && (
             <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
               <X size={20} className="text-slate-600" />
@@ -2076,7 +2099,7 @@ export default function SchoolyScootLMS() {
 
           {/* CREATE EXAM MODAL (TEACHER) */}
           {activeModal === 'createExam' && (
-            <div className="p-8 h-[80vh] flex flex-col">
+            <div className="p-8 h-full flex flex-col">
               <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
                 <Plus className="mr-3 text-[#FF917B]" /> สร้างแบบทดสอบใหม่
               </h2>
@@ -2407,7 +2430,7 @@ export default function SchoolyScootLMS() {
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
-                <button onClick={closeModal} className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+
                 <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
                   <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
                 </button>
@@ -3079,16 +3102,39 @@ export default function SchoolyScootLMS() {
                         const start = document.getElementById('startTime').value;
                         const end = document.getElementById('endTime').value;
                         const room = document.getElementById('room').value;
+
                         if (start && end) {
+                          const newItem = {
+                            dayOfWeek: parseInt(day),
+                            startTime: start,
+                            endTime: end,
+                            room: room,
+                            dayLabel: dayMap[day]
+                          };
+
+                          // VALIDATION: Check Overlap
+                          // 1. Check against other courses
+                          for (const c of courses) {
+                            if (c.schedule) {
+                              for (const exist of c.schedule) {
+                                if (isOverlap(newItem, exist)) {
+                                  alert(`เวลาเรียนชนกับวิชา "${c.name}" (${exist.dayLabel} ${exist.startTime}-${exist.endTime})`);
+                                  return;
+                                }
+                              }
+                            }
+                          }
+                          // 2. Check against current new items
+                          for (const item of newCourseData.scheduleItems) {
+                            if (isOverlap(newItem, item)) {
+                              alert(`เวลาเรียนชนกับรายการที่คุณเพิ่งเพิ่ม (${item.dayLabel} ${item.startTime}-${item.endTime})`);
+                              return;
+                            }
+                          }
+
                           setNewCourseData({
                             ...newCourseData,
-                            scheduleItems: [...newCourseData.scheduleItems, {
-                              dayOfWeek: parseInt(day),
-                              startTime: start,
-                              endTime: end,
-                              room: room,
-                              dayLabel: dayMap[day]
-                            }]
+                            scheduleItems: [...newCourseData.scheduleItems, newItem]
                           });
                         }
                       }} className="bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 transition-colors shadow-sm flex items-center justify-center min-w-[50px]">
@@ -3683,7 +3729,7 @@ export default function SchoolyScootLMS() {
                     </button>
                   </div>
 
-                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-6 flex-1 overflow-y-auto custom-scrollbar">
+                  <div className="bg-white p-6 rounded-2xl border border-slate-100 mb-6 flex-1 overflow-y-auto custom-scrollbar">
                     <h3 className="font-bold text-slate-700 mb-4 text-lg border-b border-slate-200 pb-2">คำชี้แจง</h3>
                     <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{selectedAssignment.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
 
@@ -3724,17 +3770,20 @@ export default function SchoolyScootLMS() {
                     <div className="flex items-center gap-3 text-slate-500">
                       <p>{selectedAssignment.course}</p>
                       <div className="h-1 w-1 rounded-full bg-slate-300"></div>
-                      <button
-                        onClick={() => setActiveModal('grading_detail')}
-                        className="hover:text-[#96C68E] cursor-pointer transition-colors flex items-center gap-1 font-bold text-sm bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 hover:border-[#96C68E]"
-                        title="ดูรายละเอียดงานต้นฉบับ"
-                      >
-                        <Eye size={16} /> ดูโจทย์
-                      </button>
+                      {/* Left side minimal metadata if needed */}
                     </div>
                   </div>
-                  <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
-                    คะแนนเต็ม: {selectedAssignment.maxScore || 10}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setActiveModal('grading_detail')}
+                      className="hover:text-[#96C68E] cursor-pointer transition-colors flex items-center gap-1 font-bold text-sm bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 hover:border-[#96C68E]"
+                      title="ดูรายละเอียดงานต้นฉบับ"
+                    >
+                      <Eye size={16} /> ดูโจทย์
+                    </button>
+                    <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
+                      คะแนนเต็ม: {selectedAssignment.maxScore || 10}
+                    </div>
                   </div>
                 </div>
 
@@ -4667,69 +4716,42 @@ export default function SchoolyScootLMS() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setSelectedAssignment(data);
-                    if (userRole === 'teacher') openGradingModal(data);
-                    else setActiveModal('assignmentDetail'); // For student
-                  }}
-                  className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-sm font-bold group-hover:bg-[#BEE1FF] group-hover:text-slate-800 transition-colors"
-                >
-                  {isDone ? 'ดูผลการเรียน' : 'ดูรายละเอียด'}
-                </button>
-                {userRole === 'teacher' && (
-                  <div className="flex gap-2 ml-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Edit Logic: Populate form and open modal
-                        setNewAssignment({
-                          title: data.title,
-                          course: data.course,
-                          dueDate: data.dueDate,
-                          description: data.description || '',
-                          files: data.files || (data.fileName ? [{ name: data.fileName }] : []) // Handle legacy data
-                        });
-                        setActiveModal('createAssignment');
-                        // NOTE: This sets up creation. Real editing would need an 'id' and 'update' mode. 
-                        // For now, this acts as "Clone/Edit" to new. 
-                        // To truly edit, we'd need to modify handleCreateAssignment to handle updates or create a separate handleUpdateAssignment.
-                        // Given the user request is simple, I'll stick to Delete for now to stay safe, 
-                        // or implementing a proper Edit require more state changes.
-                        // Actually, user ASKED for edit. Let's do Delete first as priority?
-                        // "delete work OR edit work". 
-                        // Let's implement Delete first as it's fully ready.
-                        // For Edit, I will just show the button but maybe wire it later or basic wire up.
-                        // Actually, refactoring create to support edit is a bigger task. 
-                        // Let's add Delete first as requested in previous turn was just delete, but this turn adds edit.
-                        // I'll add the DELETE button here exactly like the main list.
-                      }}
-                      className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all hidden" // Hidden for now until proper edit implemented
-                      title="แก้ไข (ยังไม่เปิดใช้งาน)"
-                    >
-                      <Settings size={20} />
-                    </button>
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่?')) {
-                          try {
-                            await deleteAssignment(data.firestoreId || data.id);
-                            // Local update
-                            setAssignments(prev => prev.filter(c => c.id !== data.id));
-                          } catch (err) {
-                            console.error(err);
-                            alert('ลบไม่สำเร็จ');
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedAssignment(data);
+                      if (userRole === 'teacher') openGradingModal(data);
+                      else setActiveModal('assignmentDetail'); // For student
+                    }}
+                    className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-sm font-bold group-hover:bg-[#BEE1FF] group-hover:text-slate-800 transition-colors"
+                  >
+                    {isDone ? 'ดูผลการเรียน' : 'ดูรายละเอียด'}
+                  </button>
+                  {userRole === 'teacher' && (
+                    <div className="flex gap-2">
+                      {/* Edit button skeleton removed for brevity as it was hidden anyway */}
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่?')) {
+                            try {
+                              await deleteAssignment(data.firestoreId || data.id);
+                              // Local update
+                              setAssignments(prev => prev.filter(c => c.id !== data.id));
+                            } catch (err) {
+                              console.error(err);
+                              alert('ลบไม่สำเร็จ');
+                            }
                           }
-                        }
-                      }}
-                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="ลบงาน"
-                    >
-                      <Trash size={20} />
-                    </button>
-                  </div>
-                )}
+                        }}
+                        className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        title="ลบงาน"
+                      >
+                        <Trash size={20} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           };
@@ -5048,6 +5070,8 @@ export default function SchoolyScootLMS() {
                         />
                       </div>
                     </div>
+
+
                     <div>
                       <label className="block text-sm font-bold text-slate-600 mb-1">คำอธิบายรายวิชา</label>
                       <textarea
@@ -5104,6 +5128,31 @@ export default function SchoolyScootLMS() {
                                 room: scheduleForm.room,
                                 dayLabel: dayMap[scheduleForm.day]
                               };
+
+                              // VALIDATION: Check Overlap
+                              // 1. Check against other courses (exclude self)
+                              for (const c of courses) {
+                                if (c.firestoreId === editingCourse.firestoreId) continue; // Skip self
+                                if (c.schedule) {
+                                  for (const exist of c.schedule) {
+                                    if (isOverlap(newItem, exist)) {
+                                      alert(`เวลาเรียนชนกับวิชา "${c.name}" (${exist.dayLabel} ${exist.startTime}-${exist.endTime})`);
+                                      return;
+                                    }
+                                  }
+                                }
+                              }
+
+                              // 2. Check against current items in this course
+                              // If editing, skip the index we are editing
+                              const currentItems = editingCourse.scheduleItems || [];
+                              for (let i = 0; i < currentItems.length; i++) {
+                                if (editingScheduleIndex !== null && i === editingScheduleIndex) continue; // Skip the item being edited
+                                if (isOverlap(newItem, currentItems[i])) {
+                                  alert(`เวลาเรียนชนกับรายการอื่นในตารางนี้ (${currentItems[i].dayLabel} ${currentItems[i].startTime}-${currentItems[i].endTime})`);
+                                  return;
+                                }
+                              }
 
                               if (editingScheduleIndex !== null) {
                                 // Update existing
@@ -5374,8 +5423,18 @@ export default function SchoolyScootLMS() {
               ) : (
                 // --- STUDENT VIEW: Card Grid ---
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {quizzes.filter(q => q.status !== 'closed').length > 0 ?
-                    quizzes.filter(q => q.status !== 'closed').map((quiz) => {
+                  {quizzes.filter(q => q.status !== 'closed').sort((a, b) => {
+                    const isSubmittedA = !!mySubmissions[a.firestoreId];
+                    const isSubmittedB = !!mySubmissions[b.firestoreId];
+                    if (isSubmittedA === isSubmittedB) return 0;
+                    return isSubmittedA ? 1 : -1;
+                  }).length > 0 ?
+                    quizzes.filter(q => q.status !== 'closed').sort((a, b) => {
+                      const isSubmittedA = !!mySubmissions[a.firestoreId];
+                      const isSubmittedB = !!mySubmissions[b.firestoreId];
+                      if (isSubmittedA === isSubmittedB) return 0;
+                      return isSubmittedA ? 1 : -1;
+                    }).map((quiz) => {
                       // Determine if locked
                       const scheduledTime = quiz.scheduledAt ? new Date(quiz.scheduledAt) : null;
                       const isLocked = scheduledTime && scheduledTime > currentTime;
@@ -5385,7 +5444,7 @@ export default function SchoolyScootLMS() {
                       const isSubmitted = !!submission;
 
                       return (
-                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm relative overflow-hidden ${isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100'}`}>
+                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm relative overflow-hidden ${isSubmitted ? 'bg-slate-50 border-slate-200' : (isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100')}`}>
                           {isLocked && !isSubmitted && (
                             <div className="absolute top-0 right-0 bg-orange-100 text-orange-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10">
                               <Clock size={12} className="mr-1" /> เริ่ม: {scheduledTime.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' })}
