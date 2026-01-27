@@ -251,3 +251,21 @@ export const toggleHiddenCourse = async (uid, courseId, shouldHide) => {
         throw error;
     }
 };
+/**
+ * Get user details by UID
+ * @param {string} uid 
+ */
+export const getUserDetails = async (uid) => {
+    try {
+        const docRef = doc(db, "users", uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching user details:", error);
+        return null;
+    }
+};

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse } from './services/authService';
+import { doc, onSnapshot, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse, getUserDetails } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore, getQuiz } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
@@ -937,7 +937,9 @@ export default function SchoolyScootLMS() {
   const [members, setMembers] = useState([]);
   const [pendingMembers, setPendingMembers] = useState([]); // Pending Students
   const [submissions, setSubmissions] = useState([]);
+  const [missingSubmissions, setMissingSubmissions] = useState([]); // Students who haven't submitted
 
+  const [gradingTab, setGradingTab] = useState('submitted'); // 'submitted' or 'missing'
   // Post Feed State
   const [posts, setPosts] = useState([]);
   const [newPostContent, setNewPostContent] = useState('');
@@ -1320,6 +1322,7 @@ export default function SchoolyScootLMS() {
     console.log("Opening grading modal for:", assignment.title, "ID:", assignment.firestoreId || assignment.id);
     setSelectedAssignment(assignment);
     setSubmissions([]); // Clear previous data immediately
+    setMissingSubmissions([]); // Clear missing list
     setSubmissionsLoading(true); // Start loading
 
     // Fetch submissions for this assignment
@@ -1331,6 +1334,31 @@ export default function SchoolyScootLMS() {
       const subs = await getSubmissions(targetId);
       console.log("Fetched submissions for", targetId, ":", subs);
       setSubmissions(subs);
+
+      // Fetch Course to find missing students
+      const coursesCol = collection(db, 'courses');
+      const qCourse = query(coursesCol, where('name', '==', assignment.course));
+      const courseSnap = await getDocs(qCourse);
+
+      if (!courseSnap.empty) {
+        const courseData = courseSnap.docs[0].data();
+        const allStudentIds = courseData.studentIds || [];
+        const submittedStudentIds = subs.map(s => s.userId);
+
+        // Find IDs that are in allStudentIds but NOT in submittedStudentIds
+        const missingIds = allStudentIds.filter(id => !submittedStudentIds.includes(id));
+
+        if (missingIds.length > 0) {
+          const missingProfiles = await Promise.all(missingIds.map(async (uid) => {
+            const user = await getUserDetails(uid);
+            return user ? { ...user, uid } : null;
+          }));
+          setMissingSubmissions(missingProfiles.filter(p => p !== null));
+        } else {
+          setMissingSubmissions([]);
+        }
+      }
+
       setActiveModal('grading');
     } catch (e) {
       console.error("Error opening grading modal:", e);
@@ -3787,13 +3815,29 @@ export default function SchoolyScootLMS() {
                   </div>
                 </div>
 
+                {/* Grading Tabs */}
+                <div className="flex gap-2 mt-4 border-b border-slate-100 pb-2">
+                  <button
+                    onClick={() => setGradingTab('submitted')}
+                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${gradingTab === 'submitted' ? 'bg-[#96C68E] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    ส่งแล้ว ({submissions.length})
+                  </button>
+                  <button
+                    onClick={() => setGradingTab('missing')}
+                    className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${gradingTab === 'missing' ? 'bg-[#FF917B] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                  >
+                    ยังไม่ส่ง ({missingSubmissions.length})
+                  </button>
+                </div>
+
                 {/* Grading List */}
                 <div className="flex-1 overflow-y-auto mt-4">
                   {submissionsLoading ? (
                     <div className="flex items-center justify-center h-full py-10">
                       <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-[#96C68E]"></div>
                     </div>
-                  ) : (
+                  ) : gradingTab === 'submitted' ? (
                     <table className="w-full">
                       <thead className="text-left text-slate-500 text-sm border-b border-slate-100">
                         <tr>
@@ -3859,6 +3903,31 @@ export default function SchoolyScootLMS() {
                         )}
                       </tbody>
                     </table>
+                  ) : (
+                    <div className="space-y-4">
+                      {missingSubmissions.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {missingSubmissions.map((student, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                                {student.fullName ? student.fullName.charAt(0) : '?'}
+                              </div>
+                              <div>
+                                <div className="font-bold text-slate-700">{student.fullName || 'Unknown'}</div>
+                                <div className="text-xs text-red-400 font-bold flex items-center gap-1">
+                                  <AlertCircle size={12} /> ยังไม่ส่งงาน
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 text-slate-400 flex flex-col items-center">
+                          <CheckCircle size={48} className="text-green-200 mb-4" />
+                          <p className="font-bold text-green-600">เยี่ยมมาก! ทุกคนส่งงานครบแล้ว</p>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -3902,6 +3971,20 @@ export default function SchoolyScootLMS() {
                         setSubmissions(prev => prev.map(s => {
                           const el = document.getElementById(`score-${s.firestoreId || s.id}`);
                           return el ? { ...s, score: el.value } : s;
+                        }));
+
+                        // Update Main Assignments State with new Pending Count
+                        setAssignments(prev => prev.map(a => {
+                          if (a.id === selectedAssignment.id || a.firestoreId === selectedAssignment.firestoreId) {
+                            let newPendingCount = 0;
+                            submissions.forEach(s => {
+                              const input = document.getElementById(`score-${s.firestoreId || s.id}`);
+                              const val = input ? input.value : s.score;
+                              if (!val) newPendingCount++;
+                            });
+                            return { ...a, pendingSubmissionCount: newPendingCount };
+                          }
+                          return a;
                         }));
 
                       } catch (e) {
@@ -3969,9 +4052,12 @@ export default function SchoolyScootLMS() {
         />
         <StatCard
           title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"}
-          value={userRole === 'student'
-            ? assignments.filter(a => a.status === 'pending').length.toString()
-            : assignments.length.toString()}
+          value={(() => {
+            const myAssignments = assignments.filter(a => courses.some(c => c.name.trim() === a.course.trim()));
+            return userRole === 'student'
+              ? myAssignments.filter(a => a.status === 'pending').length.toString()
+              : myAssignments.filter(a => a.status !== 'submitted').length.toString();
+          })()}
           icon={<FileText size={64} />}
           color="bg-[#FF917B]"
           onClick={() => setActiveTab('assignments')}
@@ -4186,13 +4272,13 @@ export default function SchoolyScootLMS() {
                 onClick={() => setAssignmentFilter('pending')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                ยังไม่ส่ง ({userAssignments.filter(a => a.status !== 'submitted').length})
+                {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({userAssignments.filter(a => a.status !== 'submitted').length})
               </button>
               <button
                 onClick={() => setAssignmentFilter('submitted')}
                 className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                ส่งแล้ว ({userAssignments.filter(a => a.status === 'submitted').length})
+                {userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว'} ({userAssignments.filter(a => a.status === 'submitted').length})
               </button>
             </div>
           </div>

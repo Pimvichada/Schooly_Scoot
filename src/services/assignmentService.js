@@ -71,22 +71,45 @@ export const getAssignments = async (courseName, uid, role) => {
             const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
                 try {
                     const subCol = collection(db, 'assignments', assignment.firestoreId, 'submissions');
-                    // We just need to know if there's at least one submission
-                    // Retrieve 1 doc to minimize bandwidth
-                    // Note: Firestore doesn't have a cheap 'count' unless using aggregation queries which might be overkill here
-                    // or just getDocs is fine for MVP small scale.
-                    // Let's just get all to be safe or use limit(1) if we could but q is needed.
-                    // Just getDocs(subCol) is simple.
                     const subSnapshot = await getDocs(subCol);
 
+                    let pendingCount = 0;
                     if (!subSnapshot.empty) {
-                        return {
-                            ...assignment,
-                            status: 'submitted', // Teacher view: "submitted" means "has submissions"
-                            submissionCount: subSnapshot.size
-                        };
+                        subSnapshot.docs.forEach(doc => {
+                            const data = doc.data();
+                            if (!data.score) pendingCount++;
+                        });
                     }
-                    return assignment;
+
+                    // Strict Completion Rule:
+                    // 1. Fetch Course to get total students
+                    let totalStudents = 0;
+                    try {
+                        // Optimally, we should query courses once, but for now per-assignment is safer for correctness
+                        const coursesCol = collection(db, 'courses');
+                        // Assuming assignment.course is the Name. It's better if we had courseId in assignment.
+                        // If assignment has 'courseId' field use it, else query by name.
+                        // Existing code uses 'course' as name.
+                        const qCourse = query(coursesCol, where('name', '==', assignment.course)); // assignment.course is Name
+                        const courseSnap = await getDocs(qCourse);
+                        if (!courseSnap.empty) {
+                            const courseData = courseSnap.docs[0].data();
+                            totalStudents = courseData.studentIds ? courseData.studentIds.length : 0;
+                        }
+                    } catch (e) {
+                        console.error("Error fetching course for assignment:", e);
+                    }
+
+                    const submissionCount = subSnapshot.size;
+                    const isFullyCompleted = (submissionCount >= totalStudents) && (pendingCount === 0) && (totalStudents > 0);
+
+                    return {
+                        ...assignment,
+                        status: isFullyCompleted ? 'submitted' : 'pending',
+                        submissionCount,
+                        pendingSubmissionCount: pendingCount,
+                        totalStudents
+                    };
                 } catch (err) {
                     console.error("Error checking teacher submissions:", err);
                     return assignment;
