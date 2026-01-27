@@ -160,6 +160,37 @@ export const joinCourse = async (inviteCode, studentUser) => {
             throw new Error("รอคุณครูอนุมัติคำขอเข้าร่วม");
         }
 
+        // --- VALIDATION: Check Schedule Overlap ---
+        const existingCourses = await getCoursesForUser('student', studentUser.uid);
+        const newSchedule = courseData.schedule || [];
+
+        const timeToMinutes = (timeStr) => {
+            if (!timeStr) return 0;
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const isOverlap = (item1, item2) => {
+            if (parseInt(item1.dayOfWeek) !== parseInt(item2.dayOfWeek)) return false;
+            const start1 = timeToMinutes(item1.startTime);
+            const end1 = timeToMinutes(item1.endTime);
+            const start2 = timeToMinutes(item2.startTime);
+            const end2 = timeToMinutes(item2.endTime);
+            return (start1 < end2) && (end1 > start2);
+        };
+
+        for (const existingCourse of existingCourses) {
+            const existingSchedule = existingCourse.schedule || [];
+            for (const newItem of newSchedule) {
+                for (const existingItem of existingSchedule) {
+                    if (isOverlap(newItem, existingItem)) {
+                        throw new Error(`เวลาเรียนชนกับวิชา "${existingCourse.name}" (${existingItem.dayLabel || 'Day ' + existingItem.dayOfWeek} ${existingItem.startTime}-${existingItem.endTime})`);
+                    }
+                }
+            }
+        }
+        // ------------------------------------------
+
         // Add to pending
         await updateDoc(courseRef, {
             pendingStudentIds: arrayUnion(studentUser.uid)
