@@ -10,10 +10,10 @@ export default function StatCard({ title, value, color, icon, onClick, interacti
       <div className="absolute right-[-10px] top-[-10px] opacity-20 transform rotate-12">
         {icon}
       </div>
-      <h3 className="text-slate-700 font-medium text-sm mb-1">{title}</h3>
+      <h3 className="font-medium text-slate-700 text-sm mb-1">{title}</h3>
       <div className="text-3xl font-bold text-slate-800">{value}</div>
       {interactive && (
-        <div className="mt-2 text-xs font-bold text-slate-800 opacity-60 flex items-center">
+        <div className="mt-2 text-xs text-slate-800 font-bold opacity-60 flex items-center">
           แตะเพื่อดูรายละเอียด
         </div>
       )}

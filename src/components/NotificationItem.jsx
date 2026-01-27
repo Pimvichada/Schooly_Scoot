@@ -24,15 +24,17 @@ export default function NotificationItem({ notif, onClick, displayTime, compact 
   const { Icon, bg, hoverText } = config;
 
   const containerClasses = compact
-    ? "p-3 gap-3 hover:bg-slate-50"
-    : "p-4 gap-4 bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md";
-  
+    ? `p-3 gap-3 hover:bg-slate-50`
+    : `p-4 gap-4 bg-slate-50 border-slate-100 hover:bg-white hover:shadow-md`;
+
   const iconSize = compact ? 18 : 24;
   const iconWrapperSize = compact ? "w-10 h-10" : "w-12 h-12";
   const titleSize = compact ? "text-sm font-medium" : "text-base font-bold mb-1";
 
   const readContainerClass = notif.read ? 'bg-slate-50/80' : '';
-  const titleTextClass = notif.read ? 'text-slate-500' : 'text-slate-800';
+  const titleTextClass = notif.read
+    ? 'text-slate-500'
+    : 'text-slate-800';
   const iconColorClass = notif.read ? 'text-slate-400' : 'text-slate-700';
 
   return (
@@ -43,19 +45,19 @@ export default function NotificationItem({ notif, onClick, displayTime, compact 
       className={`flex rounded-2xl transition-all cursor-pointer group ${containerClasses} ${readContainerClass} ${isSelected ? 'ring-2 ring-indigo-100 bg-white shadow-md' : ''}`}
     >
       <div className={`${iconWrapperSize} rounded-full flex items-center justify-center flex-shrink-0 ${bg}`}>
-          <Icon size={iconSize} className={iconColorClass} />
+        <Icon size={iconSize} className={iconColorClass} />
       </div>
 
       <div className="flex flex-col justify-center flex-1">
-          <p className={`${titleTextClass} leading-tight transition-colors ${titleSize} ${notif.read ? '' : hoverText}`}>
+        <p className={`${titleTextClass} leading-tight transition-colors ${titleSize} ${notif.read ? '' : hoverText}`}>
           {notif.message}
         </p>
-        <p className={`${compact ? 'text-xs' : 'text-sm'} text-slate-400 mt-1`}>
+        <p className={`${compact ? 'text-xs' : 'text-sm'} text-slate-500 mt-1`}>
           {/* ใช้ค่าที่คำนวณส่งมาให้จากหน้าหลัก */}
-          {displayTime} 
+          {displayTime}
         </p>
       </div>
-      
+
       {/* (แถม) เพิ่มจุดสีแดงถ้ายังไม่ได้อ่าน */}
       {!notif.read && (
         <div className="w-2 h-2 bg-red-500 rounded-full self-center ml-2" />

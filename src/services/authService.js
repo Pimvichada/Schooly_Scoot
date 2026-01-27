@@ -182,23 +182,48 @@ export const getUsersByIds = async (userIds) => {
 export const updateUserProfile = async (uid, updateData) => {
     try {
         const user = auth.currentUser;
-        if (!user) throw new Error("No authenticated user");
+        if (!user) throw new Error("ผู้ใช้ไม่ได้เข้าสู่ระบบ");
 
-        // 1. Update Firebase Auth Profile (if name/photo changed)
-        if (updateData.fullName || updateData.photoURL) {
-            await updateProfile(user, {
-                displayName: updateData.fullName || user.displayName,
-                photoURL: updateData.photoURL || user.photoURL
-            });
+        // 1. Update Firebase Auth Profile (Display Name only if photo is Base64)
+        try {
+            const authPayload = {};
+            if (updateData.fullName) authPayload.displayName = updateData.fullName;
+
+            // Only update photoURL in Auth if it's NOT a Base64 string (Auth has short limits)
+            if (updateData.photoURL && !updateData.photoURL.startsWith('data:')) {
+                authPayload.photoURL = updateData.photoURL;
+            }
+
+            if (Object.keys(authPayload).length > 0) {
+                await updateProfile(user, authPayload);
+            }
+        } catch (authErr) {
+            console.warn("Auth profile update failed:", authErr.message);
+            // Non-critical, continue to Firestore
         }
 
-        // 2. Update Firestore
+        // 2. Update Firestore (Primary Source of Truth)
         const docRef = doc(db, "users", uid);
-        await updateDoc(docRef, updateData);
+        try {
+            await updateDoc(docRef, updateData);
+        } catch (e) {
+            if (e.code === 'not-found' || e.message?.includes('not found')) {
+                await setDoc(docRef, {
+                    uid,
+                    email: user.email,
+                    ...updateData,
+                    createdAt: new Date().toISOString(),
+                    role: 'student'
+                });
+            } else {
+                throw e; // Rethrow critical Firestore errors
+            }
+        }
 
         return true;
     } catch (error) {
         console.error("Error updating profile:", error);
+        throw error;
     }
 };
 

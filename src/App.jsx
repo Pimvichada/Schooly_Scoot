@@ -555,6 +555,9 @@ export default function SchoolyScootLMS() {
   // Schedule Editing State
   const [scheduleForm, setScheduleForm] = useState({ day: '1', start: '', end: '', room: '' });
   const [editingScheduleIndex, setEditingScheduleIndex] = useState(null);
+  const [fontSize, setFontSize] = useState(100);
+  const [darkMode, setDarkMode] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
 
 
@@ -596,9 +599,14 @@ export default function SchoolyScootLMS() {
           if (docSnap.exists()) {
             const userProfile = docSnap.data();
             setUserRole(userProfile.role);
+
+            // Safer splitting and defaults
+            const fullName = userProfile.fullName || '';
+            const parts = fullName.split(' ');
+
             setProfile({
-              firstName: userProfile.fullName.split(' ')[0] || 'User',
-              lastName: userProfile.fullName.split(' ').slice(1).join(' ') || '',
+              firstName: parts[0] || 'User',
+              lastName: parts.slice(1).join(' ') || '',
               email: user.email,
               roleLabel: userProfile.role === 'student' ? 'นักเรียน' : 'ครูผู้สอน',
               photoURL: userProfile.photoURL || user.photoURL || ''
@@ -1184,9 +1192,13 @@ export default function SchoolyScootLMS() {
     photoURL: ''
   });
 
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
   // Handle Update Profile
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+    if (isSavingProfile) return;
+    setIsSavingProfile(true);
     try {
       if (!auth.currentUser) return;
 
@@ -1210,7 +1222,9 @@ export default function SchoolyScootLMS() {
       alert('บันทึกข้อมูลโปรไฟล์เรียบร้อย');
     } catch (error) {
       console.error("Failed to update profile", error);
-      alert('เกิดข้อผิดพลาดในการบันทึกโปรไฟล์');
+      alert('เกิดข้อผิดพลาดในการบันทึกโปรไฟล์: ' + (error.message || 'Unknown Error'));
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -1218,13 +1232,13 @@ export default function SchoolyScootLMS() {
   const handleProfileImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // 1MB limit for base64
-        alert('รูปภาพต้องมีขนาดไม่เกิน 1MB');
+      if (file.size > 500 * 1024) { // 500KB limit for base64
+        alert('รูปภาพต้องมีขนาดไม่เกิน 500KB เพื่อให้บันทึกได้สำเร็จ (Base64 มีข้อจำกัดด้านขนาด)');
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setEditProfileData({ ...editProfileData, photoURL: reader.result });
+        setEditProfileData(prev => ({ ...prev, photoURL: reader.result }));
       };
       reader.readAsDataURL(file);
     }
@@ -3519,9 +3533,15 @@ export default function SchoolyScootLMS() {
 
                 <button
                   onClick={handleUpdateProfile}
-                  className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all"
+                  disabled={isSavingProfile}
+                  className={`w-full py-3 text-white rounded-xl font-bold shadow-lg transition-all ${isSavingProfile ? 'bg-slate-300 cursor-not-allowed' : 'bg-[#96C68E] hover:bg-[#85b57d] hover:shadow-xl'}`}
                 >
-                  บันทึกการเปลี่ยนแปลง
+                  {isSavingProfile ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>กำลังบันทึก...</span>
+                    </div>
+                  ) : 'บันทึกการเปลี่ยนแปลง'}
                 </button>
               </div>
             </div>
@@ -4021,18 +4041,18 @@ export default function SchoolyScootLMS() {
 
 
   const renderDashboard = () => (
-    <div className="h-screen space-y-6">
+    <div className={`h-screen space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
       {/* Welcome Section */}
-      <div className="bg-[#BEE1FF] rounded-3xl p-6 md:p-10 relative overflow-hidden group">
+      <div className={`rounded-3xl p-6 md:p-10 relative overflow-hidden group ${darkMode ? 'bg-slate-800' : 'bg-[#BEE1FF]'}`}>
         <div className="relative z-10 max-w-[70%]">
-          <h1 className="text-2xl md:text-4xl font-bold text-slate-800 mb-2">
+          <h1 className={`text-2xl md:text-4xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
             สวัสดี, {userRole === 'student' ? `น้อง${profile.firstName}!` : `คุณครู${profile.firstName}!`} 👋
           </h1>
-          <p className="text-slate-600">
+          <p className={darkMode ? 'text-slate-300' : 'text-slate-600'}>
             {welcomeMessage}
           </p>
           <div className="mt-6 flex space-x-3">
-            <button onClick={() => setActiveTab('schedule')} className="bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
+            <button onClick={() => setActiveTab('schedule')} className={`bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all ${darkMode ? 'bg-slate-700 text-white' : ''}`}>
               ดูตารางเรียน
             </button>
             <button onClick={() => setActiveTab('analytics')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
@@ -4056,7 +4076,7 @@ export default function SchoolyScootLMS() {
         <StatCard
           title={userRole === 'student' ? "วิชาเรียน" : "ห้องเรียน"}
           value={courses.length.toString()}
-          color="bg-[#FFE787]"
+          color={darkMode ? 'bg-slate-800' : 'bg-[#FFE787]'}
           icon={<BookOpen size={64} />}
           onClick={() => setActiveTab('courses')}
         />
@@ -4069,30 +4089,30 @@ export default function SchoolyScootLMS() {
               : myAssignments.filter(a => a.status !== 'submitted').length.toString();
           })()}
           icon={<FileText size={64} />}
-          color="bg-[#FF917B]"
+          color={darkMode ? 'bg-slate-800' : 'bg-[#FF917B]'}
           onClick={() => setActiveTab('assignments')}
         />
         <StatCard
           value={
             <div className="flex flex-col">
-              <span className="text-4xl font-black text-slate-800 tracking-tight">
+              <span className={`text-4xl font-black ${darkMode ? 'text-white' : 'text-slate-800'} tracking-tight`}>
                 {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
               </span>
-              <span className="text-sm font-medium text-slate-600 mt-1 opacity-80">
+              <span className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-slate-600'} mt-1 opacity-80`}>
                 {currentTime.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </span>
             </div>
           }
-          color="bg-[#96C68E]"
+          color={darkMode ? 'bg-slate-800' : 'bg-[#96C68E]'}
           icon={<Clock size={80} className="opacity-40" />}
           onClick={() => setActiveTab('calendar')}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className={`rounded-3xl p-6 shadow-sm border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} lg:col-span-2`}>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center">
+            <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center`}>
               <Calendar className="mr-2 text-[#96C68E]" /> ตารางเรียนวันนี้
             </h2>
           </div>
@@ -4110,8 +4130,8 @@ export default function SchoolyScootLMS() {
 
               if (todaySchedule.length === 0) {
                 return (
-                  <div className="text-center py-12 text-slate-400">
-                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className={`text-center py-12 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                       <Calendar size={24} />
                     </div>
                     วันนี้ไม่มีการเรียนการสอน พักผ่อนให้เต็มที่! 😴
@@ -4128,14 +4148,16 @@ export default function SchoolyScootLMS() {
                 const isMeetingActive = slot.course.meeting?.isActive;
 
                 return (
-                  <div key={idx} className={`flex items-center p-4 rounded-2xl transition-all ${isTimeActive ? 'bg-[#F0FDF4] border border-[#96C68E] shadow-sm scale-[1.02]' : 'bg-slate-50 border border-slate-50'}`}>
-                    <div className={`w-28 font-bold ${isTimeActive ? 'text-[#96C68E]' : 'text-slate-500'}`}>
+                  <div key={idx} className={`flex items-center p-4 rounded-2xl transition-all ${isTimeActive
+                    ? (darkMode ? 'bg-green-900/20 border-[#96C68E] border' : 'bg-[#F0FDF4] border-[#96C68E]')
+                    : (darkMode ? 'bg-slate-800/50 border-slate-700 border' : 'bg-slate-50 border-slate-50')}`}>
+                    <div className={`w-28 font-bold ${isTimeActive ? 'text-[#96C68E]' : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
                       {slot.startTime} - {slot.endTime}
                     </div>
-                    <div className="flex-1 px-4 border-l border-slate-200 ml-4">
-                      <div className="font-bold text-slate-800 text-lg">{slot.subject}</div>
+                    <div className={`flex-1 px-4 border-l ${darkMode ? 'border-slate-700' : 'border-slate-200'} ml-4`}>
+                      <div className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{slot.subject}</div>
                       <div className="text-sm text-slate-500 flex items-center mt-1">
-                        <span className="bg-slate-200 px-2 py-0.5 rounded text-xs mr-2">ห้อง {slot.room}</span>
+                        <span className={`${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-600'} px-2 py-0.5 rounded text-xs mr-2`}>ห้อง {slot.room}</span>
                       </div>
                     </div>
                     {isMeetingActive && (
@@ -4157,8 +4179,8 @@ export default function SchoolyScootLMS() {
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+        <div className={`rounded-3xl p-6 shadow-sm border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+          <h2 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center mb-6`}>
             <Bell className="mr-2 text-[#FF917B]" /> การแจ้งเตือน
           </h2>
           <div className="space-y-4">
@@ -4180,14 +4202,16 @@ export default function SchoolyScootLMS() {
   );
 
   const renderCourses = () => (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className={`space-y-6 animate-in fade-in duration-500 ${darkMode ? 'text-slate-100' : ''}`}>
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800">ห้องเรียนของฉัน</h1>
+        <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>ห้องเรียนของฉัน</h1>
         <div className="flex gap-3">
           {hiddenCoursesList.length > 0 && (
             <button
               onClick={() => setShowHiddenCourses(!showHiddenCourses)}
-              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${showHiddenCourses ? 'bg-slate-200 text-slate-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${showHiddenCourses
+                ? (darkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600')
+                : (darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')
                 }`}
             >
               {showHiddenCourses ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -4199,7 +4223,7 @@ export default function SchoolyScootLMS() {
               <Plus size={20} className="mr-2" /> สร้างห้องเรียน
             </button>
           ) : (
-            <button onClick={() => setActiveModal('join')} className="bg-white text-slate-600 border border-slate-200 px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-slate-50">
+            <button onClick={() => setActiveModal('join')} className={`px-4 py-2 rounded-xl font-bold shadow-sm flex items-center transition-all ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'} border`}>
               <Search size={20} className="mr-2" /> เข้าร่วมด้วยรหัส
             </button>
           )}
@@ -4221,16 +4245,16 @@ export default function SchoolyScootLMS() {
       ) : (
         <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-100 border-dashed">
           <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen size={32} className="text-slate-300" />
+            <BookOpen size={32} className="text-slate-400" />
           </div>
           <h3 className="text-lg font-bold text-slate-600">ยังไม่มีห้องเรียนที่แสดง</h3>
-          <p className="text-slate-400 text-sm mt-1">สร้างหรือเข้าร่วมห้องเรียนเพื่อเริ่มต้น หรือดูห้องที่ซ่อนไว้</p>
+          <p className="text-slate-500 text-sm mt-1">สร้างหรือเข้าร่วมห้องเรียนเพื่อเริ่มต้น หรือดูห้องที่ซ่อนไว้</p>
         </div>
       )}
 
       {/* Hidden Courses Section */}
       {showHiddenCourses && hiddenCoursesList.length > 0 && (
-        <div className="animate-in fade-in slide-in-from-top-4 duration-300 mt-8 pt-8 border-t-2 border-dashed border-slate-200">
+        <div className="animate-in fade-in slide-in-from-top-4 duration-300 mt-8 pt-8 border-t-2 border-slate-200 border-dashed">
           <h2 className="text-lg font-bold text-slate-500 mb-6 flex items-center">
             <EyeOff size={20} className="mr-2" /> ห้องเรียนที่ซ่อนไว้
           </h2>
@@ -4238,7 +4262,7 @@ export default function SchoolyScootLMS() {
             {hiddenCoursesList.map(course => (
               <CourseCard
                 key={course.id || course.firestoreId}
-                course={{ ...course, isHidden: true, onToggleHide: handleToggleHideCourse }}
+                course={{ ...course, isHidden: true, onToggleHide: handleToggleHideCourse, darkMode }}
                 onClick={() => setSelectedCourse(course)}
                 isTeacher={userRole === 'teacher'}
                 onDelete={handleDeleteCourse}
@@ -4269,61 +4293,67 @@ export default function SchoolyScootLMS() {
     });
 
     return (
-      <div className="space-y-6">
+      <div className={`space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+          <h1 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
             <CheckSquare className="mr-3 text-[#FF917B]" />
             {userRole === 'student' ? 'การบ้านของฉัน' : 'งานที่มอบหมาย'}
           </h1>
 
           {/* Tab Switcher */}
-          <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+          <div className={`${darkMode ? 'bg-slate-800' : 'bg-slate-100'} p-1 rounded-xl w-fit flex`}>
             <button
               onClick={() => setAssignmentFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'all' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'all'
+                ? (darkMode ? 'bg-slate-700 text-white shadow-md' : 'bg-white text-slate-800 shadow-sm')
+                : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
                 }`}
             >
               ทั้งหมด ({userAssignments.length})
             </button>
-            <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-              <button
-                onClick={() => setAssignmentFilter('pending')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({userAssignments.filter(a => a.status !== 'submitted').length})
-              </button>
-              <button
-                onClick={() => setAssignmentFilter('submitted')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold ${assignmentFilter === 'submitted' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                {userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว'} ({userAssignments.filter(a => a.status === 'submitted').length})
-              </button>
-            </div>
+            <button
+              onClick={() => setAssignmentFilter('pending')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'pending'
+                ? (darkMode ? 'bg-slate-700 text-white shadow-md' : 'bg-white text-slate-800 shadow-sm')
+                : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
+                }`}
+            >
+              {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({userAssignments.filter(a => a.status !== 'submitted').length})
+            </button>
+            <button
+              onClick={() => setAssignmentFilter('submitted')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${assignmentFilter === 'submitted'
+                ? (darkMode ? 'bg-slate-700 text-white shadow-md' : 'bg-white text-slate-800 shadow-sm')
+                : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
+                }`}
+            >
+              {userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว'} ({userAssignments.filter(a => a.status === 'submitted').length})
+            </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-3xl p-6 shadow-sm border`}>
           <div className="space-y-4">
             {filteredAssignments.length > 0 ? (
               filteredAssignments.map((assign) => (
-                <div key={assign.id} className="flex flex-col md:flex-row md:items-center p-4 border border-slate-100 rounded-2xl hover:border-[#BEE1FF] hover:bg-slate-50 cursor-pointer">
+                <div key={assign.id} className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${assign.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                        assign.status === 'submitted' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                      <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${assign.status === 'pending' ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
+                        assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') : (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
                         }`}>
                         {assign.status === 'pending' ? 'รอส่ง' : assign.status === 'submitted' ? 'ส่งแล้ว' : 'เลยกำหนด'}
                       </span>
-                      <span className="text-xs text-slate-400">{assign.course}</span>
+                      <span className="text-xs text-slate-500">{assign.course}</span>
                     </div>
-                    <h3 className="font-bold text-slate-800 text-lg">{assign.title}</h3>
-                    <p className="text-sm text-slate-500">กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
+                    <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{assign.title}</h3>
+                    <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
                   </div>
 
                   <div className="mt-4 md:mt-0 flex items-center gap-4">
                     {assign.score && (
                       <div className="text-right">
-                        <div className="text-xs text-slate-400">คะแนน</div>
+                        <div className="text-xs text-slate-500">คะแนน</div>
                         <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
                       </div>
                     )}
@@ -4336,8 +4366,10 @@ export default function SchoolyScootLMS() {
                           setActiveModal('assignmentDetail');
                         }
                       }}
-                      className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher' ? 'bg-white border-2 border-[#96C68E] text-[#96C68E]' : 'bg-[#BEE1FF] text-slate-800'
-                        }`}>
+                      className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher'
+                        ? (darkMode ? 'bg-slate-800 border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-700' : 'bg-white border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-50')
+                        : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#A0D5FF]'
+                        } transition-colors`}>
                       {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
                     </button>
 
@@ -4356,7 +4388,7 @@ export default function SchoolyScootLMS() {
                             }
                           }
                         }}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        className={`p-2 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
                         title="ลบงาน"
                       >
                         <Trash size={20} />
@@ -4367,8 +4399,8 @@ export default function SchoolyScootLMS() {
               ))
             ) : (
               <div className="text-center py-12">
-                <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="text-slate-300" size={32} />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                  <CheckCircle className="text-slate-500" size={32} />
                 </div>
                 <p className="text-slate-500 font-medium">ไม่มีรายการการบ้านในหมวดนี้</p>
               </div>
@@ -4382,10 +4414,12 @@ export default function SchoolyScootLMS() {
   // renderExams removed
 
   const renderSchedule = () => (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-800 flex items-center"><Calendar className="mr-3 text-[#96C68E]" /> {userRole === 'teacher' ? 'ตารางสอน' : 'ตารางเรียน'}</h1>
+    <div className={`space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
+      <h1 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+        <Calendar className="mr-3 text-[#96C68E]" /> {userRole === 'teacher' ? 'ตารางสอน' : 'ตารางเรียน'}
+      </h1>
 
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+      <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-3xl p-6 shadow-sm border`}>
         {/* <div className="flex justify-between items-center mb-6">
           <h2 className="text-lg font-bold text-slate-700">มกราคม 2567</h2>
           <div className="flex gap-2">
@@ -4411,16 +4445,18 @@ export default function SchoolyScootLMS() {
 
             return (
               <div key={day} className="space-y-3">
-                <div className="text-center font-bold text-slate-500 mb-2 ">{day}</div>
+                <div className={`text-center font-bold mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{day}</div>
                 {dailyItems.length > 0 ? dailyItems.map((slot, idx) => (
-                  <div key={idx} className={`p-3 rounded-xl text-sm border-gray-200 mb-2 text-center ${slot.color ? slot.color + ' bg-opacity-20 border-opacity-50' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className="font-bold text-slate-800">{slot.startTime} - {slot.endTime}</div>
-                    <div className="text-slate-700 font-bold line-clamp-1">{slot.courseName}</div>
-                    <div className="text-slate-500">{slot.courseCode}</div>
-                    <div className="text-xs text-slate-500 mt-1">ห้อง {slot.room}</div>
+                  <div key={idx} className={`p-3 rounded-xl text-sm mb-2 text-center transition-all ${slot.color
+                    ? (darkMode ? `${slot.color} bg-opacity-30 border border-white/10` : `${slot.color} bg-opacity-20 border border-black/5`)
+                    : (darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-slate-50 border border-slate-100')}`}>
+                    <div className={`font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{slot.startTime} - {slot.endTime}</div>
+                    <div className={`font-bold line-clamp-1 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{slot.courseName}</div>
+                    <div className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{slot.courseCode}</div>
+                    <div className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ห้อง {slot.room}</div>
                   </div>
                 )) : (
-                  <div className="p-4 rounded-xl border-2 border-dashed border-slate-100 text-center text-slate-300 text-sm">
+                  <div className={`p-4 rounded-xl border-2 border-dashed text-center text-sm ${darkMode ? 'border-slate-800 text-slate-700' : 'border-slate-100 text-slate-300'}`}>
                     ว่าง
                   </div>
                 )}
@@ -4436,18 +4472,20 @@ export default function SchoolyScootLMS() {
     const activeChat = chats.find(c => c.id === activeChatId);
 
     return (
-      <div className="space-y-6 h-[calc(100vh-140px)] flex flex-col">
-        <h1 className="text-2xl font-bold text-slate-800 flex items-center"><MessageSquare className="mr-3 text-[#BEE1FF]" /> ข้อความ</h1>
-        <div className="flex-1 bg-white rounded-3xl shadow-sm border border-slate-100 flex overflow-hidden">
+      <div className={`space-y-6 h-[calc(100vh-140px)] flex flex-col ${darkMode ? 'text-slate-100' : ''}`}>
+        <h1 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+          <MessageSquare className="mr-3 text-[#BEE1FF]" /> ข้อความ
+        </h1>
+        <div className={`flex-1 rounded-3xl shadow-sm border flex overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
           {/* Chat List */}
-          <div className={`w-full md:w-1/3 border-r border-slate-100 overflow-y-auto ${activeChatId ? 'hidden md:block' : 'block'}`}>
-            <div className="p-4 border-b border-slate-100 bg-slate-50">
+          <div className={`w-full md:w-1/3 border-r overflow-y-auto ${activeChatId ? 'hidden md:block' : 'block'} ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+            <div className={`p-4 border-b ${darkMode ? 'border-slate-800 bg-slate-900/50' : 'bg-slate-50 border-slate-100'}`}>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                 <input
                   type="text"
                   placeholder="ค้นหาแชท..."
-                  className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-[#BEE1FF] text-sm"
+                  className={`w-full pl-9 pr-4 py-2 rounded-xl border transition-colors text-sm focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#BEE1FF]'}`}
                 />
               </div>
             </div>
@@ -4455,17 +4493,20 @@ export default function SchoolyScootLMS() {
               <div
                 key={chat.id}
                 onClick={() => setActiveChatId(chat.id)}
-                className={`p-4 hover:bg-slate-50 cursor-pointer border-b border-slate-50 flex gap-3 transition-colors ${activeChatId === chat.id ? 'bg-[#F0F9FF]' : ''}`}
+                className={`p-4 cursor-pointer border-b flex gap-3 transition-colors ${activeChatId === chat.id
+                  ? (darkMode ? 'bg-indigo-900/20 border-indigo-900/50' : 'bg-[#F0F9FF] border-slate-50')
+                  : (darkMode ? 'hover:bg-slate-800 border-slate-800' : 'hover:bg-slate-50 border-slate-50')
+                  }`}
               >
-                <div className={`w-12 h-12 rounded-full ${chat.avatar} flex-shrink-0 flex items-center justify-center text-slate-700 font-bold text-lg`}>
+                <div className={`w-12 h-12 rounded-full ${chat.avatar} flex-shrink-0 flex items-center justify-center font-bold text-lg ${darkMode ? 'text-white' : 'text-slate-700'}`}>
                   {chat.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
-                    <h4 className={`font-bold truncate ${activeChatId === chat.id ? 'text-[#96C68E]' : 'text-slate-800'}`}>{chat.name}</h4>
-                    <span className="text-xs text-slate-400 whitespace-nowrap ml-2">{chat.time}</span>
+                    <h4 className={`font-bold truncate ${activeChatId === chat.id ? (darkMode ? 'text-[#96C68E]' : 'text-[#96C68E]') : (darkMode ? 'text-slate-200' : 'text-slate-800')}`}>{chat.name}</h4>
+                    <span className="text-xs text-slate-500 whitespace-nowrap ml-2">{chat.time}</span>
                   </div>
-                  <p className="text-sm text-slate-500 truncate">{chat.lastMessage}</p>
+                  <p className={`text-sm truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{chat.lastMessage}</p>
                 </div>
                 {chat.unread > 0 && (
                   <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold self-center">
@@ -4481,40 +4522,40 @@ export default function SchoolyScootLMS() {
             {activeChat ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
+                <div className={`p-4 border-b flex items-center justify-between z-10 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setActiveChatId(null)} className="md:hidden p-2 -ml-2 text-slate-500">
+                    <button onClick={() => setActiveChatId(null)} className={`md:hidden p-2 -ml-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                       <ChevronRight className="rotate-180" />
                     </button>
-                    <div className={`w-10 h-10 rounded-full ${activeChat.avatar} flex items-center justify-center text-slate-700 font-bold`}>
+                    <div className={`w-10 h-10 rounded-full ${activeChat.avatar} flex items-center justify-center font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>
                       {activeChat.name.charAt(0)}
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-800">{activeChat.name}</h4>
-                      <p className="text-xs text-slate-500">{activeChat.role}</p>
+                      <h4 className={`font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{activeChat.name}</h4>
+                      <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{activeChat.role}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 text-slate-400">
-                    <button className="p-2 hover:bg-slate-50 rounded-full"><Video size={20} /></button>
-                    <button className="p-2 hover:bg-slate-50 rounded-full"><Info size={20} /></button>
+                    <button className={`p-2 rounded-full transition-colors ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}><Video size={20} /></button>
+                    <button className={`p-2 rounded-full transition-colors ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}><Info size={20} /></button>
                   </div>
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8FAFC]">
+                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${darkMode ? 'bg-slate-950' : 'bg-[#F8FAFC]'}`}>
                   {activeChat.messages.map(msg => {
                     const isMe = msg.sender === 'me';
                     return (
                       <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[70%] ${isMe ? 'order-2' : 'order-1'}`}>
-                          {msg.sender !== 'me' && msg.name && <p className="text-xs text-slate-400 mb-1 ml-1">{msg.name}</p>}
+                          {msg.sender !== 'me' && msg.name && <p className={`text-xs mb-1 ml-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{msg.name}</p>}
                           <div className={`p-3 rounded-2xl text-sm ${isMe
-                            ? 'bg-[#BEE1FF] text-slate-800 rounded-br-none'
-                            : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm'
+                            ? (darkMode ? 'bg-indigo-600 text-white rounded-br-none shadow-indigo-900/20 shadow-lg' : 'bg-[#BEE1FF] text-slate-800 rounded-br-none')
+                            : (darkMode ? 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm')
                             }`}>
                             {msg.text}
                           </div>
-                          <p className={`text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'}`}>
+                          <p className={`text-[10px] mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'} ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                             {msg.time}
                           </p>
                         </div>
@@ -4525,9 +4566,9 @@ export default function SchoolyScootLMS() {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-4 bg-white border-t border-slate-100">
+                <div className={`p-4 border-t ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                   <form onSubmit={handleSendMessage} className="flex gap-2">
-                    <button type="button" className="p-3 text-slate-400 hover:bg-slate-50 rounded-xl">
+                    <button type="button" className="p-3 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors">
                       <Plus size={20} />
                     </button>
                     <input
@@ -4535,7 +4576,7 @@ export default function SchoolyScootLMS() {
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       placeholder="พิมพ์ข้อความ..."
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:border-[#96C68E] transition-colors"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 transition-colors focus:outline-none focus:border-[#96C68E]"
                     />
                     <button
                       type="submit"
@@ -4551,7 +4592,7 @@ export default function SchoolyScootLMS() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 text-slate-400 p-8 text-center">
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 text-slate-400 text-center">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   <MessageSquare size={32} className="opacity-50" />
                 </div>
@@ -4576,15 +4617,15 @@ export default function SchoolyScootLMS() {
               {/* Left Sidebar - Class Info & Upcoming Work */}
               <div className="md:col-span-1 space-y-6">
                 {/* About Course Card */}
-                <div className="relative overflow-hidden bg-white p-6 rounded-3xl border border-slate-100 shadow-sm !animate-none !transition-none !transform-none">
+                <div className={`${darkMode ? 'bg-slate-900 border-slate-800 shadow-xl shadow-black/20' : 'bg-white border-slate-100 shadow-sm shadow-indigo-100/20'} p-6 rounded-3xl border relative overflow-hidden transition-all duration-300`}>
                   {/* Decorative Gradient Blob */}
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient[#FFE787] opacity-20 rounded-full blur-2xl"></div>
+                  <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${darkMode ? 'from-indigo-600/30 to-slate-800/30' : 'from-[#FFE787] to-[#BEE1FF]'} opacity-20 rounded-full blur-2xl`}></div>
 
-                  <h3 className="relative font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <div className="bg-[#E3F2FD] p-2 rounded-xl text-[#BEE1FF]">
-                      <Info size={20} className="text-[#5B9BD5]" />
+                  <h3 className="relative font-bold mb-6 flex items-center gap-2">
+                    <div className={`${darkMode ? 'bg-slate-800' : 'bg-[#E3F2FD]'} p-2 rounded-xl`}>
+                      <Info size={20} className={darkMode ? 'text-indigo-400' : 'text-[#5B9BD5]'} />
                     </div>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">เกี่ยวกับวิชา</span>
+                    <span className={`bg-clip-text text-transparent bg-gradient-to-r ${darkMode ? 'from-white to-slate-400' : 'from-slate-800 to-slate-600'}`}>เกี่ยวกับวิชา</span>
                   </h3>
 
                   <div className="relative space-y-5">
@@ -4592,29 +4633,29 @@ export default function SchoolyScootLMS() {
                     <div className="relative">
 
                       {selectedCourse.description && (
-                        <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-50">
-                          <p className="text-xs text-indigo-300 font-bold uppercase mt-1 flex items-center gap-1">
+                        <div className={`${darkMode ? 'bg-indigo-900/20 border-indigo-800/30' : 'bg-indigo-50/50 border-indigo-50'} p-4 rounded-2xl border`}>
+                          <p className={`text-xs font-bold uppercase mt-1 flex items-center gap-1 ${darkMode ? 'text-indigo-400' : 'text-[#BEE1FF]'}`}>
                             คำอธิบาย
                           </p>
-                          <p className="text-sm text-indigo-900 leading-relaxed font-medium">{selectedCourse.description}</p>
+                          <p className={`text-sm leading-relaxed font-medium ${darkMode ? 'text-slate-300' : 'text-indigo-900'}`}>{selectedCourse.description}</p>
                         </div>
                       )}
-                      <p className="text-xs text-slate-400 font-bold uppercase mt-4 mb-2 tracking-wider flex items-center gap-1">
+                      <p className={`text-xs font-bold uppercase mt-4 mb-2 tracking-wider flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                         รหัสเข้าเรียน <Star size={12} className="text-[#FFE787] fill-[#FFE787]" />
                       </p>
                       <div
-                        className="relative overflow-hidden flex items-center justify-between bg-[#FFF0EE] p-4 rounded-2xl border-2 border-dashed border-[#FF917B] cursor-pointer hover:bg-[#FFE5E2] transition-colors"
+                        className={`relative overflow-hidden flex items-center justify-between p-4 rounded-2xl border-2 border-dashed transition-all ${darkMode ? 'border-indigo-800 bg-slate-800 hover:bg-slate-700' : 'border-[#FF917B] bg-[#FFF0EE] hover:bg-[#FFE5E2]'
+                          } cursor-pointer`}
                         onClick={() => {
                           navigator.clipboard.writeText(selectedCourse.inviteCode);
                         }}
-
                       >
 
-                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#FF917B_1px,transparent_1px)] [background-size:8px_8px]"></div>
+                        <div className={`absolute inset-0 opacity-10 ${darkMode ? 'bg-[radial-gradient(white_1px,transparent_1px)]' : 'bg-[radial-gradient(#FF917B_1px,transparent_1px)]'} [background-size:8px_8px]`}></div>
 
-                        <code className="relative text-[#FF917B] font-black text-xl tracking-widest">{selectedCourse.inviteCode}</code>
-                        <div className="relative bg-white p-2 rounded-xl shadow-sm">
-                          <Copy size={16} className="text-[#FF917B]" />
+                        <code className={`relative font-black text-xl tracking-widest ${darkMode ? 'text-indigo-400' : 'text-[#FF917B]'}`}>{selectedCourse.inviteCode}</code>
+                        <div className={`relative p-2 rounded-xl shadow-sm ${darkMode ? 'bg-slate-700' : 'bg-white'}`}>
+                          <Copy size={16} className={darkMode ? 'text-indigo-400' : 'text-[#FF917B]'} />
                         </div>
                       </div>
                     </div>
@@ -4631,13 +4672,13 @@ export default function SchoolyScootLMS() {
               {/* Main Feed Area */}
               <div className="md:col-span-3 space-y-6">
                 {/* Post Input Area */}
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative">
+                <div className={`p-6 rounded-[2rem] border shadow-sm relative transition-all duration-300 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                   <div className="flex gap-4 mb-2">
-                    <div className="w-14 h-14 rounded-full bg-slate-100 p-1 flex-shrink-0 border-2 border-white shadow-sm">
+                    <div className={`w-14 h-14 rounded-full p-1 border-2 shadow-sm flex-shrink-0 ${darkMode ? 'bg-slate-800 border-indigo-900' : 'bg-white border-white'}`}>
                       {profile.photoURL ? (
                         <img src={profile.photoURL} className="w-full h-full rounded-full object-cover" alt="" />
                       ) : (
-                        <div className="w-full h-full rounded-full flex items-center justify-center bg-[#BEE1FF] text-white font-bold text-xl">
+                        <div className="w-full h-full bg-[#BEE1FF] rounded-full flex items-center justify-center text-white font-bold text-xl">
                           {profile.firstName?.[0]}
                         </div>
                       )}
@@ -4647,7 +4688,7 @@ export default function SchoolyScootLMS() {
                         value={newPostContent}
                         onChange={(e) => setNewPostContent(e.target.value)}
                         placeholder={`ประกาศบางอย่างให้กับชั้นเรียน ${selectedCourse.name}`}
-                        className="w-full h-24 p-4 rounded-2xl bg-slate-50 border-none focus:ring-0 resize-none text-slate-700 placeholder-slate-400 text-lg transition-all"
+                        className={`w-full h-24 p-4 rounded-2xl border-none focus:ring-0 resize-none text-lg transition-all ${darkMode ? 'bg-slate-800 text-slate-100 placeholder-slate-500' : 'bg-slate-50 text-slate-700 placeholder-slate-400'}`}
                       />
                     </div>
                   </div>
@@ -4687,7 +4728,7 @@ export default function SchoolyScootLMS() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="p-2.5 text-slate-400 hover:text-[#96C68E] hover:bg-[#F2F9F0] rounded-xl transition-all"
+                        className={`p-2.5 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-indigo-400 hover:bg-indigo-900/30' : 'text-slate-400 hover:text-[#96C68E] hover:bg-[#F2F9F0]'}`}
                         title="Upload Image"
                       >
                         <ImageIcon size={22} strokeWidth={2} />
@@ -4700,7 +4741,7 @@ export default function SchoolyScootLMS() {
                           accept="image/*,application/pdf,.doc,.docx"
                         />
                       </button>
-                      <button className="p-2.5 text-slate-400 hover:text-[#96C68E] hover:bg-[#F2F9F0] rounded-xl transition-all" title="Attach File">
+                      <button className={`p-2.5 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-indigo-400 hover:bg-indigo-900/30' : 'text-slate-400 hover:text-[#96C68E] hover:bg-[#F2F9F0]'}`} title="Attach File">
                         <Paperclip size={22} strokeWidth={2} />
                       </button>
 
@@ -4710,7 +4751,7 @@ export default function SchoolyScootLMS() {
                       disabled={!newPostContent.trim() && newPostFiles.length === 0}
                       className={`px-8 py-2.5 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 ${newPostContent.trim() || newPostFiles.length > 0
                         ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] hover:shadow-md active:scale-95'
-                        : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+                        : (darkMode ? 'bg-slate-800 text-slate-700 cursor-not-allowed border border-slate-700' : 'bg-slate-100 text-slate-300 cursor-not-allowed')
                         }`}
                     >
                       <Send size={18} strokeWidth={2.5} />
@@ -4797,17 +4838,16 @@ export default function SchoolyScootLMS() {
             }
 
             return (
-              <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'
-                }`}>
+              <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'}`}>
                 <div className="flex items-center gap-4">
                   <div className={`p-3 rounded-xl ${isDone ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                    {isDone ? <CheckCircle className="text-green-600" size={20} /> : <FileText className="text-yellow-600" size={20} />}
+                    {isDone ? <CheckCircle className="text-green-500" size={20} /> : <FileText className="text-yellow-500" size={20} />}
                   </div>
                   <div>
                     <h4 className={`font-bold ${isDone ? 'text-slate-400' : 'text-slate-800'}`}>{data.title}</h4>
 
                     <div className="flex items-center gap-2">
-                      <p className={`text-xs ${isDone ? 'text-green-600 font-bold' : 'text-slate-400'}`}>
+                      <p className={`text-xs ${isDone ? 'text-green-500 font-bold' : 'text-slate-400'}`}>
                         {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'ยังไม่มีกำหนดส่ง')}
                       </p>
 
@@ -4827,7 +4867,7 @@ export default function SchoolyScootLMS() {
                       if (userRole === 'teacher') openGradingModal(data);
                       else setActiveModal('assignmentDetail'); // For student
                     }}
-                    className="px-4 py-2 bg-slate-50 text-slate-400 rounded-xl text-sm font-bold group-hover:bg-[#BEE1FF] group-hover:text-slate-800 transition-colors"
+                    className="bg-slate-50 text-slate-400 px-4 py-2 rounded-xl text-sm font-bold group-hover:bg-[#BEE1FF] group-hover:text-slate-800 transition-colors"
                   >
                     {isDone ? 'ดูผลการเรียน' : 'ดูรายละเอียด'}
                   </button>
@@ -4864,7 +4904,7 @@ export default function SchoolyScootLMS() {
             <div className="space-y-6">
 
               {/* ส่วนควบคุม: หัวข้อ และ ปุ่มสลับ (Toggle) */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">งานในชั้นเรียน</h2>
                   <p className="text-xs text-slate-400">จัดการงานและการบ้านของคุณ</p>
@@ -4893,12 +4933,12 @@ export default function SchoolyScootLMS() {
               {workView === 'current' ? (
                 <div className="space-y-6">
                   <section>
-                    <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
+                    <h3 className={`text-md font-bold mb-3 flex items-center ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                       <Clock className="mr-2 text-yellow-500" size={18} /> งานทั้งหมด ({pendingWork.length})
                     </h3>
                     <div className="space-y-3">
                       {pendingWork.length > 0 ? pendingWork.map(renderCard) : (
-                        <div className="p-8 bg-slate-50 rounded-2xl text-center text-slate-400 border border-slate-200">
+                        <div className={`p-8 rounded-2xl text-center border-2 border-dashed ${darkMode ? 'bg-slate-800/50 text-slate-500 border-slate-700' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
                           ไม่มีงานค้าง ดีมาก! ✨
                         </div>
                       )}
@@ -4906,8 +4946,8 @@ export default function SchoolyScootLMS() {
                   </section>
 
                   {userRole === 'student' && submittedWork.length > 0 && (
-                    <section className="pt-4 border-t border-slate-100">
-                      <h3 className="text-md font-bold text-slate-700 mb-3 flex items-center">
+                    <section className={`pt-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                      <h3 className={`text-md font-bold mb-3 flex items-center ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         <CheckCircle className="mr-2 text-green-500" size={18} /> ส่งแล้ว ({submittedWork.length})
                       </h3>
                       <div className="space-y-3">
@@ -4934,24 +4974,24 @@ export default function SchoolyScootLMS() {
 
         case 'people':
           return (
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className={`rounded-3xl p-6 shadow-sm border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
 
               {/* Pending Requests Section (For Teachers) */}
               {userRole === 'teacher' && pendingMembers.length > 0 && (
-                <div className="mb-8 p-4 bg-yellow-50 rounded-2xl border border-yellow-100">
-                  <h3 className="font-bold text-yellow-700 mb-4 text-lg border-b border-yellow-200 pb-2 flex items-center">
+                <div className={`${darkMode ? 'bg-yellow-900/10 border-yellow-900/30' : 'bg-yellow-50 border-yellow-100'} p-4 rounded-2xl border mb-8`}>
+                  <h3 className={`font-bold mb-4 text-lg border-b pb-2 flex items-center ${darkMode ? 'text-yellow-500 border-yellow-900/30' : 'text-yellow-700 border-yellow-200'}`}>
                     <AlertCircle className="mr-2" size={20} /> คำขอเข้าร่วม ({pendingMembers.length})
                   </h3>
                   <div className="space-y-3">
                     {pendingMembers.map(m => (
-                      <div key={m.id} className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm">
+                      <div key={m.id} className={`${darkMode ? 'bg-slate-800' : 'bg-white'} flex items-center justify-between p-3 rounded-xl shadow-sm`}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full ${m.avatar || 'bg-yellow-200'} flex items-center justify-center text-slate-700 font-bold text-sm`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${m.avatar || (darkMode ? 'bg-slate-700 text-slate-300' : 'bg-yellow-200 text-slate-700')}`}>
                             {m.name.charAt(0)}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-700">{m.name}</p>
-                            <p className="text-xs text-slate-400">ขอเข้าร่วม</p>
+                            <p className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{m.name}</p>
+                            <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ขอเข้าร่วม</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
@@ -4963,7 +5003,7 @@ export default function SchoolyScootLMS() {
                           </button>
                           <button
                             onClick={() => handleReject(m.id)}
-                            className="bg-red-100 text-red-500 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-200 transition-colors"
+                            className={`${darkMode ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-red-100 text-red-500 hover:bg-red-200'} px-3 py-1.5 rounded-lg text-sm font-bold transition-colors`}
                           >
                             ปฏิเสธ
                           </button>
@@ -4974,31 +5014,32 @@ export default function SchoolyScootLMS() {
                 </div>
               )}
 
-              <h3 className="font-bold text-[#FF917B] mb-4 text-lg border-b border-slate-100 pb-2">ครูผู้สอน</h3>
+              {/* ครูผู้สอน */}
+              <h3 className={`font-bold mb-4 text-lg border-b pb-2 ${darkMode ? 'text-orange-400 border-slate-800' : 'text-[#FF917B] border-slate-100'}`}>ครูผู้สอน</h3>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-10 h-10 rounded-full bg-[#FF917B] flex items-center justify-center text-white font-bold">T</div>
-                <span className="font-bold text-slate-700">{selectedCourse.teacher}</span>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${darkMode ? 'bg-orange-900/40 text-orange-400' : 'bg-[#FF917B] text-white'}`}>T</div>
+                <span className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedCourse.teacher}</span>
               </div>
 
-              <h3 className="font-bold text-[#96C68E] mb-4 text-lg border-b border-slate-100 pb-2">เพื่อนร่วมชั้น ({members.length} คน)</h3>
-              <div className="space-y-3">
+              <h3 className={`font-bold mb-4 text-lg border-b pb-2 ${darkMode ? 'text-[#96C68E] border-slate-800' : 'text-[#96C68E] border-slate-100'}`}>เพื่อนร่วมชั้น ({members.length} คน)</h3>
+              <div className="space-y-4">
                 {members.length > 0 ? members.map(m => (
-                  <div key={m.id} className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full ${m.avatar || 'bg-blue-200'} flex items-center justify-center text-slate-700 text-xs`}>Std</div>
-                    <span className="font-medium text-slate-700">{m.name}</span>
+                  <div key={m.id} className="flex items-center gap-4 group">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs transition-colors ${darkMode ? 'bg-slate-800 text-slate-500 group-hover:bg-indigo-900/30 group-hover:text-indigo-400' : 'bg-blue-50 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600'} ${m.avatar || ''}`}>Std</div>
+                    <span className={`font-medium transition-colors ${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>{m.name}</span>
                   </div>
                 )) : (
-                  <p className="text-slate-400">ยังไม่มีนักเรียนในวิชานี้</p>
+                  <p className={`${darkMode ? 'text-slate-600' : 'text-slate-500'}`}>ยังไม่มีนักเรียนในวิชานี้</p>
                 )}
               </div>
 
 
               {
                 userRole === 'student' && (
-                  <div className="mt-8 pt-6 border-t border-slate-100 flex justify-center">
+                  <div className={`mt-8 pt-6 border-t flex justify-center ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                     <button
                       onClick={handleLeaveCourse}
-                      className="text-red-500 text-sm font-bold flex items-center hover:bg-red-50 px-6 py-3 rounded-xl transition-colors"
+                      className={`px-6 py-3 rounded-xl text-sm font-bold flex items-center transition-colors ${darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-red-500 hover:bg-red-50'}`}
                     >
                       <LogOut size={18} className="mr-2" /> ออกจากห้องเรียนนี้
                     </button>
@@ -5009,16 +5050,16 @@ export default function SchoolyScootLMS() {
           );
         case 'grades':
           return (
-            <div className="space-y-6 animate-in fade-in duration-300">
+            <div className={`space-y-6 animate-in fade-in duration-300 ${darkMode ? 'text-slate-100' : ''}`}>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                <h2 className={`text-xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                   <PieChart className="mr-2 text-[#96C68E]" /> คะแนนสอบ
                 </h2>
               </div>
 
-              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+              <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} rounded-3xl border overflow-hidden`}>
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
+                  <thead className={`${darkMode ? 'bg-slate-800/50 text-slate-400' : 'bg-slate-50 text-slate-500'} border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'} text-sm`}>
                     <tr>
                       <th className="p-4 font-bold">รายการสอบ</th>
                       <th className="p-4 font-bold">คะแนน</th>
@@ -5026,45 +5067,45 @@ export default function SchoolyScootLMS() {
                       <th className="p-4 font-bold text-right">ผลลัพธ์</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
                     {quizzes.length > 0 ? quizzes.map((quiz) => {
                       const submission = mySubmissions[quiz.firestoreId];
                       const isSubmitted = !!submission;
 
                       return (
-                        <tr key={quiz.firestoreId} className="">
+                        <tr key={quiz.firestoreId} className={`${darkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'} transition-colors`}>
                           <td className="p-4">
-                            <div className="font-bold text-slate-700">{quiz.title}</div>
+                            <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</div>
                           </td>
-                          <td className="p-4 text-sm font-bold text-slate-700">
+                          <td className={`p-4 text-sm font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                             {userRole === 'teacher' ? (
                               <span>{quiz.questions} คะแนน</span>
                             ) : (
                               isSubmitted ? (
-                                <span className="text-green-600">{submission.score} / {submission.total}</span>
+                                <span className="text-[#96C68E]">{submission.score} / {submission.total}</span>
                               ) : (
-                                <span className="text-slate-400">เต็ม {quiz.questions}</span>
+                                <span className={darkMode ? 'text-slate-500' : 'text-slate-500'}>เต็ม {quiz.questions}</span>
                               )
                             )}
                           </td>
-                          <td className="p-4 text-sm text-slate-500">
+                          <td className={`p-4 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                             {submission ? new Date(submission.submittedAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
                           </td>
                           <td className="p-4 text-right">
                             {userRole === 'teacher' ? (
                               <button
                                 onClick={() => handleViewResults(quiz)}
-                                className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg text-xs font-bold hover:bg-amber-100"
+                                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${darkMode ? 'bg-amber-900/30 text-amber-400 border border-amber-900/50 hover:bg-amber-900/50' : 'bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100'}`}
                               >
                                 <Trophy size={14} className="inline mr-1" /> ดูผลสอบ
                               </button>
                             ) : (
                               isSubmitted ? (
-                                <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">
+                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold ${darkMode ? 'bg-green-900/30 text-[#96C68E]' : 'bg-green-50 text-green-600'}`}>
                                   <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-xs">-</span>
+                                <span className={darkMode ? 'text-slate-600' : 'text-slate-400'}>-</span>
                               )
                             )}
                           </td>
@@ -5072,7 +5113,7 @@ export default function SchoolyScootLMS() {
                       );
                     }) : (
                       <tr>
-                        <td colSpan="4" className="p-8 text-center text-slate-400">ยังไม่มีรายการสอบ</td>
+                        <td colSpan="4" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีรายการสอบ</td>
                       </tr>
                     )}
                   </tbody>
@@ -5081,13 +5122,13 @@ export default function SchoolyScootLMS() {
 
               {/* Assignment Scores Section */}
               <div className="flex justify-between items-center mb-4 mt-8">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center">
-                  <FileText className="mr-2 text-[#FF917B]" /> คะแนนงาน
+                <h2 className={`text-xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  <FileText className={`mr-2 ${darkMode ? 'text-orange-400' : 'text-[#FF917B]'}`} /> คะแนนงาน
                 </h2>
               </div>
-              <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+              <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} rounded-3xl border overflow-hidden`}>
                 <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
+                  <thead className={`${darkMode ? 'bg-slate-800/50 text-slate-400' : 'bg-slate-50 text-slate-500'} border-b ${darkMode ? 'border-slate-800' : 'border-slate-100'} text-sm`}>
                     <tr>
                       <th className="p-4 font-bold">ชื่องาน</th>
                       <th className="p-4 font-bold">คะแนน</th>
@@ -5095,48 +5136,48 @@ export default function SchoolyScootLMS() {
                       <th className="p-4 font-bold text-right">ผลลัพธ์</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-50">
+                  <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
                     {(() => {
                       // Filter assignments for this course
                       const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
 
                       return courseAssignments.length > 0 ? courseAssignments.map((assign) => (
-                        <tr key={assign.id} className="">
+                        <tr key={assign.id} className={`${darkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
                           <td className="p-4">
-                            <div className="font-bold text-slate-700">{assign.title}</div>
+                            <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{assign.title}</div>
                           </td>
-                          <td className="p-4 text-sm font-bold text-slate-700">
+                          <td className={`p-4 text-sm font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                             {assign.score ? (
-                              <span className="text-green-600">{assign.score} / {assign.maxScore || 10}</span>
+                              <span className="text-[#96C68E]">{assign.score} / {assign.maxScore || 10}</span>
                             ) : (
-                              <span className="text-slate-400">{userRole === 'teacher' ? (assign.maxScore || 10) : '-'}</span>
+                              <span className={darkMode ? 'text-slate-600' : 'text-slate-400'}>{userRole === 'teacher' ? (assign.maxScore || 10) : '-'}</span>
                             )}
                           </td>
-                          <td className="p-4 text-sm text-slate-500">
+                          <td className={`p-4 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
                             {assign.status === 'submitted' && assign.submittedAt ? new Date(assign.submittedAt).toLocaleDateString('th-TH') : '-'}
                           </td>
                           <td className="p-4 text-right">
                             {userRole === 'teacher' ? (
                               <button
                                 onClick={() => openGradingModal(assign)}
-                                className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-lg text-xs font-bold hover:bg-amber-100"
+                                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${darkMode ? 'bg-amber-900/30 text-amber-400 border border-amber-900/50 hover:bg-amber-900/50' : 'bg-amber-50 text-amber-600 border border-amber-100 hover:bg-amber-100'}`}
                               >
                                 <CheckSquare size={14} className="inline mr-1" /> ตรวจงาน
                               </button>
                             ) : (
                               assign.status === 'submitted' ? (
-                                <span className="inline-flex items-center px-2 py-1 bg-green-50 text-green-600 rounded text-xs font-bold">
+                                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold ${darkMode ? 'bg-green-900/30 text-[#96C68E]' : 'bg-green-50 text-green-600'}`}>
                                   <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
                                 </span>
                               ) : (
-                                <span className="text-slate-400 text-xs">ยังไม่ส่ง</span>
+                                <span className={darkMode ? 'text-slate-600' : 'text-slate-400'}>ยังไม่ส่ง</span>
                               )
                             )}
                           </td>
                         </tr>
                       )) : (
                         <tr>
-                          <td colSpan="4" className="p-8 text-center text-slate-400">ยังไม่มีการบ้าน</td>
+                          <td colSpan="4" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีการบ้าน</td>
                         </tr>
                       );
                     })()}
@@ -5147,281 +5188,246 @@ export default function SchoolyScootLMS() {
           );
         case 'settings':
           return (
-            <div className="space-y-6">
-              <h3 className="text-xl font-bold text-slate-800 mb-4">ตั้งค่ารายวิชา</h3>
+            <div className={`space-y-6 animate-in slide-in-from-bottom-4 duration-500 ${darkMode ? 'text-slate-100' : ''}`}>
+              <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} rounded-[2.5rem] p-8 border`}>
+                <h3 className={`text-2xl font-bold mb-8 flex items-center gap-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                  <Settings className={darkMode ? 'text-indigo-400' : 'text-blue-500'} /> ตั้งค่ารายวิชา
+                </h3>
 
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
-                <h4 className="font-bold text-lg text-slate-700">ข้อมูลทั่วไป</h4>
-                {editingCourse && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อวิชา</label>
-                        <input
-                          type="text"
-                          value={editingCourse.name}
-                          onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
-                          className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-bold text-slate-600 mb-1">รหัสวิชา</label>
-                        <input
-                          type="text"
-                          value={editingCourse.code}
-                          onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
-                          className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                        />
-                      </div>
-                    </div>
-
-
-                    <div>
-                      <label className="block text-sm font-bold text-slate-600 mb-1">คำอธิบายรายวิชา</label>
-                      <textarea
-                        value={editingCourse.description || ''}
-                        onChange={(e) => setEditingCourse({ ...editingCourse, description: e.target.value })}
-                        className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none h-24"
-                        placeholder="ใส่รายละเอียดวิชา..."
-                      />
-                    </div>
-
-                    {/* Schedule Editor */}
-                    <div>
-                      <label className="block text-sm font-bold text-slate-600 mb-1">จัดการตารางเรียน</label>
-                      <div className="bg-slate-50 p-4 rounded-xl space-y-3">
-                        <div className="flex flex-wrap gap-2 items-center">
-                          <select
-                            value={scheduleForm.day}
-                            onChange={(e) => setScheduleForm({ ...scheduleForm, day: e.target.value })}
-                            className="p-2 rounded-lg border border-slate-200 text-sm"
-                          >
-                            <option value="1">จันทร์</option>
-                            <option value="2">อังคาร</option>
-                            <option value="3">พุธ</option>
-                            <option value="4">พฤหัส</option>
-                            <option value="5">ศุกร์</option>
-                          </select>
-                          <input
-                            type="time"
-                            value={scheduleForm.start}
-                            onChange={(e) => setScheduleForm({ ...scheduleForm, start: e.target.value })}
-                            className="p-2 rounded-lg border border-slate-200 text-sm"
-                          />
-                          <span className="self-center">-</span>
-                          <input
-                            type="time"
-                            value={scheduleForm.end}
-                            onChange={(e) => setScheduleForm({ ...scheduleForm, end: e.target.value })}
-                            className="p-2 rounded-lg border border-slate-200 text-sm"
-                          />
+                <div className={`${darkMode ? 'bg-slate-800/20 border-slate-800' : 'bg-white border-slate-100'} p-6 rounded-3xl border space-y-6`}>
+                  <h4 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>ข้อมูลทั่วไป</h4>
+                  {editingCourse && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                          <label className={`text-sm font-bold ml-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>ชื่อวิชา</label>
                           <input
                             type="text"
-                            placeholder="ห้อง"
-                            value={scheduleForm.room}
-                            onChange={(e) => setScheduleForm({ ...scheduleForm, room: e.target.value })}
-                            className="p-2 rounded-lg border border-slate-200 text-sm w-20"
+                            value={editingCourse.name}
+                            onChange={(e) => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                            className={`w-full p-3.5 rounded-2xl border transition-all focus:outline-none focus:ring-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:ring-indigo-500/20 focus:border-indigo-500' : 'bg-slate-50 border-slate-100 focus:ring-blue-500/20 focus:border-blue-400'}`}
                           />
-                          <button onClick={() => {
-                            const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์' };
-                            if (scheduleForm.start && scheduleForm.end) {
-                              const newItem = {
-                                dayOfWeek: parseInt(scheduleForm.day),
-                                startTime: scheduleForm.start,
-                                endTime: scheduleForm.end,
-                                room: scheduleForm.room,
-                                dayLabel: dayMap[scheduleForm.day]
-                              };
-
-                              // VALIDATION: Check Overlap
-                              // 1. Check against other courses (exclude self)
-                              for (const c of courses) {
-                                if (c.firestoreId === editingCourse.firestoreId) continue; // Skip self
-                                if (c.schedule) {
-                                  for (const exist of c.schedule) {
-                                    if (isOverlap(newItem, exist)) {
-                                      alert(`เวลาเรียนชนกับวิชา "${c.name}" (${exist.dayLabel} ${exist.startTime}-${exist.endTime})`);
-                                      return;
-                                    }
-                                  }
-                                }
-                              }
-
-                              // 2. Check against current items in this course
-                              // If editing, skip the index we are editing
-                              const currentItems = editingCourse.scheduleItems || [];
-                              for (let i = 0; i < currentItems.length; i++) {
-                                if (editingScheduleIndex !== null && i === editingScheduleIndex) continue; // Skip the item being edited
-                                if (isOverlap(newItem, currentItems[i])) {
-                                  alert(`เวลาเรียนชนกับรายการอื่นในตารางนี้ (${currentItems[i].dayLabel} ${currentItems[i].startTime}-${currentItems[i].endTime})`);
-                                  return;
-                                }
-                              }
-
-                              if (editingScheduleIndex !== null) {
-                                // Update existing
-                                const newItems = [...(editingCourse.scheduleItems || [])];
-                                newItems[editingScheduleIndex] = newItem;
-                                setEditingCourse({ ...editingCourse, scheduleItems: newItems });
-                                setEditingScheduleIndex(null);
-                              } else {
-                                // Add new
-                                setEditingCourse({
-                                  ...editingCourse,
-                                  scheduleItems: [...(editingCourse.scheduleItems || []), newItem]
-                                });
-                              }
-                              // Reset form
-                              setScheduleForm({ day: '1', start: '', end: '', room: '' });
-                            }
-                          }} className={`${editingScheduleIndex !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2 rounded-lg`}>
-                            {editingScheduleIndex !== null ? <Save size={16} /> : <Plus size={16} />}
-                          </button>
                         </div>
-
-                        <div className="space-y-2 mt-2">
-                          {(editingCourse.scheduleItems || []).map((item, idx) => (
-                            <div key={idx} className={`flex justify-between items-center bg-white p-2 rounded-lg border text-sm ${editingScheduleIndex === idx ? 'border-amber-500 bg-amber-50' : 'border-slate-100'}`}>
-                              <span>{item.dayLabel || ['', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'][item.dayOfWeek]} {item.startTime}-{item.endTime} ({item.room})</span>
-                              <div className="flex gap-2">
-                                <button onClick={() => {
-                                  setScheduleForm({
-                                    day: item.dayOfWeek.toString(),
-                                    start: item.startTime,
-                                    end: item.endTime,
-                                    room: item.room || ''
-                                  });
-                                  setEditingScheduleIndex(idx);
-                                }} className="text-amber-400 hover:text-amber-600"><Edit2 size={14} /></button>
-                                <button onClick={() => {
-                                  const newItems = editingCourse.scheduleItems.filter((_, i) => i !== idx);
-                                  setEditingCourse({ ...editingCourse, scheduleItems: newItems });
-                                  if (editingScheduleIndex === idx) {
-                                    setEditingScheduleIndex(null);
-                                    setScheduleForm({ day: '1', start: '', end: '', room: '' });
-                                  }
-                                }} className="text-red-400 hover:text-red-600"><X size={14} /></button>
-                              </div>
-                            </div>
-                          ))}
+                        <div className="space-y-1.5">
+                          <label className={`text-sm font-bold ml-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>รหัสวิชา</label>
+                          <input
+                            type="text"
+                            value={editingCourse.code}
+                            onChange={(e) => setEditingCourse({ ...editingCourse, code: e.target.value })}
+                            className={`w-full p-3.5 rounded-2xl border transition-all focus:outline-none focus:ring-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:ring-indigo-500/20 focus:border-indigo-500' : 'bg-slate-50 border-slate-100 focus:ring-blue-500/20 focus:border-blue-400'}`}
+                          />
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex justify-end pt-4">
-                      <button
-                        onClick={handleUpdateCourse}
-                        className="bg-[#96C68E] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#85b57d] shadow-sm flex items-center"
-                      >
-                        <Save className="mr-2" size={20} /> บันทึกการเปลี่ยนแปลง
-                      </button>
-                    </div>
-                  </>
+                      <div className="space-y-1.5">
+                        <label className={`text-sm font-bold ml-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>คำอธิบายรายวิชา</label>
+                        <textarea
+                          value={editingCourse.description || ''}
+                          onChange={(e) => setEditingCourse({ ...editingCourse, description: e.target.value })}
+                          className={`w-full p-3.5 rounded-2xl border transition-all focus:outline-none focus:ring-2 h-28 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:ring-indigo-500/20 focus:border-indigo-500' : 'bg-slate-50 border-slate-100 focus:ring-blue-500/20 focus:border-blue-400'}`}
+                          placeholder="ใส่รายละเอียดวิชา..."
+                        />
+                      </div>
+
+                      {/* Schedule Editor */}
+                      <div className="space-y-3">
+                        <label className={`text-sm font-bold ml-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>จัดการตารางเรียน</label>
+                        <div className={`${darkMode ? 'bg-slate-800/40' : 'bg-slate-50'} p-5 rounded-2xl space-y-4`}>
+                          <div className="flex flex-wrap gap-3 items-center">
+                            <select
+                              value={scheduleForm.day}
+                              onChange={(e) => setScheduleForm({ ...scheduleForm, day: e.target.value })}
+                              className={`p-2.5 rounded-xl border text-sm transition-all outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
+                            >
+                              <option value="1">จันทร์</option>
+                              <option value="2">อังคาร</option>
+                              <option value="3">พุธ</option>
+                              <option value="4">พฤหัส</option>
+                              <option value="5">ศุกร์</option>
+                              <option value="6">เสาร์</option>
+                              <option value="0">อาทิตย์</option>
+                            </select>
+                            <input
+                              type="time"
+                              value={scheduleForm.start}
+                              onChange={(e) => setScheduleForm({ ...scheduleForm, start: e.target.value })}
+                              className={`p-2.5 rounded-xl border text-sm transition-all outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
+                            />
+                            <span className={darkMode ? 'text-slate-600' : 'text-slate-400'}>-</span>
+                            <input
+                              type="time"
+                              value={scheduleForm.end}
+                              onChange={(e) => setScheduleForm({ ...scheduleForm, end: e.target.value })}
+                              className={`p-2.5 rounded-xl border text-sm transition-all outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
+                            />
+                            <input
+                              type="text"
+                              placeholder="ห้อง"
+                              value={scheduleForm.room}
+                              onChange={(e) => setScheduleForm({ ...scheduleForm, room: e.target.value })}
+                              className={`p-2.5 rounded-xl border text-sm transition-all outline-none w-24 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
+                            />
+                            <button onClick={() => {
+                              const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์', '6': 'เสาร์', '0': 'อาทิตย์' };
+                              if (scheduleForm.start && scheduleForm.end) {
+                                const newItem = {
+                                  dayOfWeek: parseInt(scheduleForm.day),
+                                  startTime: scheduleForm.start,
+                                  endTime: scheduleForm.end,
+                                  room: scheduleForm.room || 'N/A',
+                                  dayLabel: dayMap[scheduleForm.day]
+                                };
+
+                                const currentItems = editingCourse.scheduleItems || [];
+                                if (editingScheduleIndex !== null) {
+                                  const newItems = [...currentItems];
+                                  newItems[editingScheduleIndex] = newItem;
+                                  setEditingCourse({ ...editingCourse, scheduleItems: newItems });
+                                  setEditingScheduleIndex(null);
+                                } else {
+                                  setEditingCourse({
+                                    ...editingCourse,
+                                    scheduleItems: [...currentItems, newItem]
+                                  });
+                                }
+                                setScheduleForm({ day: '1', start: '', end: '', room: '' });
+                              }
+                            }} className={`${editingScheduleIndex !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2.5 rounded-xl shadow-md transition-all active:scale-95`}>
+                              {editingScheduleIndex !== null ? <Save size={18} /> : <Plus size={18} />}
+                            </button>
+                          </div>
+
+                          <div className="space-y-2 mt-2">
+                            {(editingCourse.scheduleItems || []).map((item, idx) => (
+                              <div key={idx} className={`flex justify-between items-center p-3 rounded-xl border text-sm transition-all ${editingScheduleIndex === idx
+                                ? (darkMode ? 'border-amber-500/50 bg-amber-900/10' : 'border-amber-500 bg-amber-50 shadow-inner')
+                                : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-100 text-slate-700')}`}>
+                                <span className="font-medium">{item.dayLabel || ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'][item.dayOfWeek]} {item.startTime}-{item.endTime} ({item.room})</span>
+                                <div className="flex gap-2">
+                                  <button onClick={() => {
+                                    setScheduleForm({
+                                      day: item.dayOfWeek.toString(),
+                                      start: item.startTime,
+                                      end: item.endTime,
+                                      room: item.room || ''
+                                    });
+                                    setEditingScheduleIndex(idx);
+                                  }} className="text-amber-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-400/10 transition-colors"><Edit2 size={16} /></button>
+                                  <button onClick={() => {
+                                    const newItems = editingCourse.scheduleItems.filter((_, i) => i !== idx);
+                                    setEditingCourse({ ...editingCourse, scheduleItems: newItems });
+                                    if (editingScheduleIndex === idx) {
+                                      setEditingScheduleIndex(null);
+                                      setScheduleForm({ day: '1', start: '', end: '', room: '' });
+                                    }
+                                  }} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-400/10 transition-colors"><X size={16} /></button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-4">
+                        <button
+                          onClick={handleUpdateCourse}
+                          className="bg-[#96C68E] text-white px-8 py-3 rounded-2xl font-bold hover:bg-[#85b57d] shadow-lg shadow-[#96C68E]/20 flex items-center transition-all hover:-translate-y-0.5"
+                        >
+                          <Save className="mr-2" size={20} /> บันทึกการเปลี่ยนแปลง
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* DANGER ZONE (Moved inside the main settings container) */}
+                {userRole === 'teacher' && (
+                  <div className={`p-6 rounded-3xl border mt-8 ${darkMode ? 'bg-red-900/10 border-red-900/30' : 'bg-red-50 border-red-100'}`}>
+                    <h4 className="font-bold text-lg text-red-500 mb-2">โซนอันตราย</h4>
+                    <p className={`text-sm mb-4 ${darkMode ? 'text-red-400/70' : 'text-red-400'}`}>การลบรายวิชาจะไม่สามารถกู้คืนได้ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ</p>
+                    <button
+                      onClick={() => handleDeleteCourse(selectedCourse)}
+                      className="bg-red-500 text-white px-6 py-3 rounded-2xl font-bold hover:bg-red-600 flex items-center shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Trash className="mr-2" size={20} /> ลบรายวิชานี้
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* DANGER ZONE (Moved inside the main container) */}
-              {userRole === 'teacher' && (
-                <div className="bg-red-50 p-6 rounded-2xl border border-red-100 space-y-4 mt-6">
-                  <h4 className="font-bold text-lg text-red-600">โซนอันตราย</h4>
-                  <p className="text-sm text-red-400">การลบรายวิชาจะไม่สามารถกู้คืนได้ กรุณาตรวจสอบให้แน่ใจก่อนดำเนินการ</p>
-                  <button
-                    onClick={() => handleDeleteCourse(selectedCourse)}
-                    className="bg-red-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-600 flex items-center shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Trash className="mr-2" size={20} /> ลบรายวิชานี้
-                  </button>
-                </div>
-              )}
-
-              {userRole === 'student' && (
-                <div className="mt-8 pt-6 border-t border-slate-200">
-                  <button
-                    onClick={handleLeaveCourse}
-                    className="text-red-500 text-sm font-bold flex items-center hover:bg-red-50 px-4 py-2 rounded-xl transition-colors"
-                  >
-                    <LogOut size={18} className="mr-2" /> ออกจากห้องเรียนนี้
-                  </button>
-                </div>
-              )}
             </div>
           );
         default: // 'home' (Feed)
           return (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-1 lg:grid-cols-4 gap-6 ${darkMode ? 'text-slate-100' : ''}`}>
               <div className="lg:col-span-1 space-y-4">
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm !animate-none !transition-none !transform-none">
-                  <h3 className="font-bold text-slate-700 mb-2">เกี่ยวกับรายวิชา</h3>
-                  <p className="text-sm text-slate-500 mb-4">{selectedCourse.description}</p>
+                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-4 rounded-2xl border shadow-sm`}>
+                  <h3 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>เกี่ยวกับรายวิชา</h3>
+                  <p className={`text-sm mb-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{selectedCourse.description}</p>
 
-                  <div className="pt-4 border-t border-slate-100">
-                    <h3 className="font-bold text-slate-700 mb-2">รหัสเข้าห้องเรียน</h3>
+                  <div className={`pt-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
+                    <h3 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>รหัสเข้าห้องเรียน</h3>
                     <div className="flex items-center gap-4">
-                      <div className="text-2xl font-mono text-[#96C68E] font-bold tracking-widest">
+                      <div className={`text-2xl font-mono font-bold tracking-widest ${darkMode ? 'text-indigo-400' : 'text-[#96C68E]'}`}>
                         {selectedCourse.inviteCode || 'N/A'}
                       </div>
 
                       <button
                         onClick={() => navigator.clipboard.writeText(selectedCourse.inviteCode || '')}
-                        className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-slate-500 bg-slate-50 hover:bg-[#96C68E] hover:text-white rounded-md transition-colors border border-slate-200"
+                        className={`flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-md transition-colors border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-indigo-400' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-[#96C68E] hover:text-white'}`}
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-
+                        <Copy size={16} />
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                  <h3 className="font-bold text-slate-700 mb-2">งานที่ใกล้ถึงกำหนด</h3>
-                  <p className="text-sm text-slate-500">ไม่มีงานที่ต้องส่งเร็วๆ นี้</p>
+                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-4 rounded-2xl border shadow-sm`}>
+                  <h3 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>งานที่ใกล้ถึงกำหนด</h3>
+                  <p className={`text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ไม่มีงานที่ต้องส่งเร็วๆ นี้</p>
                   <div className="flex justify-end mt-2">
-                    <button className="text-xs text-[#FF917B] font-bold" onClick={() => setCourseTab('work')}>ดูทั้งหมด</button>
+                    <button className={`text-xs font-bold ${darkMode ? 'text-orange-400 hover:text-orange-300' : 'text-[#FF917B] hover:text-orange-600'}`} onClick={() => setCourseTab('work')}>ดูทั้งหมด</button>
                   </div>
                 </div>
               </div>
 
               <div className="lg:col-span-3 space-y-4">
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                    <User size={20} className="text-slate-500" />
+                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-4 rounded-2xl shadow-sm border flex items-center gap-4`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${darkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                    <User size={20} />
                   </div>
-                  <div className="flex-1 bg-slate-50 rounded-xl px-4 py-3 text-slate-400 text-sm cursor-text hover:bg-slate-100 transition-colors">
+                  <div className={`flex-1 rounded-xl px-4 py-3 text-sm cursor-text transition-colors ${darkMode ? 'bg-slate-800 text-slate-500 hover:bg-slate-700' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
                     ประกาศบางอย่างให้กับชั้นเรียน...
                   </div>
-                  <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-full">
+                  <button className={`p-2 rounded-full transition-colors ${darkMode ? 'text-slate-500 hover:bg-slate-800' : 'text-slate-400 hover:bg-slate-100'}`}>
                     <Upload size={20} />
                   </button>
                 </div>
 
                 {selectedCourse.feed && selectedCourse.feed.length > 0 ? (
                   selectedCourse.feed.map(post => (
-                    <div key={post.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div key={post.id} className={`${darkMode ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-100 text-slate-600'} p-6 rounded-2xl shadow-sm border`}>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full ${selectedCourse.color} flex items-center justify-center`}>
                             <FileText size={20} className="opacity-50" />
                           </div>
                           <div>
-                            <h4 className="font-bold text-slate-800 text-sm">ครู{selectedCourse.teacher}</h4>
-                            <p className="text-xs text-slate-400">โพสต์เมื่อ {post.date}</p>
+                            <h4 className={`font-bold text-sm ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ครู{selectedCourse.teacher}</h4>
+                            <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>โพสต์เมื่อ {post.date}</p>
                           </div>
                         </div>
-                        <button><MoreVertical size={20} className="text-slate-300" /></button>
+                        <button><MoreVertical size={20} className={darkMode ? 'text-slate-600' : 'text-slate-300'} /></button>
                       </div>
-                      <p className="text-slate-600 text-sm mb-4">
+                      <p className="text-sm mb-4">
                         {post.text}
                       </p>
                       {post.file && (
                         <div className="flex gap-2">
-                          <div className="border border-slate-200 rounded-xl p-3 flex items-center gap-3 w-1/2 hover:bg-slate-50 cursor-pointer">
-                            <div className="bg-red-100 p-2 rounded-lg"><FileText size={20} className="text-red-500" /></div>
+                          <div className={`border rounded-xl p-3 flex items-center gap-3 w-1/2 cursor-pointer transition-colors ${darkMode ? 'border-slate-800 bg-slate-800/50 hover:bg-slate-800' : 'border-slate-200 hover:bg-slate-50'}`}>
+                            <div className={`${darkMode ? 'bg-red-900/30' : 'bg-red-100'} p-2 rounded-lg`}><FileText size={20} className="text-red-500" /></div>
                             <div className="overflow-hidden">
-                              <div className="text-sm font-bold text-slate-700 truncate">{post.file}</div>
-                              <div className="text-xs text-slate-400">เอกสารประกอบ</div>
+                              <div className={`text-sm font-bold truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{post.file}</div>
+                              <div className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>เอกสารประกอบ</div>
                             </div>
                           </div>
                         </div>
@@ -5429,7 +5435,7 @@ export default function SchoolyScootLMS() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-10 text-slate-400">
+                  <div className={`text-center py-10 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>
                     ยังไม่มีประกาศในรายวิชานี้
                   </div>
                 )}
@@ -5439,9 +5445,9 @@ export default function SchoolyScootLMS() {
 
         case 'quizzes':
           return (
-            <div className="space-y-6">
+            <div className={`space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
               <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                <h2 className={`text-xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                   <ClipboardList className="mr-2 text-[#96C68E]" /> แบบทดสอบ
                 </h2>
                 {userRole === 'teacher' && (
@@ -5459,24 +5465,24 @@ export default function SchoolyScootLMS() {
 
               {userRole === 'teacher' ? (
                 // --- TEACHER VIEW: Management Table ---
-                <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} rounded-[2rem] border overflow-hidden`}>
                   <table className="w-full text-left">
-                    <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 text-sm">
+                    <thead className={darkMode ? 'bg-slate-800/50' : 'bg-slate-50'}>
                       <tr>
-                        <th className="p-4 font-bold">ชื่อแบบทดสอบ</th>
-                        <th className="p-4 font-bold">สถานะ</th>
-                        <th className="p-4 font-bold">จำนวนข้อ</th>
-                        <th className="p-4 font-bold">เวลา</th>
-                        <th className="p-4 font-bold text-right">จัดการ</th>
+                        <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ชื่อชุดข้อสอบ</th>
+                        <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>สถานะ</th>
+                        <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>คำถาม</th>
+                        <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>เวลา</th>
+                        <th className={`p-4 font-bold text-right ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>จัดการ</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-100'}`}>
                       {quizzes.length > 0 ? quizzes.map((quiz) => (
-                        <tr key={quiz.firestoreId} className="border-b border-slate-50 hover:bg-slate-50 transition-colors group">
+                        <tr key={quiz.firestoreId} className={darkMode ? 'hover:bg-slate-800/30 transition-colors' : 'hover:bg-slate-50 transition-colors'}>
                           <td className="p-4">
-                            <div className="font-bold text-slate-700">{quiz.title}</div>
+                            <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</div>
                             {quiz.scheduledAt && (
-                              <div className="text-xs text-orange-500 flex items-center mt-1 font-medium bg-orange-50 w-fit px-2 py-0.5 rounded-lg border border-orange-100">
+                              <div className={`text-xs flex items-center mt-1 font-medium w-fit px-2 py-0.5 rounded-lg border ${darkMode ? 'bg-orange-900/20 text-orange-400 border-orange-900/30' : 'bg-orange-50 text-orange-500 border-orange-100'}`}>
                                 <Calendar size={12} className="mr-1" />
                                 เริ่ม: {new Date(quiz.scheduledAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                               </div>
@@ -5486,34 +5492,34 @@ export default function SchoolyScootLMS() {
                             <button
                               onClick={() => handleToggleQuizStatus(quiz)}
                               className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${quiz.status === 'available'
-                                ? 'bg-[#F0FDF4] text-[#96C68E] border-[#96C68E] hover:bg-red-50 hover:text-red-500 hover:border-red-200 hover:content-["ปิด"]'
-                                : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-[#F0FDF4] hover:text-[#96C68E] hover:border-[#96C68E]'
+                                ? (darkMode ? 'bg-green-900/40 text-[#96C68E] border-[#96C68E]' : 'bg-[#F0FDF4] text-[#96C68E] border-[#96C68E]')
+                                : (darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-400 border-slate-200')
                                 }`}>
                               {quiz.status === 'available' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                             </button>
                           </td>
-                          <td className="p-4 text-slate-500">{quiz.questions} ข้อ</td>
-                          <td className="p-4 text-slate-500">{parseInt(quiz.time)} นาที</td>
+                          <td className={`p-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{quiz.questions} ข้อ</td>
+                          <td className={`p-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{parseInt(quiz.time)} นาที</td>
                           <td className="p-4 text-right">
                             <div className="flex justify-end gap-2">
                               {/* View Results Button */}
                               <button
                                 onClick={() => handleViewResults(quiz)}
-                                className="p-2 text-slate-300 "
+                                className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-yellow-400 hover:bg-yellow-900/20' : 'text-slate-300 hover:text-yellow-500 hover:bg-yellow-50'} rounded-xl`}
                                 title="ดูคะแนน"
                               >
                                 <Trophy size={18} />
                               </button>
                               <button
                                 onClick={() => handleEditQuiz(quiz)}
-                                className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-blue-400 hover:bg-blue-900/20' : 'text-slate-300 hover:text-blue-500 hover:bg-blue-50'} rounded-xl`}
                                 title="แก้ไข"
                               >
                                 <Settings size={18} />
                               </button>
                               <button
                                 onClick={() => handleDeleteQuiz(quiz.firestoreId)}
-                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'} rounded-xl`}
                                 title="ลบ"
                               >
                                 <Trash size={18} />
@@ -5522,7 +5528,7 @@ export default function SchoolyScootLMS() {
                           </td>
                         </tr>
                       )) : (
-                        <tr><td colSpan="5" className="p-8 text-center text-slate-400">ยังไม่มีแบบทดสอบ</td></tr>
+                        <tr><td colSpan="5" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีแบบทดสอบ</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -5551,15 +5557,18 @@ export default function SchoolyScootLMS() {
                       const isSubmitted = !!submission;
 
                       return (
-                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm relative overflow-hidden ${isSubmitted ? 'bg-slate-50 border-slate-200' : (isLocked ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100')}`}>
+                        <div key={quiz.firestoreId || quiz.id} className={`p-6 rounded-3xl border shadow-sm relative overflow-hidden ${isSubmitted
+                          ? (darkMode ? 'bg-slate-900 border-indigo-900/30' : 'bg-slate-50 border-slate-200 opacity-80')
+                          : (isLocked ? (darkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-50 border-slate-200') : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-indigo-500' : 'bg-white border-slate-100 hover:border-blue-200'))
+                          } transition-all duration-300`}>
                           {isLocked && !isSubmitted && (
-                            <div className="absolute top-0 right-0 bg-orange-100 text-orange-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10">
+                            <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10 ${darkMode ? 'bg-orange-950 text-orange-400' : 'bg-orange-100 text-orange-600'}`}>
                               <Clock size={12} className="mr-1" /> เริ่ม: {scheduledTime.toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           )}
 
                           {isSubmitted && (
-                            <div className="absolute top-0 right-0 bg-green-100 text-green-600 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10">
+                            <div className={`absolute top-0 right-0 px-3 py-1 rounded-bl-xl text-xs font-bold flex items-center z-10 ${darkMode ? 'bg-green-950 text-[#96C68E]' : 'bg-green-100 text-green-600'}`}>
                               <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
                             </div>
                           )}
@@ -5570,7 +5579,7 @@ export default function SchoolyScootLMS() {
                             </div>
                           </div>
 
-                          <h3 className={`text-lg font-bold mb-2 line-clamp-1 ${isLocked ? 'text-slate-500' : 'text-slate-800'}`}>{quiz.title}</h3>
+                          <h3 className={`text-lg font-bold mb-2 line-clamp-1 ${isLocked ? (darkMode ? 'text-slate-600' : 'text-slate-400') : (darkMode ? 'text-white' : 'text-slate-800')}`}>{quiz.title}</h3>
 
                           <div className="flex items-center gap-4 text-xs text-slate-500 mb-6 font-medium">
                             <span className="flex items-center"><HelpCircle size={14} className="mr-1" /> {quiz.questions} ข้อ</span>
@@ -5578,7 +5587,7 @@ export default function SchoolyScootLMS() {
                           </div>
 
                           {isSubmitted ? (
-                            <div className="w-full py-3 rounded-xl font-bold text-center bg-green-50 text-green-600 border border-green-100">
+                            <div className={`w-full py-3 rounded-xl font-bold text-center border ${darkMode ? 'bg-green-900/20 text-[#96C68E] border-[#96C68E]/30' : 'bg-green-50 text-green-600 border-green-100'}`}>
                               คะแนน: {submission.score} / {submission.total}
                             </div>
                           ) : (
@@ -5603,35 +5612,35 @@ export default function SchoolyScootLMS() {
                       )
                     }) : (
                       <div className="col-span-full py-16 text-center">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-slate-800 text-slate-700' : 'bg-slate-50 text-slate-300'}`}>
                           <ClipboardList size={32} />
                         </div>
-                        <h3 className="text-slate-500 font-bold">ยังไม่มีแบบทดสอบ</h3>
-                        <p className="text-slate-400 text-sm mt-1">คุณครูยังไม่ได้สร้างแบบทดสอบในวิชานี้</p>
+                        <h3 className={`font-bold ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ยังไม่มีแบบทดสอบ</h3>
+                        <p className={`text-sm mt-1 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>คุณครูยังไม่ได้สร้างแบบทดสอบในวิชานี้</p>
                       </div>
                     )}
                 </div>
               )}
             </div>
-          )
+          );
 
         case 'meeting':
           return (
-            <div className="space-y-6">
+            <div className={`space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-slate-800 flex items-center">
+                <h2 className={`text-xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                   <Video className="mr-2 text-[#96C68E]" /> ห้องเรียนออนไลน์
                 </h2>
               </div>
 
               {userRole === 'teacher' ? (
                 meetingConfig.isActive ? (
-                  <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
-                    <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <Video size={48} className="text-green-600" />
+                  <div className={`rounded-3xl p-8 shadow-sm border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+                    <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${darkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                      <Video size={48} className={darkMode ? 'text-[#96C68E]' : 'text-green-600'} />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 mb-2">กำลังมีการเรียนการสอน</h3>
-                    <p className="text-slate-600 mb-6">หัวข้อ: <span className="font-bold text-[#96C68E]">{meetingConfig.topic}</span></p>
+                    <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>กำลังมีการเรียนการสอน</h3>
+                    <p className={darkMode ? 'text-slate-400 mb-6' : 'text-slate-600 mb-6'}>หัวข้อ: <span className="font-bold text-[#96C68E]">{meetingConfig.topic}</span></p>
 
                     <div className="flex flex-col gap-3 max-w-xs mx-auto">
                       <button
@@ -5656,18 +5665,18 @@ export default function SchoolyScootLMS() {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
-                    <div className="w-24 h-24 bg-[#F0FDF4] rounded-full flex items-center justify-center mx-auto mb-6">
+                  <div className={`rounded-3xl p-8 shadow-sm border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+                    <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${darkMode ? 'bg-emerald-900/20' : 'bg-[#F0FDF4]'}`}>
                       <Video size={48} className="text-[#96C68E]" />
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 mb-2">เปิดห้องเรียนออนไลน์</h3>
-                    <p className="text-slate-500 mb-6">สร้างห้องเรียนวิดีโอเพื่อสอนนักเรียนแบบ Real-time</p>
+                    <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>เปิดห้องเรียนออนไลน์</h3>
+                    <p className={darkMode ? 'text-slate-500 mb-6' : 'text-slate-500 mb-6'}>สร้างห้องเรียนวิดีโอเพื่อสอนนักเรียนแบบ Real-time</p>
 
                     <div className="max-w-md mx-auto space-y-4">
                       <input
                         type="text"
                         placeholder="หัวข้อการเรียน (เช่น บทที่ 5: สมการเชิงเส้น)"
-                        className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-[#96C68E]"
+                        className={`w-full p-4 rounded-2xl border transition-all focus:outline-none focus:ring-2 focus:ring-[#96C68E]/20 ${darkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500 focus:border-[#96C68E]' : 'border-slate-200 bg-slate-50 focus:border-[#96C68E]'}`}
                         value={meetingConfig.topic}
                         onChange={(e) => setMeetingConfig({ ...meetingConfig, topic: e.target.value })}
                       />
@@ -5681,15 +5690,15 @@ export default function SchoolyScootLMS() {
                   </div>
                 )
               ) : (
-                <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 text-center">
+                <div className={`rounded-3xl p-8 shadow-sm border text-center ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                   {meetingConfig.isActive ? (
                     <>
-                      <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Video size={48} className="text-green-600" />
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${darkMode ? 'bg-green-900/30' : 'bg-green-100'}`}>
+                        <Video size={48} className={darkMode ? 'text-[#96C68E]' : 'text-green-600'} />
                       </div>
-                      <h3 className="text-2xl font-bold text-slate-800 mb-2">กำลังมีการเรียนการสอน!</h3>
-                      <p className="text-slate-600 font-medium mb-1">หัวข้อ: <span className="text-[#96C68E]">{meetingConfig.topic}</span></p>
-                      <p className="text-slate-400 mb-8">คุณครูกำลังรอคุณอยู่ เข้าห้องเรียนเพื่อเริ่มเรียนได้เลย</p>
+                      <h3 className={`text-2xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>กำลังมีการเรียนการสอน!</h3>
+                      <p className={`${darkMode ? 'text-slate-300' : 'text-slate-600'} font-medium mb-1`}>หัวข้อ: <span className="text-[#96C68E]">{meetingConfig.topic}</span></p>
+                      <p className={`mb-8 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>คุณครูกำลังรอคุณอยู่ เข้าห้องเรียนเพื่อเริ่มเรียนได้เลย</p>
 
                       <button
                         onClick={() => setActiveModal('videoConference')}
@@ -5700,11 +5709,11 @@ export default function SchoolyScootLMS() {
                     </>
                   ) : (
                     <>
-                      <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <VideoOff size={48} className="text-slate-300" />
+                      <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${darkMode ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+                        <VideoOff size={48} className={darkMode ? 'text-slate-700' : 'text-slate-300'} />
                       </div>
-                      <h3 className="text-xl font-bold text-slate-400 mb-2">ยังไม่มีการเรียนการสอน</h3>
-                      <p className="text-slate-400">เมื่อคุณครูเริ่มคลาสเรียน ปุ่มเข้าห้องเรียนจะปรากฏที่นี่</p>
+                      <h3 className={`text-xl font-bold mb-2 ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีการเรียนการสอน</h3>
+                      <p className={darkMode ? 'text-slate-600' : 'text-slate-400'}>เมื่อคุณครูเริ่มคลาสเรียน ปุ่มเข้าห้องเรียนจะปรากฏที่นี่</p>
                     </>
                   )}
                 </div>
@@ -5717,41 +5726,45 @@ export default function SchoolyScootLMS() {
 
 
     return (
-      <div className="space-y-6">
+      <div className={`space-y-6 animate-in fade-in duration-500 ${darkMode ? 'text-slate-100' : ''}`}>
         <button
           onClick={() => setSelectedCourse(null)}
-          className="text-slate-500 hover:text-slate-800 flex items-center text-sm font-bold mb-4"
+          className={`flex items-center text-sm font-bold mb-4 transition-colors ${darkMode ? 'text-slate-500 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'}`}
         >
           <ChevronRight className="rotate-180 mr-1" /> กลับไปหน้ารวม
         </button>
 
-        <div className={`${selectedCourse.color} rounded-3xl p-8 relative overflow-hidden text-slate-800`}>
-          <div className="relative z-10">
-            <h1 className="text-3xl font-bold mb-2">{selectedCourse.name}</h1>
-            <p className="opacity-80 text-lg">{selectedCourse.code} • {selectedCourse.teacher}</p>
+        <div className={`${selectedCourse.color} rounded-[2.5rem] p-8 relative overflow-hidden transition-all duration-700 shadow-xl shadow-black/5`}>
+          <div className="relative z-10 text-slate-800">
+            <h1 className="text-4xl font-black mb-2">{selectedCourse.name}</h1>
+            <p className="text-lg font-medium opacity-80">{selectedCourse.code} • {selectedCourse.teacher}</p>
           </div>
-          <div className="absolute right-10 top-1/2 -translate-y-1/2 opacity-20 scale-150">
+          <div className="absolute right-12 top-1/2 -translate-y-1/2 opacity-20 scale-[2.5] text-slate-800">
             {selectedCourse.icon}
           </div>
+
+          {/* Decorative Blob */}
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/20 rounded-full blur-3xl"></div>
         </div>
 
         {/* Tabs Navigation */}
-        <div className="flex space-x-1 overflow-x-auto pb-2 custom-scrollbar">
+        <div className={`flex p-1.5 gap-1 overflow-x-auto custom-scrollbar rounded-2xl ${darkMode ? 'bg-slate-900/50' : 'bg-slate-100/50'}`}>
           {['หน้าหลัก', 'งานในชั้นเรียน', 'แบบทดสอบ', 'สมาชิก', 'คะแนน', 'ห้องเรียนออนไลน์', ...(userRole === 'teacher' ? ['ตั้งค่า'] : [])].map((tab) => {
             const tabKey = tab === 'หน้าหลัก' ? 'home' : tab === 'งานในชั้นเรียน' ? 'work' : tab === 'แบบทดสอบ' ? 'quizzes' : tab === 'สมาชิก' ? 'people' : tab === 'คะแนน' ? 'grades' : tab === 'ห้องเรียนออนไลน์' ? 'meeting' : 'settings';
+            const isActive = courseTab === tabKey;
+
             return (
               <button
                 key={tab}
                 onClick={() => setCourseTab(tabKey)}
-                className={`relative px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap ${courseTab === tabKey
-                  ? 'bg-slate-800 text-white shadow-md'
-                  : 'bg-transparent text-slate-500 hover:bg-slate-100'
+                className={`relative px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${isActive
+                  ? (darkMode ? 'bg-slate-800 text-white shadow-lg shadow-black/20' : 'bg-white text-slate-800 shadow-sm')
+                  : (darkMode ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50' : 'text-slate-500 hover:text-slate-800 hover:bg-white/50')
                   }`}
               >
                 {tab}
-                {/* Notification Badge for Members Tab */}
                 {tab === 'สมาชิก' && userRole === 'teacher' && pendingMembers.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#F8FAFC]">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#F8FAFC] shadow-sm animate-pulse">
                     {pendingMembers.length}
                   </span>
                 )}
@@ -5761,10 +5774,144 @@ export default function SchoolyScootLMS() {
         </div>
 
         {/* Render Tab Content */}
-        {renderSubTabContent()}
+        <div className="min-h-[400px]">
+          {renderSubTabContent()}
+        </div>
       </div>
     );
   };
+
+  const renderSettings = () => (
+    <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+      <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
+        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <User className="text-[#96C68E]" /> บัญชีผู้ใช้
+        </h3>
+
+        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
+          {/* Profile Picture */}
+          <div className="flex flex-col items-center">
+            <div className="w-24 h-24 rounded-full bg-slate-100 mb-4 overflow-hidden border-4 border-white shadow-md relative group">
+              {profile.photoURL ? (
+                <img src={profile.photoURL} alt="Preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-[#BEE1FF] text-3xl font-bold text-slate-600">
+                  {profile.firstName?.[0]}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => {
+                setEditProfileData({
+                  firstName: profile.firstName,
+                  lastName: profile.lastName,
+                  photoURL: profile.photoURL
+                });
+                setActiveModal('editProfile');
+              }}
+              className="text-sm text-blue-500 hover:text-blue-600 font-bold"
+            >
+              แก้ไขรูปโปรไฟล์
+            </button>
+          </div>
+
+          <div className="flex-1 space-y-4 w-full">
+            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border`}>
+              <p className="text-xs text-slate-400 font-bold uppercase mb-1">ชื่อ - นามสกุล</p>
+              <p className={`${darkMode ? 'text-slate-200' : 'text-slate-700'} font-medium`}>{profile.firstName} {profile.lastName}</p>
+            </div>
+            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border`}>
+              <p className="text-xs text-slate-400 font-bold uppercase mb-1">อีเมล</p>
+              <p className={`${darkMode ? 'text-slate-200' : 'text-slate-700'} font-medium`}>{profile.email}</p>
+            </div>
+            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border`}>
+              <p className="text-xs text-slate-400 font-bold uppercase mb-1">สถานะ</p>
+              <span className={`inline-block px-3 py-1 ${darkMode ? 'bg-green-900/30 text-[#96C68E]' : 'bg-[#F0FDF4] text-[#96C68E]'} rounded-lg text-sm font-bold`}>
+                {profile.roleLabel}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className={`mt-8 pt-8 ${darkMode ? 'border-slate-800' : 'border-slate-50'} border-t flex justify-end`}>
+          <button
+            onClick={() => {
+              setEditProfileData({
+                firstName: profile.firstName,
+                lastName: profile.lastName,
+                photoURL: profile.photoURL
+              });
+              setActiveModal('editProfile');
+            }}
+            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'} border rounded-2xl font-bold transition-all mr-4 shadow-sm`}
+          >
+            <Edit2 size={18} /> แก้ไขข้อมูลส่วนตัว
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-red-50 text-red-500 hover:bg-red-100'} rounded-2xl font-bold transition-all shadow-sm`}
+          >
+            <LogOut size={18} /> ออกจากระบบ
+          </button>
+        </div>
+      </div>
+
+      <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-3xl p-8 border shadow-sm relative overflow-hidden transition-all duration-500`}>
+        <div className="flex justify-between items-center mb-6">
+          <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
+            <Settings className="text-[#96C68E]" /> การตั้งค่าทั่วไป
+          </h3>
+        </div>
+
+        <div className="space-y-6">
+          {/* FONT SIZE SETTING */}
+          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+            <div className="flex justify-between items-center mb-4">
+              <span className={`font-bold flex items-center gap-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                <BarChart3 size={18} className="text-blue-400" /> ขนาดตัวอักษร
+              </span>
+              <span className={`text-sm font-bold ${darkMode ? 'text-blue-400 bg-blue-900/40' : 'text-blue-500 bg-blue-50'} px-3 py-1 rounded-lg`}>{fontSize}%</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-slate-400">เล็ก</span>
+              <input
+                type="range"
+                min="80"
+                max="150"
+                value={fontSize}
+                onChange={(e) => setFontSize(parseInt(e.target.value))}
+                className={`flex-1 h-2 ${darkMode ? 'bg-slate-700' : 'bg-slate-200'} rounded-lg appearance-none cursor-pointer accent-[#96C68E]`}
+              />
+              <span className={`text-sm font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ใหญ่</span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-2">* ปรับขนาดตัวอักษรของระบบให้เหมาะสมกับการมองเห็น</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* NOTIFICATIONS SETTING */}
+            <div className={`p-6 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${notificationsEnabled ? (darkMode ? 'bg-slate-800 border-green-900/50 shadow-sm' : 'bg-white border-green-200 shadow-sm') : (darkMode ? 'bg-slate-900/50 border-slate-800 opacity-60' : 'bg-slate-50 border-slate-100 opacity-60')}`}
+              onClick={() => setNotificationsEnabled(!notificationsEnabled)}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${notificationsEnabled ? (darkMode ? 'bg-green-900/40 text-[#96C68E]' : 'bg-green-100 text-green-600') : (darkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400')}`}>
+                  <Bell size={20} />
+                </div>
+                <div>
+                  <p className={`font-bold text-sm ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>การแจ้งเตือน</p>
+                  <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{notificationsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</p>
+                </div>
+              </div>
+              <div className={`w-12 h-6 rounded-full relative transition-colors ${notificationsEnabled ? 'bg-[#96C68E]' : 'bg-slate-300'}`}>
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notificationsEnabled ? 'right-1' : 'left-1'}`}></div>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // IF NOT LOGGED IN, SHOW LOGIN PAGE
   // --- ส่วนตัดสินใจว่าจะแสดงหน้าไหนก่อนเข้าสู่ระบบ ---
@@ -5789,7 +5936,7 @@ export default function SchoolyScootLMS() {
 
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] font-sans">
+    <div className={`flex h-screen bg-[#F8FAFC] font-sans ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`} style={{ fontSize: `${fontSize}%` }}>
       {renderModal()}
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {activeModal === 'videoConference' && (
@@ -5857,7 +6004,7 @@ export default function SchoolyScootLMS() {
 
       {/* Sidebar แถบตัวเลือกข้างๆ */}
       <aside className={`
-        fixed md:static inset-y-0 left-0 z-30 w-64 bg-[#F0F4F8] p-4 flex flex-col transition-transform duration-300 border-r border-white
+        fixed md:static inset-y-0 left-0 z-30 w-64 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-[#F0F4F8] border-white'} p-4 flex flex-col transition-transform duration-300 border-r
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
 
@@ -5874,26 +6021,19 @@ export default function SchoolyScootLMS() {
 
         <nav className="flex-1 overflow-y-auto custom-scrollbar">
           <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">เมนูหลัก</p>
-          <SidebarItem id="dashboard" label="แดชบอร์ด" icon={PieChart} activeTab={activeTab} onSelect={() => { setActiveTab('dashboard'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} activeTab={activeTab} onSelect={() => { setActiveTab('courses'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
-          <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="dashboard" label="แดชบอร์ด" icon={PieChart} activeTab={activeTab} darkMode={darkMode} onSelect={() => { setActiveTab('dashboard'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="courses" label="ห้องเรียน" icon={BookOpen} activeTab={activeTab} darkMode={darkMode} onSelect={() => { setActiveTab('courses'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="assignments" label={userRole === 'student' ? "การบ้าน" : "ตรวจงาน"} icon={CheckSquare} activeTab={activeTab} darkMode={darkMode} onSelect={() => { setActiveTab('assignments'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="schedule" label="ตารางเรียน" icon={Calendar} activeTab={activeTab} darkMode={darkMode} onSelect={() => { setActiveTab('schedule'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
+          <SidebarItem id="settings" label="ตั้งค่า" icon={Settings} activeTab={activeTab} darkMode={darkMode} onSelect={() => { setActiveTab('settings'); setSelectedCourse(null); setIsMobileMenuOpen(false); }} />
         </nav>
 
         {/* โปรไฟล์ ด้านล่าง*/}
-        <div className="mt-auto bg-white p-3 rounded-2xl shadow-sm">
+        <div className={`mt-auto ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-transparent'} p-3 rounded-2xl shadow-sm border`}>
           <div
-            className="flex items-center cursor-pointer hover:bg-slate-50 transition-colors p-2 rounded-xl"
-            onClick={() => {
-              setEditProfileData({
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                photoURL: profile.photoURL
-              });
-              setActiveModal('editProfile');
-            }}
+            className="flex items-center p-2 rounded-xl"
           >
-            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden">
+            <div className={`w-10 h-10 rounded-full ${darkMode ? 'bg-slate-700' : 'bg-slate-200'} flex items-center justify-center overflow-hidden`}>
               {profile.photoURL ? (
                 <img src={profile.photoURL} alt="Profile" className="w-full h-full object-cover" />
               ) : (
@@ -5901,12 +6041,11 @@ export default function SchoolyScootLMS() {
               )}
             </div>
             <div className="ml-3 flex-1 overflow-hidden">
-              <p className="text-sm font-bold text-slate-800 truncate">
+              <p className={`text-sm font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'} truncate`}>
                 {profile.firstName} {profile.lastName}
               </p>
-              <p className="text-xs text-slate-500 truncate capitalize">{profile.roleLabel}</p>
+              <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'} truncate capitalize`}>{profile.roleLabel}</p>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); handleLogout(); }} className="text-slate-400 hover:text-red-400"><LogOut size={18} /></button>
           </div>
           {/* <button
             onClick={() => {
@@ -5927,12 +6066,12 @@ export default function SchoolyScootLMS() {
 
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        <header className="md:hidden bg-white p-4 flex items-center justify-between shadow-sm z-10">
-          <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-600">
+      <main className={`flex-1 flex flex-col h-screen overflow-hidden relative ${darkMode ? 'bg-slate-950 text-slate-100' : ''}`}>
+        <header className={`md:hidden ${darkMode ? 'bg-slate-900 border-slate-800 shadow-lg' : 'bg-white shadow-sm border-slate-100'} p-4 flex items-center justify-between z-10 border-b`}>
+          <button onClick={() => setIsMobileMenuOpen(true)} className={`${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
             <Menu />
           </button>
-          <span className="font-bold text-slate-800">Schooly Scoot</span>
+          <span className={`font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot</span>
           <button
             onClick={() => setActiveModal('notificationsList')}
             className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center relative"
@@ -5947,7 +6086,7 @@ export default function SchoolyScootLMS() {
           <div className="max-w-6xl mx-auto">
 
             <div className="hidden md:flex justify-between items-center mb-8">
-              <h2 className="text-2xl font-bold text-slate-800">
+              <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                 {activeTab === 'dashboard' ? 'ภาพรวม' :
                   activeTab === 'courses' ? 'ห้องเรียน' :
                     activeTab === 'assignments' ? (userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน') :
@@ -5957,7 +6096,7 @@ export default function SchoolyScootLMS() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setActiveModal('notificationsList')}
-                  className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center relative hover:bg-slate-50">
+                  className={`w-10 h-10 rounded-xl ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50'} border flex items-center justify-center relative`}>
                   <Bell size={20} className="text-slate-600" />
                   {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>}
                 </button>
@@ -5973,6 +6112,7 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'messages' && renderMessages()}
                 {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} />}
                 {activeTab === 'analytics' && <AnalyticsView setView={setActiveTab} courses={courses} assignments={assignments} userRole={userRole} userId={auth.currentUser?.uid} />}
+                {activeTab === 'settings' && renderSettings()}
 
               </>
             )}
