@@ -63,7 +63,8 @@ const CourseDetailView = ({
     editingScheduleIndex,
     setEditingScheduleIndex,
     handleUpdateCourse,
-    handleDeleteCourse
+    handleDeleteCourse,
+    validateScheduleConflict
 }) => {
     const renderSubTabContent = () => {
         switch (courseTab) {
@@ -176,6 +177,7 @@ const CourseDetailView = ({
                         handleDeleteCourse={handleDeleteCourse}
                         userRole={userRole}
                         selectedCourse={selectedCourse}
+                        validateScheduleConflict={validateScheduleConflict}
                     />
                 );
             default:

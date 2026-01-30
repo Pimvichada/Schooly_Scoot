@@ -1589,12 +1589,38 @@ export default function SchoolyScootLMS() {
       setEditingScheduleIndex(null);
       setScheduleForm({ day: '1', start: '', end: '', room: '' });
 
+      setScheduleForm({ day: '1', start: '', end: '', room: '' });
+
       alert('บันทึกการเปลี่ยนแปลงเรียบร้อย');
     } catch (error) {
       console.error("Failed to update course", error);
       alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     }
   };
+
+  const validateScheduleConflict = useCallback((newItem, excludeCourseId) => {
+    if (!auth.currentUser) return { conflict: false };
+
+    for (const course of courses) {
+      if (course.firestoreId === excludeCourseId) continue;
+      // Ensure we only check courses this teacher actually owns/teaches
+      if (course.ownerId !== auth.currentUser.uid) continue;
+
+      const items = course.schedule || course.scheduleItems;
+      if (items && Array.isArray(items)) {
+        for (const existingItem of items) {
+          if (isOverlap(newItem, existingItem)) {
+            return {
+              conflict: true,
+              courseName: course.name,
+              detail: `${existingItem.dayLabel || ''} ${existingItem.startTime}-${existingItem.endTime}`
+            };
+          }
+        }
+      }
+    }
+    return { conflict: false };
+  }, [courses, auth.currentUser]);
 
   const handleLeaveCourse = async () => {
     if (!confirm('ยืนยันที่จะออกจากห้องเรียนนี้หรือไม่? ข้อมูลการส่งงานและคะแนนอาจสูญหาย')) return;
@@ -4015,6 +4041,7 @@ export default function SchoolyScootLMS() {
                 setEditingScheduleIndex={setEditingScheduleIndex}
                 handleUpdateCourse={handleUpdateCourse}
                 handleDeleteCourse={handleDeleteCourse}
+                validateScheduleConflict={validateScheduleConflict}
               />
             ) : (
               <>
