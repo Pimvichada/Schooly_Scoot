@@ -124,7 +124,20 @@ export default function SchoolyScootLMS() {
   const [editingScheduleIndex, setEditingScheduleIndex] = useState(null);
   const [fontSize, setFontSize] = useState(100);
   const [darkMode, setDarkMode] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  // Notification Settings (Persistent)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('schooly_notifications_enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  // Ref to track toggle state without triggering effect re-subscriptions
+  const notificationsEnabledRef = useRef(notificationsEnabled);
+
+  useEffect(() => {
+    notificationsEnabledRef.current = notificationsEnabled;
+    localStorage.setItem('schooly_notifications_enabled', JSON.stringify(notificationsEnabled));
+  }, [notificationsEnabled]);
 
 
 
@@ -371,22 +384,28 @@ export default function SchoolyScootLMS() {
 
   const addNotification = useCallback((notification) => {
     const noti = { ...notification, id: notification.id || Date.now().toString() };
-    setActiveNotifications(prev => {
-      // Prevent exact duplicates if checking by firestoreId within short timeframe
-      if (noti.firestoreId && prev.some(n => n.firestoreId === noti.firestoreId)) {
-        return prev;
+
+    // Only show toast and play sound if notifications are enabled
+    // Use Ref to avoid having notificationsEnabled as a dependency (which causes re-subscriptions)
+    if (notificationsEnabledRef.current) {
+      setActiveNotifications(prev => {
+        // Prevent exact duplicates if checking by firestoreId within short timeframe
+        if (noti.firestoreId && prev.some(n => n.firestoreId === noti.firestoreId)) {
+          return prev;
+        }
+        return [...prev, noti];
+      });
+
+      // Play Sound
+      try {
+        const audio = new Audio(notiSoundUrl);
+        audio.volume = 0.5; // Adjust volume as needed
+        audio.play().catch(e => console.error("Audio play failed (user interaction needed first?):", e));
+      } catch (err) {
+        console.error("Error initializing audio:", err);
       }
-      return [...prev, noti];
-    });
-    // Play Sound for NEW notifications only
-    try {
-      const audio = new Audio(notiSoundUrl);
-      audio.volume = 0.5; // Adjust volume as needed
-      audio.play().catch(e => console.error("Audio play failed (user interaction needed first?):", e));
-    } catch (err) {
-      console.error("Error initializing audio:", err);
     }
-  }, []);
+  }, []); // Empty dependency array to keep reference stable
 
   const removeNotification = useCallback((id) => {
     setActiveNotifications(prev => prev.filter(n => n.id !== id));
@@ -415,7 +434,7 @@ export default function SchoolyScootLMS() {
         const unreadCount = allNotifications.filter(n => !n.read).length;
         console.log(`Initial Load: Found ${unreadCount} unread notifications.`);
 
-        if (unreadCount > 0) {
+        if (unreadCount > 0 && notificationsEnabled) {
           console.log("Attempting to play initial sound...");
           try {
             const audio = new Audio(notiSoundUrl);
@@ -450,7 +469,7 @@ export default function SchoolyScootLMS() {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid, isLoggedIn, addNotification]);
+  }, [auth.currentUser?.uid, isLoggedIn]); // Stable addNotification and notificationsEnabledRef removed from deps
 
 
 
