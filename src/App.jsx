@@ -515,6 +515,7 @@ export default function SchoolyScootLMS() {
   const [pendingMembers, setPendingMembers] = useState([]); // Pending Students
   const [submissions, setSubmissions] = useState([]);
   const [missingSubmissions, setMissingSubmissions] = useState([]); // Students who haven't submitted
+  const [editingScores, setEditingScores] = useState({}); // Stores unsaved scores { submissionId: score }
 
   const [gradingTab, setGradingTab] = useState('submitted'); // 'submitted' or 'missing'
   // Post Feed State
@@ -908,6 +909,7 @@ export default function SchoolyScootLMS() {
     setSelectedAssignment(assignment);
     setSubmissions([]); // Clear previous data immediately
     setMissingSubmissions([]); // Clear missing list
+    setEditingScores({}); // Clear editing scores
     setSubmissionsLoading(true); // Start loading
 
     // Fetch submissions for this assignment
@@ -920,13 +922,26 @@ export default function SchoolyScootLMS() {
       console.log("Fetched submissions for", targetId, ":", subs);
       setSubmissions(subs);
 
+      // Initialize editing scores from fetched submissions
+      const initialScores = {};
+      subs.forEach(s => {
+        initialScores[s.firestoreId || s.id] = s.score || "";
+      });
+      setEditingScores(initialScores);
+
       // Fetch Course to find missing students
       const coursesCol = collection(db, 'courses');
       const qCourse = query(coursesCol, where('name', '==', assignment.course));
       const courseSnap = await getDocs(qCourse);
 
       if (!courseSnap.empty) {
-        const courseData = courseSnap.docs[0].data();
+        const courseDoc = courseSnap.docs[0];
+        const courseData = courseDoc.data();
+        const courseId = courseDoc.id;
+
+        // Attach courseId to selectedAssignment so it's available even if selectedCourse is null
+        setSelectedAssignment(prev => ({ ...prev, courseId }));
+
         const allStudentIds = courseData.studentIds || [];
         const submittedStudentIds = subs.map(s => s.userId);
 
@@ -2898,7 +2913,9 @@ export default function SchoolyScootLMS() {
                   <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate ? new Date(currentAssignmentData.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
                 </div>
                 <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold whitespace-nowrap">
-                  {currentAssignmentData.maxScore || 10} คะแนน
+                  {(currentAssignmentData.score !== null && currentAssignmentData.score !== undefined && currentAssignmentData.score !== '')
+                    ? `${currentAssignmentData.score} / ${currentAssignmentData.maxScore || 10}`
+                    : `${currentAssignmentData.maxScore || 10} คะแนน`}
                 </div>
               </div>
 
@@ -3491,9 +3508,15 @@ export default function SchoolyScootLMS() {
                               <input
                                 type="text"
                                 placeholder="-"
-                                defaultValue={student.score}
+                                value={editingScores[student.firestoreId || student.id] || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setEditingScores(prev => ({
+                                    ...prev,
+                                    [student.firestoreId || student.id]: val
+                                  }));
+                                }}
                                 className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
-                                id={`score-${student.firestoreId || student.id}`}
                               />
                             </td>
                           </tr>
@@ -3543,11 +3566,11 @@ export default function SchoolyScootLMS() {
                       try {
                         const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
                         const savePromises = submissions.map(async (student) => {
-                          const input = document.getElementById(`score-${student.firestoreId || student.id}`);
-                          if (!input) return; // guard against missing element
-                          const newScore = input.value;
+                          const subId = student.firestoreId || student.id;
+                          const newScore = editingScores[subId];
 
-                          await gradeSubmission(targetId, student.firestoreId || student.id, newScore);
+                          // Use the state value
+                          await gradeSubmission(targetId, subId, newScore);
 
                           if (newScore !== "" && newScore !== null) {
                             await createNotification(
@@ -3556,7 +3579,7 @@ export default function SchoolyScootLMS() {
                               'grade',
                               `คุณครูได้ตรวจงานและให้คะแนนวิชา ${selectedAssignment.course} แล้ว ได้คะแนน ${newScore}/${selectedAssignment.maxScore || 10}`,
                               {
-                                courseId: selectedCourse.firestoreId,
+                                courseId: selectedAssignment.courseId || (selectedCourse ? selectedCourse.firestoreId : ""),
                                 targetType: 'assignment',
                                 targetId: targetId
                               }
@@ -3565,20 +3588,21 @@ export default function SchoolyScootLMS() {
                         });
 
                         await Promise.all(savePromises);
-                        alert('บันทึกคะแนนและส่งการแจ้งเตือนเรียบร้อยแล้ว');
+                        alert('บันทึกคะแนนแล้ว');
 
                         setSubmissions(prev => prev.map(s => {
-                          const el = document.getElementById(`score-${s.firestoreId || s.id}`);
-                          return el ? { ...s, score: el.value } : s;
+                          const subId = s.firestoreId || s.id;
+                          return { ...s, score: editingScores[subId] };
                         }));
 
                         // Update Main Assignments State with new Pending Count
                         setAssignments(prev => prev.map(a => {
-                          if (a.id === selectedAssignment.id || a.firestoreId === selectedAssignment.firestoreId) {
+                          const currentAssignId = a.firestoreId || a.id;
+                          if (currentAssignId === targetId) {
                             let newPendingCount = 0;
                             submissions.forEach(s => {
-                              const input = document.getElementById(`score-${s.firestoreId || s.id}`);
-                              const val = input ? input.value : s.score;
+                              const subId = s.firestoreId || s.id;
+                              const val = editingScores[subId];
                               if (!val) newPendingCount++;
                             });
                             return { ...a, pendingSubmissionCount: newPendingCount };

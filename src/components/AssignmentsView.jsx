@@ -88,7 +88,7 @@ const AssignmentsView = ({
                                 </div>
 
                                 <div className="mt-4 md:mt-0 flex items-center gap-4">
-                                    {assign.score && (
+                                    {(assign.score !== undefined && assign.score !== null && assign.score !== '') && (
                                         <div className="text-right">
                                             <div className="text-xs text-slate-500">คะแนน</div>
                                             <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
