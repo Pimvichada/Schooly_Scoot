@@ -266,7 +266,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Bar Chart - Submissions by Course */}
                         <div className={`lg:col-span-2 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border transition-all duration-1000 delay-300 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-                            <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} mb-6">จำนวนการส่งงานรายวิชา</h3>
+                            <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} mb-6`}>จำนวนการส่งงานรายวิชา</h3>
                             <div className="h-64 flex items-end justify-start gap-4 px-4 pb-2 border-b border-slate-100 overflow-x-auto custom-scrollbar">
                                 {stats.courseStats.map((item, i) => {
                                     const maxVal = stats.courseStats[0].submissions || 1;
@@ -276,244 +276,246 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                                             <div className="relative w-full bg-slate-50 rounded-2xl h-full flex flex-col justify-end overflow-hidden">
                                                 <div
                                                     style={{ height: animate ? `${heightPerc}%` : '0%' }}
-                            className="w-full bg-[#BEE1FF] group-hover:bg-[#5B9BD5] transition-all duration-1000 ease-out relative"
+                                                    className="w-full bg-[#BEE1FF] group-hover:bg-[#5B9BD5] transition-all duration-1000 ease-out relative"
                                                 >
-                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold text-[#5B9BD5]">
-                                {item.submissions}
-                            </div>
-                        </div>
-                    </div>
-                    <span className={`text-xs font-bold truncate w-full text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} title={item.name}>
-                        {item.name.slice(0, 6)}..
-                    </span>
-                </div>
-            );
-                                })}
-        </div>
-                        </div >
-
-    {/* Donut Chart - Active Assignments */ }
-    < div className = {`bg-white p-6 rounded-3xl shadow-sm border border-slate-100 transition-all duration-1000 delay-500 ${animate ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
-                        <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} mb-6`}>สถานะงาน</h3>
-                        <div className="flex flex-col items-center justify-center relative mb-6">
-                            <div
-                                className={`w-48 h-48 rounded-full flex items-center justify-center transition-all duration-[2000ms] ${animate ? 'rotate-0 scale-100' : '-rotate-180 scale-50'}`}
-                                style={{
-                                    background: `conic-gradient(#96C68E 0deg ${(stats.activeAssignments / stats.totalAssignments) * 360}deg, #F1F5F9 ${(stats.activeAssignments / stats.totalAssignments) * 360}deg 360deg)`
-                                }}
-                            >
-                                <div className={`w-32 h-32 ${darkMode ? 'bg-slate-800' : 'bg-white'} rounded-full flex flex-col items-center justify-center shadow-inner`}>
-                                    <span className={`text-4xl font-black ${darkMode ? 'text-white' : 'text-slate-700'}`}>{stats.activeAssignments}</span>
-                                    <span className="text-xs text-slate-400">งานที่มีคนส่ง</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-[#F0FDF4] rounded-2xl border border-[#96C68E]/30">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#96C68E]"></div>
-                                    <span className={`text-sm font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>มีการส่งงานแล้ว</span>
-                                </div>
-                                <span className="font-bold text-[#96C68E]">{stats.activeAssignments}</span>
-                            </div>
-                            <div className={`flex items-center justify-between p-3 ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'} rounded-2xl border`}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-slate-300"></div>
-                                    <span className="text-sm font-bold text-slate-700">ยังไม่มีคนส่ง</span>
-                                </div>
-                                <span className="font-bold text-slate-400">{stats.quietAssignments}</span>
-                            </div>
-                        </div>
-                    </div >
-
-
-                </div >
-            )}
-
-{/* --- STUDENT VIEW --- */ }
-{
-    stats.role === 'student' && (
-        <div className="space-y-8">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div
-                    className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p - 6 rounded - 3xl shadow - sm border relative overflow - hidden group hover: shadow - md transition - all duration - 700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} `}
-                    style={{ transitionDelay: '0ms' }}
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:rotate-12">
-                        <BarChart2 size={80} className="text-[#96C68E]" />
-                    </div>
-                    <div className={`w - 12 h - 12 ${darkMode ? 'bg-green-500/20' : 'bg-[#F0FDF4]'} rounded - 2xl flex items - center justify - center mb - 4 text - [#96C68E] group - hover: scale - 110 transition - transform duration - 300`}>
-                        <CheckCircle size={24} />
-                    </div>
-                    <h3 className={`${darkMode ? 'text-slate-400' : 'text-slate-500'} font - bold mb - 1`}>งานที่ส่งแล้ว</h3>
-                    <p className={`text - 3xl font - black ${darkMode ? 'text-white' : 'text-slate-800'} `}>{stats.submissionRate}%</p>
-                    <p className="text-xs text-[#96C68E] font-bold mt-2 flex items-center">
-                        <TrendingUp size={12} className="mr-1" /> ส่งงานสม่ำเสมอ
-                    </p>
-                </div>
-
-                <div
-                    className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p - 6 rounded - 3xl shadow - sm border relative overflow - hidden group hover: shadow - md transition - all duration - 700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} `}
-                    style={{ transitionDelay: '100ms' }}
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:-rotate-12">
-                        <Users size={80} className="text-[#BEE1FF]" />
-                    </div>
-                    <div className={`w - 12 h - 12 ${darkMode ? 'bg-blue-500/20' : 'bg-[#E3F2FD]'} rounded - 2xl flex items - center justify - center mb - 4 text - [#5B9BD5] group - hover: scale - 110 transition - transform duration - 300`}>
-                        <Clock size={24} />
-                    </div>
-                    <h3 className="text-slate-500 font-bold mb-1">เรียน/สัปดาห์</h3>
-                    <p className={`text - 3xl font - black ${darkMode ? 'text-white' : 'text-slate-800'} `}>{stats.totalStudyHours} ชม.</p>
-                    <p className="text-xs text-slate-400 mt-2">
-                        จากตารางเรียนทั้งหมด
-                    </p>
-                </div>
-
-                {/* Hard Skills Mastery Card */}
-                <div
-                    className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p - 6 rounded - 3xl shadow - sm border relative overflow - hidden group hover: shadow - md transition - all duration - 700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'} `}
-                    style={{ transitionDelay: '200ms' }}
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:rotate-12">
-                        <Award size={80} className="text-[#A78BFA]" />
-                    </div>
-                    <div className={`w - 12 h - 12 ${darkMode ? 'bg-purple-500/20' : 'bg-[#F3E8FF]'} rounded - 2xl flex items - center justify - center mb - 4 text - [#A78BFA] group - hover: scale - 110 transition - transform duration - 300`}>
-                        <Award size={24} />
-                    </div>
-                    <h3 className="text-slate-500 font-bold mb-1">วิชาที่ถนัด</h3>
-                    <p className={`text - xl font - black truncate ${darkMode ? 'text-white' : 'text-slate-800'} `} title={stats.hardSkill.name}>
-                        {stats.hardSkill.name !== 'N/A' ? stats.hardSkill.name : 'รอผลสอบ'}
-                    </p>
-                    <p className="text-xs text-[#A78BFA] font-bold mt-2">
-                        {stats.hardSkill.score > 0 ? `คะแนนสอบ ${Math.round(stats.hardSkill.score)}% ` : 'วิชาที่ถนัดที่สุดวัดจากคะแนนสอบ'}
-                    </p>
-                </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column - Stacked Bar Chart */}
-                <div className={`lg: col - span - 2 space - y - 8 transition - all duration - 1000 delay - 300 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'} `}>
-                    <div className={`p - 6 rounded - 3xl shadow - sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} `}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className={`text - xl font - bold ${darkMode ? 'text-white' : 'text-slate-800'} `}>วิเคราะห์คะแนน (เก็บ vs สอบ)</h3>
-                            <div className="flex gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#BEE1FF]"></div>
-                                    <span className="text-xs font-bold text-slate-500">คะแนนเก็บ</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#FF917B]"></div>
-                                    <span className="text-xs font-bold text-slate-500">คะแนนสอบ</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {stats.coursePerformance.length > 0 ? (
-                            <div className="h-64 flex items-end justify-start gap-4 px-4 pb-2 border-b border-slate-100 overflow-x-auto custom-scrollbar">
-                                {stats.coursePerformance.map((item, i) => (
-                                    <div key={i} className="flex flex-col items-center gap-2 h-full justify-end group w-16 flex-shrink-0">
-                                        <div className="relative w-full bg-slate-50 rounded-2xl h-full flex flex-col-reverse overflow-hidden">
-                                            {/* Collected Score (Bottom) */}
-                                            <div
-                                                style={{ height: animate ? `${item.collected}% ` : '0%' }}
-                                                className="w-full bg-[#BEE1FF] relative group/bar transition-all duration-1000 ease-out"
-                                            >
-                                                {item.collected > 15 && (
-                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity">
-                                                        <span className="bg-white/90 text-[#5B9BD5] text-[10px] font-bold px-1 rounded shadow-sm">
-                                                            {Math.round(item.collected)}%
-                                                        </span>
+                                                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold text-[#5B9BD5]">
+                                                        {item.submissions}
                                                     </div>
-                                                )}
+                                                </div>
                                             </div>
-                                            {/* Exam Score (Top) */}
-                                            <div
-                                                style={{ height: animate ? `${item.exam}% ` : '0%' }}
-                                                className="w-full bg-[#FF917B] relative group/bar transition-all duration-1000 ease-out delay-500"
-                                            >
-                                                {item.exam > 15 && (
-                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity">
-                                                        <span className="bg-white/90 text-[#FF917B] text-[10px] font-bold px-1 rounded shadow-sm">
-                                                            {Math.round(item.exam)}%
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            <span className={`text-xs font-bold truncate w-full text-center ${darkMode ? 'text-slate-400' : 'text-slate-500'}`} title={item.name}>
+                                                {item.name.slice(0, 6)}..
+                                            </span>
                                         </div>
-                                        <span className="text-xs font-bold text-slate-500 truncate w-full text-center" title={item.name}>
-                                            {item.name.slice(0, 6)}..
-                                        </span>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Donut Chart - Active Assignments */}
+                        <div className={`bg-white p-6 rounded-3xl shadow-sm border border-slate-100 transition-all duration-1000 delay-500 ${animate ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`}>
+                            <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} mb-6`}>สถานะงาน</h3>
+                            <div className="flex flex-col items-center justify-center relative mb-6">
+                                <div
+                                    className={`w-48 h-48 rounded-full flex items-center justify-center transition-all duration-[2000ms] ${animate ? 'rotate-0 scale-100' : '-rotate-180 scale-50'}`}
+                                    style={{
+                                        background: `conic-gradient(#96C68E 0deg ${(stats.activeAssignments / stats.totalAssignments) * 360}deg, #F1F5F9 ${(stats.activeAssignments / stats.totalAssignments) * 360}deg 360deg)`
+                                    }}
+                                >
+                                    <div className={`w-32 h-32 ${darkMode ? 'bg-slate-800' : 'bg-white'} rounded-full flex flex-col items-center justify-center shadow-inner`}>
+                                        <span className={`text-4xl font-black ${darkMode ? 'text-white' : 'text-slate-700'}`}>{stats.activeAssignments}</span>
+                                        <span className="text-xs text-slate-400">งานที่มีคนส่ง</span>
                                     </div>
-                                ))}
+                                </div>
                             </div>
-                        ) : (
-                            <div className="h-64 flex items-center justify-center text-slate-400">
-                                ยังไม่มีข้อมูลคะแนน
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between p-3 bg-[#F0FDF4] rounded-2xl border border-[#96C68E]/30">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-[#96C68E]"></div>
+                                        <span className={`text-sm font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>มีการส่งงานแล้ว</span>
+                                    </div>
+                                    <span className="font-bold text-[#96C68E]">{stats.activeAssignments}</span>
+                                </div>
+                                <div className={`flex items-center justify-between p-3 ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'} rounded-2xl border`}>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full bg-slate-300"></div>
+                                        <span className="text-sm font-bold text-slate-700">ยังไม่มีคนส่ง</span>
+                                    </div>
+                                    <span className="font-bold text-slate-400">{stats.quietAssignments}</span>
+                                </div>
                             </div>
-                        )}
-                        <p className="text-center text-xs text-slate-400 mt-4">แสดงผลรายวิชาทั้งหมด</p>
+                        </div>
+
+
                     </div>
-                </div>
+            )
 
-                {/* Right Column - Submission Speed Analysis */}
-                <div className={`space - y - 6 transition - all duration - 1000 delay - 500 ${animate ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'} `}>
-                    <div className={`bg - white p - 6 rounded - 3xl shadow - sm border border - slate - 100 h - full ${darkMode ? 'bg-slate-800 border-slate-700' : ''} `}>
-                        <h3 className={`text - xl font - bold ${darkMode ? 'text-white' : 'text-slate-800'} mb - 6 flex items - center gap - 2`}>
-                            <PieChart className="text-[#96C68E]" /> ความเร็วในการส่งงาน
-                        </h3>
+                    {/* --- STUDENT VIEW --- */}
+                    {
+                        stats.role === 'student' && (
+                            <div className="space-y-8">
+                                {/* Stats Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <div
+                                        className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border relative overflow-hidden group hover:shadow-md transition-all duration-700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
+                                        style={{ transitionDelay: '0ms' }}
+                                    >
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:rotate-12">
+                                            <BarChart2 size={80} className="text-[#96C68E]" />
+                                        </div>
+                                        <div className={`w-12 h-12 ${darkMode ? 'bg-green-500/20' : 'bg-[#F0FDF4]'} rounded-2xl flex items-center justify-center mb-4 text-[#96C68E] group-hover:scale-110 transition-transform duration-300`}>
+                                            <CheckCircle size={24} />
+                                        </div>
+                                        <h3 className={`${darkMode ? 'text-slate-400' : 'text-slate-500'} font-bold mb-1`}>งานที่ส่งแล้ว</h3>
+                                        <p className={`text-3xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>{stats.submissionRate}%</p>
+                                        <p className="text-xs text-[#96C68E] font-bold mt-2 flex items-center">
+                                            <TrendingUp size={12} className="mr-1" /> ส่งงานสม่ำเสมอ
+                                        </p>
+                                    </div>
 
-                        <div className="flex flex-col items-center justify-center relative mb-6">
-                            <div
-                                className={`w - 48 h - 48 rounded - full flex items - center justify - center transition - all duration - [2000ms] ${animate ? 'rotate-0 scale-100' : '-rotate-180 scale-50'} `}
-                                style={{
-                                    background: `conic - gradient(
+                                    <div
+                                        className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border relative overflow-hidden group hover:shadow-md transition-all duration-700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
+                                        style={{ transitionDelay: '100ms' }}
+                                    >
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:-rotate-12">
+                                            <Users size={80} className="text-[#BEE1FF]" />
+                                        </div>
+                                        <div className={`w-12 h-12 ${darkMode ? 'bg-blue-500/20' : 'bg-[#E3F2FD]'} rounded-2xl flex items-center justify-center mb-4 text-[#5B9BD5] group-hover:scale-110 transition-transform duration-300`}>
+                                            <Clock size={24} />
+                                        </div>
+                                        <h3 className="text-slate-500 font-bold mb-1">เรียน/สัปดาห์</h3>
+                                        <p className={`text-3xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>{stats.totalStudyHours} ชม.</p>
+                                        <p className="text-xs text-slate-400 mt-2">
+                                            จากตารางเรียนทั้งหมด
+                                        </p>
+                                    </div>
+
+                                    {/* Hard Skills Mastery Card */}
+                                    <div
+                                        className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border relative overflow-hidden group hover:shadow-md transition-all duration-700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
+                                        style={{ transitionDelay: '200ms' }}
+                                    >
+                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:rotate-12">
+                                            <Award size={80} className="text-[#A78BFA]" />
+                                        </div>
+                                        <div className={`w-12 h-12 ${darkMode ? 'bg-purple-500/20' : 'bg-[#F3E8FF]'} rounded-2xl flex items-center justify-center mb-4 text-[#A78BFA] group-hover:scale-110 transition-transform duration-300`}>
+                                            <Award size={24} />
+                                        </div>
+                                        <h3 className="text-slate-500 font-bold mb-1">วิชาที่ถนัด</h3>
+                                        <p className={`text-xl font-black truncate ${darkMode ? 'text-white' : 'text-slate-800'}`} title={stats.hardSkill.name}>
+                                            {stats.hardSkill.name !== 'N/A' ? stats.hardSkill.name : 'รอผลสอบ'}
+                                        </p>
+                                        <p className="text-xs text-[#A78BFA] font-bold mt-2">
+                                            {stats.hardSkill.score > 0 ? `คะแนนสอบ ${Math.round(stats.hardSkill.score)}% ` : 'วิชาที่ถนัดที่สุดวัดจากคะแนนสอบ'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Main Content Area */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    {/* Left Column - Stacked Bar Chart */}
+                                    <div className={`lg:col-span-2 space-y-8 transition-all duration-1000 delay-300 ${animate ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+                                        <div className={`p-6 rounded-3xl shadow-sm border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                            <div className="flex justify-between items-center mb-6">
+                                                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>วิเคราะห์คะแนน (เก็บ vs สอบ)</h3>
+                                                <div className="flex gap-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full bg-[#BEE1FF]"></div>
+                                                        <span className="text-xs font-bold text-slate-500">คะแนนเก็บ</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full bg-[#FF917B]"></div>
+                                                        <span className="text-xs font-bold text-slate-500">คะแนนสอบ</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {stats.coursePerformance.length > 0 ? (
+                                                <div className="h-64 flex items-end justify-start gap-4 px-4 pb-2 border-b border-slate-100 overflow-x-auto custom-scrollbar">
+                                                    {stats.coursePerformance.map((item, i) => (
+                                                        <div key={i} className="flex flex-col items-center gap-2 h-full justify-end group w-16 flex-shrink-0">
+                                                            <div className="relative w-full bg-slate-50 rounded-2xl h-full flex flex-col-reverse overflow-hidden">
+                                                                {/* Collected Score (Bottom) */}
+                                                                <div
+                                                                    style={{ height: animate ? `${item.collected}% ` : '0%' }}
+                                                                    className="w-full bg-[#BEE1FF] relative group/bar transition-all duration-1000 ease-out"
+                                                                >
+                                                                    {item.collected > 15 && (
+                                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                                                                            <span className="bg-white/90 text-[#5B9BD5] text-[10px] font-bold px-1 rounded shadow-sm">
+                                                                                {Math.round(item.collected)}%
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {/* Exam Score (Top) */}
+                                                                <div
+                                                                    style={{ height: animate ? `${item.exam}% ` : '0%' }}
+                                                                    className="w-full bg-[#FF917B] relative group/bar transition-all duration-1000 ease-out delay-500"
+                                                                >
+                                                                    {item.exam > 15 && (
+                                                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                                                                            <span className="bg-white/90 text-[#FF917B] text-[10px] font-bold px-1 rounded shadow-sm">
+                                                                                {Math.round(item.exam)}%
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-xs font-bold text-slate-500 truncate w-full text-center" title={item.name}>
+                                                                {item.name.slice(0, 6)}..
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="h-64 flex items-center justify-center text-slate-400">
+                                                    ยังไม่มีข้อมูลคะแนน
+                                                </div>
+                                            )}
+                                            <p className="text-center text-xs text-slate-400 mt-4">แสดงผลรายวิชาทั้งหมด</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Right Column - Submission Speed Analysis */}
+                                    <div className={`space - y - 6 transition - all duration - 1000 delay - 500 ${animate ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'} `}>
+                                        <div className={`bg - white p - 6 rounded - 3xl shadow - sm border border - slate - 100 h - full ${darkMode ? 'bg-slate-800 border-slate-700' : ''} `}>
+                                            <h3 className={`text - xl font - bold ${darkMode ? 'text-white' : 'text-slate-800'} mb - 6 flex items - center gap - 2`}>
+                                                <PieChart className="text-[#96C68E]" /> ความเร็วในการส่งงาน
+                                            </h3>
+
+                                            <div className="flex flex-col items-center justify-center relative mb-6">
+                                                <div
+                                                    className={`w - 48 h - 48 rounded - full flex items - center justify - center transition - all duration - [2000ms] ${animate ? 'rotate-0 scale-100' : '-rotate-180 scale-50'} `}
+                                                    style={{
+                                                        background: `conic - gradient(
                                                 #96C68E 0deg ${(stats.submissionTiming.early / stats.submissionTiming.total) * 360}deg,
             #FFE787 ${(stats.submissionTiming.early / stats.submissionTiming.total) * 360}deg ${(stats.submissionTiming.early / stats.submissionTiming.total) * 360 + (stats.submissionTiming.onTime / stats.submissionTiming.total) * 360}deg,
             #FF917B ${(stats.submissionTiming.early / stats.submissionTiming.total) * 360 + (stats.submissionTiming.onTime / stats.submissionTiming.total) * 360}deg 360deg
         )`
-                                }}
-                            >
-                                <div className={`w - 32 h - 32 ${darkMode ? 'bg-slate-800' : 'bg-white'} rounded - full flex flex - col items - center justify - center shadow - inner`}>
-                                    <span className={`text - 4xl font - black ${darkMode ? 'text-white' : 'text-slate-700'} `}>{stats.submissionTiming.total}</span>
-                                    <span className="text-xs text-slate-400">งานที่ส่งแล้ว</span>
-                                </div>
-                            </div>
-                        </div>
+                                                    }}
+                                                >
+                                                    <div className={`w - 32 h - 32 ${darkMode ? 'bg-slate-800' : 'bg-white'} rounded - full flex flex - col items - center justify - center shadow - inner`}>
+                                                        <span className={`text - 4xl font - black ${darkMode ? 'text-white' : 'text-slate-700'} `}>{stats.submissionTiming.total}</span>
+                                                        <span className="text-xs text-slate-400">งานที่ส่งแล้ว</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                        <div className="space-y-3">
-                            <div className={`flex items - center justify - between p - 3 rounded - 2xl border hover: scale - 105 transition - transform duration - 300 ${darkMode ? 'bg-green-500/20 border-green-500/30' : 'bg-[#F0FDF4] border-[#96C68E]/30'} `}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#96C68E]"></div>
-                                    <span className={`text - sm font - bold ${darkMode ? 'text-slate-200' : 'text-slate-700'} `}>ส่งก่อนเวลา (&gt;1วัน)</span>
-                                </div>
-                                <span className="font-bold text-[#96C68E]">{stats.submissionTiming.early}</span>
-                            </div>
+                                            <div className="space-y-3">
+                                                <div className={`flex items - center justify - between p - 3 rounded - 2xl border hover: scale - 105 transition - transform duration - 300 ${darkMode ? 'bg-green-500/20 border-green-500/30' : 'bg-[#F0FDF4] border-[#96C68E]/30'} `}>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full bg-[#96C68E]"></div>
+                                                        <span className={`text - sm font - bold ${darkMode ? 'text-slate-200' : 'text-slate-700'} `}>ส่งก่อนเวลา (&gt;1วัน)</span>
+                                                    </div>
+                                                    <span className="font-bold text-[#96C68E]">{stats.submissionTiming.early}</span>
+                                                </div>
 
-                            <div className={`flex items - center justify - between p - 3 rounded - 2xl border hover: scale - 105 transition - transform duration - 300 ${darkMode ? 'bg-orange-500/20 border-orange-500/30' : 'bg-[#FFF8E1] border-[#FFE787]/50'} `}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#FFE787]"></div>
-                                    <span className={`text - sm font - bold ${darkMode ? 'text-slate-200' : 'text-slate-700'} `}>ทันเวลา</span>
-                                </div>
-                                <span className="font-bold text-orange-400">{stats.submissionTiming.onTime}</span>
-                            </div>
+                                                <div className={`flex items - center justify - between p - 3 rounded - 2xl border hover: scale - 105 transition - transform duration - 300 ${darkMode ? 'bg-orange-500/20 border-orange-500/30' : 'bg-[#FFF8E1] border-[#FFE787]/50'} `}>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full bg-[#FFE787]"></div>
+                                                        <span className={`text - sm font - bold ${darkMode ? 'text-slate-200' : 'text-slate-700'} `}>ทันเวลา</span>
+                                                    </div>
+                                                    <span className="font-bold text-orange-400">{stats.submissionTiming.onTime}</span>
+                                                </div>
 
-                            <div className={`flex items - center justify - between p - 3 rounded - 2xl border hover: scale - 105 transition - transform duration - 300 ${darkMode ? 'bg-red-900/20 border-red-500/30' : 'bg-red-50 border-red-100'} `}>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-[#FF917B]"></div>
-                                    <span className="text-sm font-bold text-slate-700">ส่งช้า</span>
+                                                <div className={`flex items - center justify - between p - 3 rounded - 2xl border hover: scale - 105 transition - transform duration - 300 ${darkMode ? 'bg-red-900/20 border-red-500/30' : 'bg-red-50 border-red-100'} `}>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full bg-[#FF917B]"></div>
+                                                        <span className="text-sm font-bold text-slate-700">ส่งช้า</span>
+                                                    </div>
+                                                    <span className="font-bold text-[#FF917B]">{stats.submissionTiming.late}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <span className="font-bold text-[#FF917B]">{stats.submissionTiming.late}</span>
                             </div>
-                        </div>
-                    </div>
+                        )
+                    }
                 </div>
-            </div>
+            )}
         </div>
-    )
-}
-        </div >
     );
 };
 
