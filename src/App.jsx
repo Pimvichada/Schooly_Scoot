@@ -85,6 +85,8 @@ import DashboardView from './components/DashboardView';
 import CoursesView from './components/CoursesView';
 import CourseDetailView from './components/CourseDetailView';
 import AssignmentsView from './components/AssignmentsView';
+import ScheduleView from './components/ScheduleView';
+import SettingsView from './components/SettingsView';
 import PostItem from './components/PostItem';
 import ToastNotification from './components/ToastNotification';
 import notiSoundUrl from './assets/notisound.mp3';
@@ -3609,60 +3611,6 @@ export default function SchoolyScootLMS() {
 
   // renderExams removed
 
-  const renderSchedule = () => (
-    <div className={`space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
-      <h1 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-        <Calendar className="mr-3 text-[#96C68E]" /> {userRole === 'teacher' ? 'ตารางสอน' : 'ตารางเรียน'}
-      </h1>
-
-      <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-3xl p-6 shadow-sm border`}>
-        {/* <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-bold text-slate-700">มกราคม 2567</h2>
-          <div className="flex gap-2">
-            <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight className="rotate-180" size={20} /></button>
-            <button className="p-2 hover:bg-slate-100 rounded-lg"><ChevronRight size={20} /></button>
-          </div>
-        </div> */}
-        {/* Dynamic Weekly View */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => {
-            const dayOfWeek = i + 1; // 1=Mon, 5=Fri
-            // Collect all schedule items for this day from all courses
-            // Collect all schedule items for this day from all courses
-            const dailyItems = courses.flatMap(c =>
-              (c.schedule || []).filter(s => s.dayOfWeek === dayOfWeek).map(s => ({
-                ...s,
-                courseName: c.name,
-                courseCode: c.code,
-                teacher: c.teacher,
-                color: c.color
-              }))
-            ).sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-            return (
-              <div key={day} className="space-y-3">
-                <div className={`text-center font-bold mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{day}</div>
-                {dailyItems.length > 0 ? dailyItems.map((slot, idx) => (
-                  <div key={idx} className={`p-3 rounded-xl text-sm mb-2 text-center transition-all ${slot.color
-                    ? (darkMode ? `${slot.color} bg-opacity-30 border border-white/10` : `${slot.color} bg-opacity-20 border border-black/5`)
-                    : (darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-slate-50 border border-slate-100')}`}>
-                    <div className={`font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>{slot.startTime} - {slot.endTime}</div>
-                    <div className={`font-bold line-clamp-1 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{slot.courseName}</div>
-                    <div className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{slot.courseCode}</div>
-                    <div className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ห้อง {slot.room}</div>
-                  </div>
-                )) : (
-                  <div className={`p-4 rounded-xl border-2 border-dashed text-center text-sm ${darkMode ? 'border-slate-800 text-slate-700' : 'border-slate-100 text-slate-300'}`}>
-                    ว่าง
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  );
 
   const renderMessages = () => {
     const activeChat = chats.find(c => c.id === activeChatId);
@@ -3803,137 +3751,6 @@ export default function SchoolyScootLMS() {
   };
 
 
-  const renderSettings = () => (
-    <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
-      <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
-        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <User className="text-[#96C68E]" /> บัญชีผู้ใช้
-        </h3>
-
-        <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
-          {/* Profile Picture */}
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full bg-slate-100 mb-4 overflow-hidden border-4 border-white shadow-md relative group">
-              {profile.photoURL ? (
-                <img src={profile.photoURL} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-[#BEE1FF] text-3xl font-bold text-slate-600">
-                  {profile.firstName?.[0]}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => {
-                setEditProfileData({
-                  firstName: profile.firstName,
-                  lastName: profile.lastName,
-                  photoURL: profile.photoURL
-                });
-                setActiveModal('editProfile');
-              }}
-              className="text-sm text-blue-500 hover:text-blue-600 font-bold"
-            >
-              แก้ไขรูปโปรไฟล์
-            </button>
-          </div>
-
-          <div className="flex-1 space-y-4 w-full">
-            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border`}>
-              <p className="text-xs text-slate-400 font-bold uppercase mb-1">ชื่อ - นามสกุล</p>
-              <p className={`${darkMode ? 'text-slate-200' : 'text-slate-700'} font-medium`}>{profile.firstName} {profile.lastName}</p>
-            </div>
-            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border`}>
-              <p className="text-xs text-slate-400 font-bold uppercase mb-1">อีเมล</p>
-              <p className={`${darkMode ? 'text-slate-200' : 'text-slate-700'} font-medium`}>{profile.email}</p>
-            </div>
-            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'} p-4 rounded-2xl border`}>
-              <p className="text-xs text-slate-400 font-bold uppercase mb-1">สถานะ</p>
-              <span className={`inline-block px-3 py-1 ${darkMode ? 'bg-green-900/30 text-[#96C68E]' : 'bg-[#F0FDF4] text-[#96C68E]'} rounded-lg text-sm font-bold`}>
-                {profile.roleLabel}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className={`mt-8 pt-8 ${darkMode ? 'border-slate-800' : 'border-slate-50'} border-t flex justify-end`}>
-          <button
-            onClick={() => {
-              setEditProfileData({
-                firstName: profile.firstName,
-                lastName: profile.lastName,
-                photoURL: profile.photoURL
-              });
-              setActiveModal('editProfile');
-            }}
-            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'} border rounded-2xl font-bold transition-all mr-4 shadow-sm`}
-          >
-            <Edit2 size={18} /> แก้ไขข้อมูลส่วนตัว
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className={`flex items-center gap-2 px-6 py-3 ${darkMode ? 'bg-red-900/30 text-red-400 hover:bg-red-900/50' : 'bg-red-50 text-red-500 hover:bg-red-100'} rounded-2xl font-bold transition-all shadow-sm`}
-          >
-            <LogOut size={18} /> ออกจากระบบ
-          </button>
-        </div>
-      </div>
-
-      <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-3xl p-8 border shadow-sm relative overflow-hidden transition-all duration-500`}>
-        <div className="flex justify-between items-center mb-6">
-          <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} flex items-center gap-2`}>
-            <Settings className="text-[#96C68E]" /> การตั้งค่าทั่วไป
-          </h3>
-        </div>
-
-        <div className="space-y-6">
-          {/* FONT SIZE SETTING */}
-          <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-            <div className="flex justify-between items-center mb-4">
-              <span className={`font-bold flex items-center gap-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                <BarChart3 size={18} className="text-blue-400" /> ขนาดตัวอักษร
-              </span>
-              <span className={`text-sm font-bold ${darkMode ? 'text-blue-400 bg-blue-900/40' : 'text-blue-500 bg-blue-50'} px-3 py-1 rounded-lg`}>{fontSize}%</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-slate-400">เล็ก</span>
-              <input
-                type="range"
-                min="80"
-                max="150"
-                value={fontSize}
-                onChange={(e) => setFontSize(parseInt(e.target.value))}
-                className={`flex-1 h-2 ${darkMode ? 'bg-slate-700' : 'bg-slate-200'} rounded-lg appearance-none cursor-pointer accent-[#96C68E]`}
-              />
-              <span className={`text-sm font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ใหญ่</span>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2">* ปรับขนาดตัวอักษรของระบบให้เหมาะสมกับการมองเห็น</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* NOTIFICATIONS SETTING */}
-            <div className={`p-6 rounded-2xl border transition-all cursor-pointer flex justify-between items-center ${notificationsEnabled ? (darkMode ? 'bg-slate-800 border-green-900/50 shadow-sm' : 'bg-white border-green-200 shadow-sm') : (darkMode ? 'bg-slate-900/50 border-slate-800 opacity-60' : 'bg-slate-50 border-slate-100 opacity-60')}`}
-              onClick={() => setNotificationsEnabled(!notificationsEnabled)}>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${notificationsEnabled ? (darkMode ? 'bg-green-900/40 text-[#96C68E]' : 'bg-green-100 text-green-600') : (darkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400')}`}>
-                  <Bell size={20} />
-                </div>
-                <div>
-                  <p className={`font-bold text-sm ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>การแจ้งเตือน</p>
-                  <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{notificationsEnabled ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</p>
-                </div>
-              </div>
-              <div className={`w-12 h-6 rounded-full relative transition-colors ${notificationsEnabled ? 'bg-[#96C68E]' : 'bg-slate-300'}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notificationsEnabled ? 'right-1' : 'left-1'}`}></div>
-              </div>
-            </div>
-
-
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   // IF NOT LOGGED IN, SHOW LOGIN PAGE
   // --- ส่วนตัดสินใจว่าจะแสดงหน้าไหนก่อนเข้าสู่ระบบ ---
@@ -4018,11 +3835,6 @@ export default function SchoolyScootLMS() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />
       )}
-
-
-
-
-
 
       {/* Sidebar แถบตัวเลือกข้างๆ */}
       <aside className={`
@@ -4216,11 +4028,30 @@ export default function SchoolyScootLMS() {
                     setAssignments={setAssignments}
                   />
                 )}
-                {activeTab === 'schedule' && renderSchedule()}
+                {activeTab === 'schedule' && (
+                  <ScheduleView
+                    darkMode={darkMode}
+                    userRole={userRole}
+                    courses={courses}
+                  />
+                )}
                 {activeTab === 'messages' && renderMessages()}
                 {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} />}
                 {activeTab === 'analytics' && <AnalyticsView setView={setActiveTab} courses={courses} assignments={assignments} userRole={userRole} userId={auth.currentUser?.uid} />}
-                {activeTab === 'settings' && renderSettings()}
+                {activeTab === 'settings' && (
+                  <SettingsView
+                    darkMode={darkMode}
+                    setDarkMode={setDarkMode}
+                    profile={profile}
+                    fontSize={fontSize}
+                    setFontSize={setFontSize}
+                    notificationsEnabled={notificationsEnabled}
+                    setNotificationsEnabled={setNotificationsEnabled}
+                    setEditProfileData={setEditProfileData}
+                    setActiveModal={setActiveModal}
+                    handleLogout={handleLogout}
+                  />
+                )}
 
               </>
             )}
