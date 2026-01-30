@@ -12,7 +12,8 @@ const CourseSettings = ({
     handleUpdateCourse,
     handleDeleteCourse,
     userRole,
-    selectedCourse
+    selectedCourse,
+    validateScheduleConflict
 }) => {
     return (
         <div className={`space-y-6 animate-in slide-in-from-bottom-4 duration-500 ${darkMode ? 'text-slate-100' : ''}`}>
@@ -162,6 +163,14 @@ const CourseSettings = ({
                                                         room: scheduleForm.room || 'N/A',
                                                         dayLabel: dayMap[scheduleForm.day]
                                                     };
+
+                                                    // PRE-ADD VALIDATION
+                                                    const conflictCheck = validateScheduleConflict(newItem, editingCourse.firestoreId);
+                                                    if (conflictCheck.conflict) {
+                                                        alert(`ไม่สามารถเพิ่มช่วงเวลานี้ได้ เนื่องจากเวลาชนกับวิชา "${conflictCheck.courseName}" (${conflictCheck.detail})`);
+                                                        return;
+                                                    }
+
                                                     setEditingCourse({
                                                         ...editingCourse,
                                                         scheduleItems: [...(editingCourse.scheduleItems || []), newItem]
