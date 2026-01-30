@@ -133,6 +133,11 @@ export default function SchoolyScootLMS() {
     return () => clearInterval(timer);
   }, []);
 
+  // Global Font Scale Effect
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}%`;
+  }, [fontSize]);
+
 
   // Profile State
   const [profile, setProfile] = useState({
@@ -3832,7 +3837,7 @@ export default function SchoolyScootLMS() {
 
 
   return (
-    <div className={`flex h-screen bg-[#F8FAFC] font-sans ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`} style={{ fontSize: `${fontSize}%` }}>
+    <div className={`flex h-screen bg-[#F8FAFC] font-sans ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`}>
       {renderModal()}
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}

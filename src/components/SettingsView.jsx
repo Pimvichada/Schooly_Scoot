@@ -109,14 +109,22 @@ const SettingsView = ({
 
                             <div className="flex items-center gap-4">
                                 <span className={`${darkMode ? 'text-slate-200' : 'text-slate-400'} text-sm min-w-[30px]`}>เล็ก</span>
-                                <input
-                                    type="range"
-                                    min="80"
-                                    max="150"
-                                    value={fontSize}
-                                    onChange={(e) => setFontSize(parseInt(e.target.value))}
-                                    className={`flex-1 h-[6px] rounded-full appearance-none cursor-pointer accent-[#96C68E] ${darkMode ? 'bg-slate-400' : 'bg-[#e2e8f0]'}`}
-                                />
+                                <div className="relative flex-1 h-6 flex items-center">
+                                    <input
+                                        type="range"
+                                        min="80"
+                                        max="150"
+                                        value={fontSize}
+                                        onChange={(e) => setFontSize(parseInt(e.target.value))}
+                                        className={`w-full h-1.5 rounded-full appearance-none cursor-pointer accent-[#96C68E] ${darkMode ? 'bg-slate-400' : 'bg-[#e2e8f0]'}`}
+                                    />
+                                    {/* 100% Marker (Value 100 in range 80-150 is approx 28.57%) */}
+                                    <div
+                                        className="absolute top-1/2 -translate-y-1/2 w-1 h-3 bg-slate-400 rounded-full pointer-events-none"
+                                        style={{ left: '28.57%' }}
+                                    ></div>
+                                    <span className="absolute -bottom-5 left-[28.57%] -translate-x-1/2 text-[10px] text-slate-400 font-bold">100</span>
+                                </div>
                                 <span className={`${darkMode ? 'text-slate-200' : 'text-slate-400'} text-sm min-w-[30px] text-right`}>ใหญ่</span>
                             </div>
                             <p className={`${darkMode ? 'text-slate-200' : 'text-slate-400'} text-xs mt-4 italic`}>
