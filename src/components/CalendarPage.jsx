@@ -26,7 +26,7 @@ const HOLIDAYS = [
     // Add more as needed or current year detection
 ];
 
-export default function CalendarPage({ courses = [], userRole = 'student' }) {
+export default function CalendarPage({ courses = [], userRole = 'student', darkMode }) {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const getDaysInMonth = (date) => {
@@ -44,29 +44,29 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
     const today = new Date();
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className={`space-y-6 animate-in fade-in duration-500 ${darkMode ? 'text-slate-200' : ''}`}>
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+                <h1 className={`text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'} flex items-center`}>
                     <CalendarIcon className="mr-3 text-[#96C68E]" />
                     ปฏิทินกิจกรรม
                 </h1>
                 <div className="flex gap-2">
-                    <button onClick={prevMonth} className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                        <ChevronLeft size={20} className="text-slate-600" />
+                    <button onClick={prevMonth} className={`p-2 border rounded-xl transition-colors ${darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}>
+                        <ChevronLeft size={20} />
                     </button>
-                    <h2 className="text-xl font-bold text-slate-700 min-w-[180px] text-center">
+                    <h2 className={`text-xl font-bold min-w-[180px] text-center ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
                         {currentDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })}
                     </h2>
-                    <button onClick={nextMonth} className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                        <ChevronRight size={20} className="text-slate-600" />
+                    <button onClick={nextMonth} className={`p-2 border rounded-xl transition-colors ${darkMode ? 'border-slate-700 hover:bg-slate-800 text-slate-300' : 'border-slate-200 hover:bg-slate-50 text-slate-600'}`}>
+                        <ChevronRight size={20} />
                     </button>
                 </div>
             </div>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} rounded-3xl p-6 shadow-sm border`}>
                 <div className="grid grid-cols-7 mb-4">
                     {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((day, i) => (
-                        <div key={i} className={`text-center font-bold pb-2 ${i === 0 || i === 6 ? 'text-[#FF917B]' : 'text-slate-400'}`}>
+                        <div key={i} className={`text-center font-bold pb-2 ${i === 0 || i === 6 ? 'text-[#FF917B]' : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
                             {day}
                         </div>
                     ))}
@@ -74,7 +74,7 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
 
                 <div className="grid grid-cols-7 gap-2">
                     {Array(firstDay).fill(null).map((_, i) => (
-                        <div key={`empty-${i}`} className="h-24 md:h-32 bg-slate-50/50 rounded-2xl"></div>
+                        <div key={`empty-${i}`} className={`h-24 md:h-32 rounded-2xl ${darkMode ? 'bg-slate-700/30' : 'bg-slate-50/50'}`}></div>
                     ))}
 
                     {Array(days).fill(null).map((_, i) => {
@@ -84,12 +84,6 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
                         const holiday = HOLIDAYS.find(h => h.date === dateStr);
                         const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
 
-                        // Check for classes
-                        // Adjust dayOfWeek: JS Date 0=Sun. Course Data usually 1=Mon...5=Fri.
-                        // If data matches JS Date.getDay(), use that.
-                        // Assumption: App.jsx uses 1=Mon..5=Fri.
-                        // If courses data follows that, then Mon=1.
-                        // JS getDay(): Sun=0, Mon=1. So it matches directly for Mon-Fri.
                         const dayOfWeek = currentDayDate.getDay();
                         const hasClass = courses.some(c => (c.schedule || []).some(s => s.dayOfWeek === dayOfWeek));
 
@@ -97,16 +91,16 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
                             <div
                                 key={day}
                                 className={`h-24 md:h-32 p-3 rounded-2xl border transition-all relative group cursor-pointer ${isToday
-                                    ? 'bg-[#F0FDF4] border-[#96C68E] shadow-sm'
+                                    ? (darkMode ? 'bg-green-900/20 border-[#96C68E] shadow-sm' : 'bg-[#F0FDF4] border-[#96C68E] shadow-sm')
                                     : holiday
-                                        ? 'bg-[#FFF0EE] border-[#FF917B]/30 hover:border-[#FF917B]'
-                                        : 'bg-white border-slate-100 hover:border-[#BEE1FF]'
+                                        ? (darkMode ? 'bg-red-900/10 border-[#FF917B]/30 hover:border-[#FF917B]' : 'bg-[#FFF0EE] border-[#FF917B]/30 hover:border-[#FF917B]')
+                                        : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-white border-slate-100 hover:border-[#BEE1FF]')
                                     }`}
                             >
                                 <div className="flex justify-between items-start">
                                     <span className={`text-sm font-bold ${isToday
                                         ? 'w-8 h-8 rounded-full bg-[#96C68E] text-white flex items-center justify-center'
-                                        : holiday ? 'text-[#FF917B]' : 'text-slate-700'
+                                        : holiday ? 'text-[#FF917B]' : (darkMode ? 'text-slate-400' : 'text-slate-700')
                                         }`}>
                                         {day}
                                     </span>
@@ -118,24 +112,15 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
 
                                 {holiday && (
                                     <div className="mt-2">
-                                        <div className="text-[10px] md:text-xs font-bold text-[#FF917B] bg-white/80 p-1 rounded-lg backdrop-blur-sm line-clamp-2 border border-[#FF917B]/20">
+                                        <div className={`text-[10px] md:text-xs font-bold text-[#FF917B] p-1 rounded-lg backdrop-blur-sm line-clamp-2 border border-[#FF917B]/20 ${darkMode ? 'bg-slate-800/80' : 'bg-white/80'}`}>
                                             {holiday.name}
                                         </div>
                                     </div>
                                 )}
 
-                                {hasClass && !holiday && ( // Show "มีเรียน" if class exists and not a holiday (or show both? logic choice. user said show class)
-                                    // If holiday, maybe no class? usually holidays = no class.
-                                    // But let's show it anyway if data says so, or prioritize holiday.
-                                    // Usually holidays override classes.
-                                    // Let's hide "มีเรียน" if holiday to avoid clutter, or maybe show if we want strict data.
-                                    // For now, assume holiday = no class visually, or just show indicator.
-                                    // User request: "วันไหนมีเรียนกฌจะแสดงในปฐิทินว่าเรียน"
+                                {hasClass && !holiday && (
                                     <div className="mt-1">
-                                        {/* <span className="text-[10px] font-bold text-[#5B9BD5] bg-[#E3F2FD] px-2 py-0.5 rounded-md block w-fit">
-                                            เรียน
-                                        </span> */}
-                                        <span className={`text-[10px] md:text-xs font-bold ${userRole === 'teacher' ? 'text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20' : 'text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20'} p-1 rounded-lg backdrop-blur-sm line-clamp-2 border`}>
+                                        <span className={`text-[10px] md:text-xs font-bold text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/20 p-1 rounded-lg backdrop-blur-sm line-clamp-2 border ${darkMode ? 'bg-blue-900/20 text-blue-300 border-blue-800/50' : ''}`}>
                                             {userRole === 'teacher' ? 'สอน' : 'เรียน'}
                                         </span>
                                     </div>
@@ -153,35 +138,24 @@ export default function CalendarPage({ courses = [], userRole = 'student' }) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
-                    <div className="p-3 bg-red-50 rounded-2xl text-red-500">
+                <div className={`p-6 rounded-3xl border shadow-sm flex items-start gap-4 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                    <div className={`p-3 rounded-2xl ${darkMode ? 'bg-red-900/20 text-red-400' : 'bg-red-50 text-red-500'}`}>
                         <MapPin size={24} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-slate-800">วันหยุดนักขัตฤกษ์</h3>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <h3 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>วันหยุดนักขัตฤกษ์</h3>
+                        <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                             วันหยุดราชการไทย
                         </p>
                     </div>
                 </div>
-                {/* <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
-                    <div className="p-3 bg-green-50 rounded-2xl text-green-500">
-                        <CalendarIcon size={24} />
-                    </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800">วันสำคัญสากล</h3>
-                        <p className="text-sm text-slate-500 mt-1">
-                            วันสำคัญระดับโลก
-                        </p>
-                    </div>
-                </div> */}
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-start gap-4">
-                    <div className="p-3 bg-blue-50 rounded-2xl text-blue-500">
+                <div className={`p-6 rounded-3xl border shadow-sm flex items-start gap-4 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                    <div className={`p-3 rounded-2xl ${darkMode ? 'bg-blue-900/20 text-blue-400' : 'bg-blue-50 text-blue-500'}`}>
                         <BookOpen size={24} />
                     </div>
                     <div>
-                        <h3 className="font-bold text-slate-800">{userRole === 'teacher' ? 'วันที่มีสอน' : 'วันที่มีเรียน'}</h3>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <h3 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{userRole === 'teacher' ? 'วันที่มีสอน' : 'วันที่มีเรียน'}</h3>
+                        <p className={`text-sm mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                             {userRole === 'teacher' ? 'วันที่ต้องเข้าสอนตามตาราง' : 'วันที่ต้องเข้าเรียนตามตาราง'}
                         </p>
                     </div>

@@ -173,12 +173,12 @@ const CourseFeed = ({
                 {/* Post Feed */}
                 <div className="mt-8">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                        <div className={`flex flex-col items-center justify-center py-20 rounded-3xl border shadow-sm ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                             <div className="relative">
-                                <div className="w-12 h-12 border-4 border-slate-100 rounded-full"></div>
+                                <div className={`w-12 h-12 border-4 rounded-full ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}></div>
                                 <div className="w-12 h-12 border-4 border-[#96C68E] border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
                             </div>
-                            <p className="mt-4 text-slate-400 font-medium animate-pulse text-sm">กำลังดึงข้อมูลประกาศ...</p>
+                            <p className={`mt-4 font-medium animate-pulse text-sm ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>กำลังดึงข้อมูลประกาศ...</p>
                         </div>
                     ) : posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).length > 0 ? (
                         <div className="space-y-6">
@@ -193,16 +193,17 @@ const CourseFeed = ({
                                     }}
                                     onDelete={handleDeletePost}
                                     onEdit={handleEditPost}
+                                    darkMode={darkMode}
                                 />
                             ))}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20 opacity-60">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                                <MessageSquare size={40} className="text-slate-200" />
+                            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                                <MessageSquare size={40} className={darkMode ? 'text-slate-600' : 'text-slate-200'} />
                             </div>
-                            <h3 className="text-slate-900 font-bold text-lg mb-2">ยังไม่มีประกาศใหม่</h3>
-                            <p className="text-slate-400 text-sm text-center max-w-[280px] leading-relaxed">เมื่อครูมีการแจ้งเตือนหรือประกาศข่าวสาร ข้อมูลจะปรากฏที่นี่เป็นที่แรก</p>
+                            <h3 className={`font-bold text-lg mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-900'}`}>ยังไม่มีประกาศใหม่</h3>
+                            <p className={`text-sm text-center max-w-[280px] leading-relaxed ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>เมื่อครูมีการแจ้งเตือนหรือประกาศข่าวสาร ข้อมูลจะปรากฏที่นี่เป็นที่แรก</p>
                         </div>
                     )}
                 </div>

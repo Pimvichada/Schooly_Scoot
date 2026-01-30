@@ -16,8 +16,8 @@ const SettingsView = ({
     return (
         <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
             {/* ส่วนบัญชีผู้ใช้ */}
-            <div className={`${darkMode ? 'bg-slate-500 border-slate-400' : 'bg-white border-slate-100'} rounded-3xl p-8 border shadow-sm`}>
-                <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} mb-6 flex items-center gap-2`}>
+            <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} rounded-3xl p-8 border shadow-sm`}>
+                <h3 className={`text-xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'} mb-6 flex items-center gap-2`}>
                     <User className="text-[#96C68E]" /> บัญชีผู้ใช้
                 </h3>
 
@@ -91,7 +91,7 @@ const SettingsView = ({
                     </h3>
                 </div>
 
-                <div className={`${darkMode ? 'bg-slate-500 border-slate-400' : 'bg-[#f8fafc] border-slate-100'} rounded-3xl p-8 border shadow-sm`}>
+                <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-[#f8fafc] border-slate-100'} rounded-3xl p-8 border shadow-sm`}>
                     <div className="space-y-8">
                         {/* Font Size Slider */}
                         <div>

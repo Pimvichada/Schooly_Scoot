@@ -133,7 +133,7 @@ const CourseQuizzes = ({
                                     </div>
                                 )}
                                 <div className="flex justify-between items-start mb-4">
-                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2 transition-transform ${isLocked ? 'bg-slate-200 text-slate-400' : 'bg-[#F0FDF4] text-[#96C68E] group-hover:scale-110'}`}>
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2 transition-transform ${isLocked ? (darkMode ? 'bg-slate-800 text-slate-500' : 'bg-slate-200 text-slate-400') : 'bg-[#F0FDF4] text-[#96C68E] group-hover:scale-110'}`}>
                                         {isLocked ? <Lock size={24} /> : (isSubmitted ? <Award size={24} /> : <ClipboardList size={24} />)}
                                     </div>
                                 </div>
@@ -157,7 +157,7 @@ const CourseQuizzes = ({
                                             setActiveModal('takeQuiz');
                                         }}
                                         className={`w-full py-3 rounded-xl font-bold transition-all transform ${isLocked
-                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                            ? (darkMode ? 'bg-slate-800 text-slate-600 cursor-not-allowed' : 'bg-slate-200 text-slate-400 cursor-not-allowed')
                                             : 'text-white bg-[#96C68E] hover:bg-[#85b57d] shadow-sm hover:shadow active:scale-95'
                                             }`}
                                     >

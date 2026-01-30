@@ -52,16 +52,17 @@ const CoursesView = ({
                             onClick={() => setSelectedCourse(course)}
                             isTeacher={userRole === 'teacher'}
                             onDelete={handleDeleteCourse}
+                            darkMode={darkMode}
                         />
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-white rounded-[2rem] border border-slate-100 border-dashed">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <BookOpen size={32} className="text-slate-400" />
+                <div className={`text-center py-20 rounded-[2rem] border border-dashed ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                        <BookOpen size={32} className={`${darkMode ? 'text-slate-400' : 'text-slate-400'}`} />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-600">ยังไม่มีห้องเรียนที่แสดง</h3>
-                    <p className="text-slate-500 text-sm mt-1">สร้างหรือเข้าร่วมห้องเรียนเพื่อเริ่มต้น หรือดูห้องที่ซ่อนไว้</p>
+                    <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ยังไม่มีห้องเรียนที่แสดง</h3>
+                    <p className={`${darkMode ? 'text-slate-500' : 'text-slate-500'} text-sm mt-1`}>สร้างหรือเข้าร่วมห้องเรียนเพื่อเริ่มต้น หรือดูห้องที่ซ่อนไว้</p>
                 </div>
             )}
 
@@ -79,6 +80,7 @@ const CoursesView = ({
                                 onClick={() => setSelectedCourse(course)}
                                 isTeacher={userRole === 'teacher'}
                                 onDelete={handleDeleteCourse}
+                                darkMode={darkMode}
                             />
                         ))}
                     </div>

@@ -35,15 +35,27 @@ const CourseClasswork = ({
         }
 
         return (
-            <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${isDone ? 'bg-slate-50/50 border-slate-100 opacity-80' : 'bg-white border-slate-100 hover:shadow-md'}`}>
+            <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${isDone
+                ? (darkMode ? 'bg-slate-800/50 border-slate-700 opacity-60' : 'bg-slate-50/50 border-slate-100 opacity-80')
+                : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-600 shadow-lg shadow-black/20' : 'bg-white border-slate-100 hover:shadow-md')
+                }`}>
                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${isDone ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                        {isDone ? <CheckCircle className="text-green-500" size={20} /> : <FileText className="text-yellow-500" size={20} />}
+                    <div className={`p-3 rounded-xl ${isDone
+                        ? (darkMode ? 'bg-green-900/20 text-green-400' : 'bg-green-50 text-green-500')
+                        : (darkMode ? 'bg-yellow-900/20 text-yellow-400' : 'bg-yellow-50 text-yellow-500')
+                        }`}>
+                        {isDone ? <CheckCircle size={20} className={darkMode ? 'text-green-400' : 'text-green-500'} /> : <FileText size={20} className={darkMode ? 'text-yellow-400' : 'text-yellow-500'} />}
                     </div>
                     <div>
-                        <h4 className={`font-bold ${isDone ? 'text-slate-400' : 'text-slate-800'}`}>{data.title}</h4>
+                        <h4 className={`font-bold ${isDone
+                            ? (darkMode ? 'text-slate-500' : 'text-slate-400')
+                            : (darkMode ? 'text-slate-200' : 'text-slate-800')
+                            }`}>{data.title}</h4>
                         <div className="flex items-center gap-2">
-                            <p className={`text-xs ${isDone ? 'text-green-500 font-bold' : 'text-slate-400'}`}>
+                            <p className={`text-xs ${isDone
+                                ? (darkMode ? 'text-green-400 font-bold' : 'text-green-500 font-bold')
+                                : (darkMode ? 'text-slate-500' : 'text-slate-400')
+                                }`}>
                                 {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'ยังไม่มีกำหนดส่ง')}
                             </p>
                             {overdueDays > 0 && userRole === 'student' && (
@@ -61,7 +73,10 @@ const CourseClasswork = ({
                             if (userRole === 'teacher') openGradingModal(data);
                             else setActiveModal('assignmentDetail');
                         }}
-                        className="bg-slate-50 text-slate-400 px-4 py-2 rounded-xl text-sm font-bold group-hover:bg-[#BEE1FF] group-hover:text-slate-800 transition-colors"
+                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${darkMode
+                            ? 'bg-slate-700 text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-400'
+                            : 'bg-slate-50 text-slate-400 group-hover:bg-[#BEE1FF] group-hover:text-slate-800'
+                            }`}
                     >
                         {isDone ? 'ดูผลการเรียน' : 'ดูรายละเอียด'}
                     </button>
@@ -80,7 +95,10 @@ const CourseClasswork = ({
                                         }
                                     }
                                 }}
-                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                className={`p-2 rounded-xl transition-all ${darkMode
+                                    ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20'
+                                    : 'text-slate-300 hover:text-red-500 hover:bg-red-50'
+                                    }`}
                                 title="ลบงาน"
                             >
                                 <Trash size={20} />
@@ -95,10 +113,10 @@ const CourseClasswork = ({
     return (
         <div className="space-y-6">
             {/* Search/Filter Controls could go here */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className={`p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                 <div>
-                    <h2 className="text-xl font-bold text-slate-800">งานในชั้นเรียน</h2>
-                    <p className="text-xs text-slate-400">จัดการงานและการบ้านของคุณ</p>
+                    <h2 className={`text-xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>งานในชั้นเรียน</h2>
+                    <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>จัดการงานและการบ้านของคุณ</p>
                 </div>
 
                 {userRole === 'teacher' && (
@@ -145,7 +163,7 @@ const CourseClasswork = ({
                     {courseAssignments.length > 0 ? (
                         courseAssignments.map(renderCard)
                     ) : (
-                        <div className="p-20 text-center text-slate-400">ยังไม่มีข้อมูลงาน</div>
+                        <div className={`p-20 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีข้อมูลงาน</div>
                     )}
                 </div>
             )}
