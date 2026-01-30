@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, Save, Trash, Plus, Edit2, X } from 'lucide-react';
+import { Settings, Save, Trash, Plus, Edit2, X, Check } from 'lucide-react';
 
 const CourseSettings = ({
     darkMode,
@@ -44,6 +44,24 @@ const CourseSettings = ({
                                         className={`w-full p-3.5 rounded-2xl border transition-all focus:outline-none focus:ring-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:ring-indigo-500/20 focus:border-indigo-500' : 'bg-slate-50 border-slate-100 focus:ring-blue-500/20 focus:border-blue-400'}`}
                                     />
                                 </div>
+                                <div className="space-y-1.5">
+                                    <label className={`text-sm font-bold ml-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>วันเริ่มต้น</label>
+                                    <input
+                                        type="date"
+                                        value={editingCourse.startDate || ''}
+                                        onChange={(e) => setEditingCourse({ ...editingCourse, startDate: e.target.value })}
+                                        className={`w-full p-3.5 rounded-2xl border transition-all focus:outline-none focus:ring-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:ring-indigo-500/20 focus:border-indigo-500' : 'bg-slate-50 border-slate-100 focus:ring-blue-500/20 focus:border-blue-400'}`}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className={`text-sm font-bold ml-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>วันสิ้นสุด</label>
+                                    <input
+                                        type="date"
+                                        value={editingCourse.endDate || ''}
+                                        onChange={(e) => setEditingCourse({ ...editingCourse, endDate: e.target.value })}
+                                        className={`w-full p-3.5 rounded-2xl border transition-all focus:outline-none focus:ring-2 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:ring-indigo-500/20 focus:border-indigo-500' : 'bg-slate-50 border-slate-100 focus:ring-blue-500/20 focus:border-blue-400'}`}
+                                    />
+                                </div>
                             </div>
 
                             <div className="space-y-1.5">
@@ -63,7 +81,21 @@ const CourseSettings = ({
                                     <div className="flex flex-wrap gap-3 items-center">
                                         <select
                                             value={scheduleForm.day}
-                                            onChange={(e) => setScheduleForm({ ...scheduleForm, day: e.target.value })}
+                                            onChange={(e) => {
+                                                const newVal = e.target.value;
+                                                const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์', '6': 'เสาร์', '0': 'อาทิตย์' };
+                                                setScheduleForm({ ...scheduleForm, day: newVal });
+
+                                                if (editingScheduleIndex !== null) {
+                                                    const updatedItems = [...(editingCourse.scheduleItems || [])];
+                                                    updatedItems[editingScheduleIndex] = {
+                                                        ...updatedItems[editingScheduleIndex],
+                                                        dayOfWeek: parseInt(newVal),
+                                                        dayLabel: dayMap[newVal]
+                                                    };
+                                                    setEditingCourse({ ...editingCourse, scheduleItems: updatedItems });
+                                                }
+                                            }}
                                             className={`p-2.5 rounded-xl border text-sm transition-all outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
                                         >
                                             <option value="1">จันทร์</option>
@@ -77,51 +109,76 @@ const CourseSettings = ({
                                         <input
                                             type="time"
                                             value={scheduleForm.start}
-                                            onChange={(e) => setScheduleForm({ ...scheduleForm, start: e.target.value })}
+                                            onChange={(e) => {
+                                                const newVal = e.target.value;
+                                                setScheduleForm({ ...scheduleForm, start: newVal });
+                                                if (editingScheduleIndex !== null) {
+                                                    const updatedItems = [...(editingCourse.scheduleItems || [])];
+                                                    updatedItems[editingScheduleIndex] = { ...updatedItems[editingScheduleIndex], startTime: newVal };
+                                                    setEditingCourse({ ...editingCourse, scheduleItems: updatedItems });
+                                                }
+                                            }}
                                             className={`p-2.5 rounded-xl border text-sm transition-all outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
                                         />
                                         <span className={darkMode ? 'text-slate-600' : 'text-slate-400'}>-</span>
                                         <input
                                             type="time"
                                             value={scheduleForm.end}
-                                            onChange={(e) => setScheduleForm({ ...scheduleForm, end: e.target.value })}
+                                            onChange={(e) => {
+                                                const newVal = e.target.value;
+                                                setScheduleForm({ ...scheduleForm, end: newVal });
+                                                if (editingScheduleIndex !== null) {
+                                                    const updatedItems = [...(editingCourse.scheduleItems || [])];
+                                                    updatedItems[editingScheduleIndex] = { ...updatedItems[editingScheduleIndex], endTime: newVal };
+                                                    setEditingCourse({ ...editingCourse, scheduleItems: updatedItems });
+                                                }
+                                            }}
                                             className={`p-2.5 rounded-xl border text-sm transition-all outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
                                         />
                                         <input
                                             type="text"
                                             placeholder="ห้อง"
                                             value={scheduleForm.room}
-                                            onChange={(e) => setScheduleForm({ ...scheduleForm, room: e.target.value })}
+                                            onChange={(e) => {
+                                                const newVal = e.target.value;
+                                                setScheduleForm({ ...scheduleForm, room: newVal });
+                                                if (editingScheduleIndex !== null) {
+                                                    const updatedItems = [...(editingCourse.scheduleItems || [])];
+                                                    updatedItems[editingScheduleIndex] = { ...updatedItems[editingScheduleIndex], room: newVal };
+                                                    setEditingCourse({ ...editingCourse, scheduleItems: updatedItems });
+                                                }
+                                            }}
                                             className={`p-2.5 rounded-xl border text-sm transition-all outline-none w-24 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}
                                         />
-                                        <button onClick={() => {
-                                            const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์', '6': 'เสาร์', '0': 'อาทิตย์' };
-                                            if (scheduleForm.start && scheduleForm.end) {
-                                                const newItem = {
-                                                    dayOfWeek: parseInt(scheduleForm.day),
-                                                    startTime: scheduleForm.start,
-                                                    endTime: scheduleForm.end,
-                                                    room: scheduleForm.room || 'N/A',
-                                                    dayLabel: dayMap[scheduleForm.day]
-                                                };
 
-                                                const currentItems = editingCourse.scheduleItems || [];
-                                                if (editingScheduleIndex !== null) {
-                                                    const newItems = [...currentItems];
-                                                    newItems[editingScheduleIndex] = newItem;
-                                                    setEditingCourse({ ...editingCourse, scheduleItems: newItems });
-                                                    setEditingScheduleIndex(null);
-                                                } else {
+                                        {editingScheduleIndex === null ? (
+                                            <button onClick={() => {
+                                                const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์', '6': 'เสาร์', '0': 'อาทิตย์' };
+                                                if (scheduleForm.start && scheduleForm.end) {
+                                                    const newItem = {
+                                                        dayOfWeek: parseInt(scheduleForm.day),
+                                                        startTime: scheduleForm.start,
+                                                        endTime: scheduleForm.end,
+                                                        room: scheduleForm.room || 'N/A',
+                                                        dayLabel: dayMap[scheduleForm.day]
+                                                    };
                                                     setEditingCourse({
                                                         ...editingCourse,
-                                                        scheduleItems: [...currentItems, newItem]
+                                                        scheduleItems: [...(editingCourse.scheduleItems || []), newItem]
                                                     });
+                                                    setScheduleForm({ day: '1', start: '', end: '', room: '' });
                                                 }
+                                            }} className="bg-blue-500 hover:bg-blue-600 text-white p-2.5 rounded-xl shadow-md transition-all active:scale-95">
+                                                <Plus size={18} />
+                                            </button>
+                                        ) : (
+                                            <button onClick={() => {
+                                                setEditingScheduleIndex(null);
                                                 setScheduleForm({ day: '1', start: '', end: '', room: '' });
-                                            }
-                                        }} className={`${editingScheduleIndex !== null ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'} text-white p-2.5 rounded-xl shadow-md transition-all active:scale-95`}>
-                                            {editingScheduleIndex !== null ? <Save size={18} /> : <Plus size={18} />}
-                                        </button>
+                                            }} className="bg-slate-400 hover:bg-slate-500 text-white p-2.5 rounded-xl shadow-md transition-all active:scale-95">
+                                                <X size={18} />
+                                            </button>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2 mt-2">
@@ -139,7 +196,7 @@ const CourseSettings = ({
                                                             room: item.room || ''
                                                         });
                                                         setEditingScheduleIndex(idx);
-                                                    }} className="text-amber-400 hover:text-amber-600 p-1.5 rounded-lg hover:bg-amber-400/10 transition-colors"><Edit2 size={16} /></button>
+                                                    }} className={`p-1.5 rounded-lg transition-colors ${editingScheduleIndex === idx ? 'text-amber-600 bg-amber-200' : 'text-amber-400 hover:text-amber-600 hover:bg-amber-400/10'}`}><Edit2 size={16} /></button>
                                                     <button onClick={() => {
                                                         const newItems = editingCourse.scheduleItems.filter((_, i) => i !== idx);
                                                         setEditingCourse({ ...editingCourse, scheduleItems: newItems });

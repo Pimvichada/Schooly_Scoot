@@ -1547,7 +1547,9 @@ export default function SchoolyScootLMS() {
         name: editingCourse.name,
         code: editingCourse.code,
         description: editingCourse.description,
-        schedule: editingCourse.scheduleItems
+        schedule: editingCourse.scheduleItems,
+        startDate: editingCourse.startDate || null,
+        endDate: editingCourse.endDate || null
       });
 
       // Update local state
@@ -1558,6 +1560,10 @@ export default function SchoolyScootLMS() {
       );
       setCourses(updatedCourses);
       setSelectedCourse({ ...selectedCourse, ...editingCourse, schedule: editingCourse.scheduleItems });
+
+      // Reset Edit State
+      setEditingScheduleIndex(null);
+      setScheduleForm({ day: '1', start: '', end: '', room: '' });
 
       alert('บันทึกการเปลี่ยนแปลงเรียบร้อย');
     } catch (error) {
