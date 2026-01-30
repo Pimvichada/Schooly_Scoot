@@ -360,7 +360,9 @@ export default function SchoolyScootLMS() {
   //  Assignment State (สำคัญมาก)
 
   // Notification System
-  const [activeNotifications, setActiveNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]); // Store ALL notifications for the list
+  const [activeNotifications, setActiveNotifications] = useState([]); // Store ONLY active toasts
+
 
   const addNotification = useCallback((notification) => {
     const noti = { ...notification, id: notification.id || Date.now().toString() };
@@ -371,40 +373,70 @@ export default function SchoolyScootLMS() {
       }
       return [...prev, noti];
     });
-    // Play Sound
-    const audio = new Audio(notiSoundUrl);
-    audio.play().catch(e => console.log("Audio play failed:", e));
+    // Play Sound for NEW notifications only
+    try {
+      const audio = new Audio(notiSoundUrl);
+      audio.volume = 0.5; // Adjust volume as needed
+      audio.play().catch(e => console.error("Audio play failed (user interaction needed first?):", e));
+    } catch (err) {
+      console.error("Error initializing audio:", err);
+    }
   }, []);
 
   const removeNotification = useCallback((id) => {
     setActiveNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
+  const isFirstLoad = useRef(true);
+
   useEffect(() => {
     if (!auth.currentUser) return;
 
-    // Store page load time to filter old notifications from popping up
-    const pageLoadTime = Date.now();
 
-    const unsubscribe = subscribeToNotifications(auth.currentUser.uid, (notifications, changes) => {
+
+    const unsubscribe = subscribeToNotifications(auth.currentUser.uid, (allNotifications, changes) => {
       // Update the notifications list (optional if you want to show list)
 
+
+      // Update the notifications list (optional if you want to show list)
+      setNotifications(allNotifications); // 1. Always update the full list for UI (Dashboard/List)
+
+      // 2. Handle Real-time Alerts (Sound & Toast)
+      // 2. Handle Real-time Alerts (Sound & Toast)
+      if (isFirstLoad.current) {
+        // First snapshot (initial load):
+        isFirstLoad.current = false;
+
+        const unreadCount = allNotifications.filter(n => !n.read).length;
+        console.log(`Initial Load: Found ${unreadCount} unread notifications.`);
+
+        if (unreadCount > 0) {
+          console.log("Attempting to play initial sound...");
+          try {
+            const audio = new Audio(notiSoundUrl);
+            audio.volume = 0.5;
+            audio.play()
+              .then(() => console.log("Initial sound played successfully."))
+              .catch(error => {
+                console.warn("Initial sound blocked (Autoplay Policy):", error);
+              });
+          } catch (e) {
+            console.error("Audio initialization error:", e);
+          }
+        }
+        return;
+      }
+
+      // Subsequent snapshots: Check specifically for "added" changes
+
       if (changes) {
+        console.log(`Real-time update: ${changes.length} changes detected.`);
         changes.forEach(change => {
           if (change.type === 'added') {
             const newNoti = change.doc.data();
-
-            // Check creation time
-            let notiTime = 0;
-            if (newNoti.createdAt) {
-              // Handle standard ISO string or Firestore Timestamp
-              notiTime = new Date(newNoti.createdAt).getTime();
-            }
-
-            // Show popup ONLY if:
-            // 1. It is unread
-            // 2. It was created AFTER this page loaded (with 2s buffer)
-            if (!newNoti.read && notiTime > (pageLoadTime - 2000)) {
+            console.log("New notification detected:", newNoti);
+            // Show toast & play sound if unread
+            if (!newNoti.read) {
               addNotification({ ...newNoti, firestoreId: change.doc.id });
             }
           }
@@ -413,7 +445,8 @@ export default function SchoolyScootLMS() {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid]);
+  }, [auth.currentUser?.uid, isLoggedIn, addNotification]);
+
 
 
 
@@ -968,42 +1001,36 @@ export default function SchoolyScootLMS() {
     }
   };
 
-  // Notifications state
-  const [notifications, setNotifications] = useState([]);
+  // Notifications state conflict removed. Using the one defined earlier.
+  // const [notifications, setNotifications] = useState([]); <--- REMOVED
+
+  // Calculate unread status from the main notifications state
   const hasUnread = notifications.some(n => !n.read);
+
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [submissionsLoading, setSubmissionsLoading] = useState(false); // New state
 
-  // Fetch Notifications & Chats
-  // ค้นหาช่วง useEffect นี้ในไฟล์ของคุณ
+  // Fetch Chats (Notifications are handled by the new real-time listener above)
   useEffect(() => {
-    const fetchData = async () => {
-      // เช็คให้ชัวร์ว่า user login แล้วจริงๆ (Re-check inside async)
+    const fetchChatData = async () => {
       const user = auth.currentUser;
       if (user) {
         try {
-          /* 1. ลบบรรทัด seedNotifications ออก */
-          // await seedNotifications(user.uid); // <--- ลบทิ้ง หรือ Comment ไว้
 
-          /* 2. ดึงข้อมูลจริงจาก Firestore */
-          const notifs = await getNotifications(user.uid);
-          setNotifications(notifs);
-
-          /* 3. จัดการเรื่องแชท (ถ้าแชทหายเหมือนกัน ให้ลบ seedChats ออกด้วย) */
-          // await seedChats(user.uid); 
           const chatData = await getChats(user.uid);
           setChats(chatData);
-
         } catch (error) {
-          console.error("Error loading data:", error);
+          console.error("Error loading chat data:", error);
         }
       }
     };
 
-    // เรียกฟังก์ชันเมื่อ auth.currentUser เปลี่ยนแปลง หรือตอนโหลดหน้า
-    fetchData();
-  }, [auth.currentUser, isLoggedIn]); // เพิ่ม isLoggedIn เข้าไปใน dependency
+    fetchChatData();
+  }, [auth.currentUser, isLoggedIn]);
+
+
+
   const markNotificationRead = (id) => {
     // Optimistic update
     setNotifications(prev => prev.map(n => n.firestoreId === id ? { ...n, read: true } : n));
@@ -3802,57 +3829,13 @@ export default function SchoolyScootLMS() {
     <div className={`flex h-screen bg-[#F8FAFC] font-sans ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`} style={{ fontSize: `${fontSize}%` }}>
       {renderModal()}
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}
+      {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {activeModal === 'videoConference' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2D3436]/60 backdrop-blur-md p-4">
-          <div className="bg-white w-[95vw] h-[90vh] rounded-[2.5rem] overflow-hidden flex flex-col relative shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-4 border-white">
-
-            {/* Header - ใช้สีฟ้า #BEE1FF เป็นพื้นหลังหลัก */}
-            <div className="bg-[#BEE1FF] p-5 flex justify-between items-center border-b-2 border-[#96C68E]/20">
-              <div className="flex items-center gap-4">
-                {/* Icon Box - ใช้สีส้ม #FF917B */}
-                <div className="bg-[#FF917B] p-3 rounded-2xl shadow-sm rotate-3">
-                  <Video size={24} className="text-white" />
-                </div>
-                <div>
-                  <h3 className="font-black text-[#4A4A4A] text-xl tracking-tight leading-none">
-                    {meetingConfig.topic || 'ห้องเรียนออนไลน์'}
-                  </h3>
-                  <p className="text-xs font-bold text-[#96C68E] mt-1 uppercase tracking-wider">
-                    Schooly Scoot Conference
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setActiveModal(null)}
-                className="bg-white hover:bg-[#FFE787] text-[#4A4A4A] px-6 py-2.5 rounded-2xl transition-all font-bold text-sm shadow-sm border-2 border-transparent hover:border-[#FF917B] active:scale-95"
-              >
-                ปิดหน้าต่าง
-              </button>
-            </div>
-
-            {/* Jitsi Iframe Container */}
-            <div className="flex-1 bg-[#F8FAFC] relative">
-              <iframe
-                src={`https://meet.jit.si/${meetingConfig.roomName}#config.startWithAudioMuted=true&config.startWithVideoMuted=true&userInfo.displayName="${profile.firstName} ${profile.lastName}"`}
-                className="w-full h-full border-0 relative z-10"
-                allow="camera; microphone; fullscreen; display-capture; autoplay"
-              ></iframe>
-
-              {/* Overlay Loading - ใช้สีเหลือง #FFE787 เป็นพื้นหลังตอนโหลด */}
-              <div className="absolute inset-0 bg-[#FFE787]/30 flex flex-col items-center justify-center z-0">
-                <div className="flex gap-2 mb-4">
-                  <div className="w-3 h-3 bg-[#FF917B] rounded-full animate-bounce"></div>
-                  <div className="w-3 h-3 bg-[#96C68E] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="w-3 h-3 bg-[#BEE1FF] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                </div>
-                <span className="text-[#4A4A4A] font-bold text-lg animate-pulse">
-                  กำลังจัดเตรียมห้องเรียน...
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <VideoConference
+          meetingConfig={meetingConfig}
+          profile={profile}
+          onClose={() => setActiveModal(null)}
+        />
       )}
 
       {/* Mobile Sidebar Overlay */}

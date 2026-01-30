@@ -34,15 +34,18 @@ export const getNotifications = async (userId) => {
  * @param {function} callback - Function to call with new notifications
  */
 export const subscribeToNotifications = (userId, callback) => {
+    console.log("Subscribing to notifications for user:", userId);
     const notifCol = collection(db, 'notifications');
-    // REMOVED orderBy to avoid "Missing Index" error for now.
-    // We will sort client-side in the callback.
+
+    // Reverted to client-side sorting because the necessary Firestore Index is missing.
+    // This ensures notifications appear even without the index, though slightly less efficient.
     const q = query(
         notifCol,
         where('userId', '==', userId)
     );
 
     return onSnapshot(q, (snapshot) => {
+        console.log("Notification snapshot received. Docs count:", snapshot.docs.length);
         const notifications = snapshot.docs.map(doc => ({
             ...doc.data(),
             firestoreId: doc.id
@@ -50,9 +53,13 @@ export const subscribeToNotifications = (userId, callback) => {
 
         // Sort client-side (Newest first)
         notifications.sort((a, b) => {
-            const timeA = a.createdAt?.seconds || 0;
-            const timeB = b.createdAt?.seconds || 0;
-            return timeB - timeA;
+            const getTime = (t) => {
+                if (!t) return 0;
+                if (t.toDate && typeof t.toDate === 'function') return t.toDate().getTime(); // Firestore Timestamp
+                const d = new Date(t);
+                return isNaN(d.getTime()) ? 0 : d.getTime(); // String or Date object
+            };
+            return getTime(b.createdAt) - getTime(a.createdAt);
         });
 
         // Pass both full list and changes to the callback

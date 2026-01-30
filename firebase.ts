@@ -24,16 +24,17 @@ const auth = getAuth(app);
 
 // Revert Long Polling to fix speed issues
 // If ERR_QUIC_PROTOCOL_ERROR returns, it means the network is blocking UDP.
-const db = getFirestore(app);
+// Revert Long Polling to fix speed issues
+// If ERR_QUIC_PROTOCOL_ERROR returns, it means the network is blocking UDP.
+// const db = getFirestore(app); // Replaced below
 
-// Enable Offline Persistence for speed
-import { enableIndexedDbPersistence } from "firebase/firestore";
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.log('Multiple tabs open, persistence can only be enabled in one tab at a a time.');
-  } else if (err.code == 'unimplemented') {
-    console.log('The current browser does not support all of the features required to enable persistence');
-  }
+// Initialize Firestore with Persistent Cache (New API)
+import { persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
 });
 
 const storage = getStorage(app);

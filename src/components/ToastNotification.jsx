@@ -37,13 +37,21 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 20000
           w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white shadow-md
           ${type === 'homework' ? 'bg-[#FF917B]' :
                         type === 'meeting' ? 'bg-[#96C68E]' :
-                            'bg-blue-500'}
+                            type === 'quiz' ? 'bg-purple-500' :
+                                type === 'post' ? 'bg-pink-500' :
+                                    'bg-blue-500'}
         `}>
                     <Bell size={20} className={isVisible ? 'animate-bounce' : ''} />
                 </div>
 
                 <div className="flex-1">
-                    <h4 className="font-bold text-slate-800 text-sm mb-1">{type === 'homework' ? 'การบ้านใหม่' : type === 'meeting' ? 'เรียกเข้าเรียน' : 'แจ้งเตือนระบบ'}</h4>
+                    <h4 className="font-bold text-slate-800 text-sm mb-1">
+                        {type === 'homework' ? 'การบ้านใหม่' :
+                            type === 'meeting' ? 'เรียกเข้าเรียน' :
+                                type === 'quiz' ? 'แบบทดสอบใหม่' :
+                                    type === 'post' ? 'ประกาศใหม่' :
+                                        'แจ้งเตือนระบบ'}
+                    </h4>
                     <p className="text-slate-600 text-xs leading-relaxed break-words">{message}</p>
                 </div>
 
