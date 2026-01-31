@@ -195,14 +195,13 @@ const LandingPage = ({ onGetStarted }) => {
 
             {/* Navbar */}
             <nav className="fixed top-0 w-full p-8 flex justify-between items-center z-50 font-kanit">
-                <div className="text-2xl font-black tracking-tight text-slate-800">schooly<span className="text-[#96C68E]">.</span></div>
+                <div className="text-2xl font-black tracking-tight text-slate-800">Schooly Scoot<span className="text-[#96C68E]">.</span></div>
                 <div className="hidden md:flex space-x-8 text-sm font-bold text-slate-500">
                     {/* <a href="#" className="hover:text-[#96C68E] transition-colors">บริการ</a> */}
                     <a onClick={handleScrollToTeam} className="hover:text-[#96C68E] transition-colors cursor-pointer">เกี่ยวกับเรา</a>
-                    <a href="#" className="hover:text-[#96C68E] transition-colors">ติดต่อ</a>
                     <div className="flex space-x-2 pl-4 border-l border-slate-200">
                         <span className="font-black text-slate-800 cursor-pointer">TH</span>
-                        <span className="text-slate-300 hover:text-slate-500 cursor-pointer transition-colors">EN</span>
+                        {/* <span className="text-slate-300 hover:text-slate-500 cursor-pointer transition-colors">EN</span> */}
                     </div>
                 </div>
             </nav>
@@ -291,7 +290,7 @@ const LandingPage = ({ onGetStarted }) => {
                 )}
 
                 {/* TAB-BASED AUTH SECTION */}
-                <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 border-white/50 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90">
+                <div className="w-full max-w-md bg-white p-8  mb-50 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 border-white/50 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90">
                     {/* Tab Switcher */}
                     <div className="flex justify-center mb-8 space-x-8">
                         <button
@@ -438,8 +437,10 @@ const LandingPage = ({ onGetStarted }) => {
                     </button>
                 </div>
 
+
+
                 {/* TEAM SECTION */}
-                <div ref={teamSectionRef} className="w-full py-24 relative z-10 bg-white/50 backdrop-blur-sm">
+                <div ref={teamSectionRef} className="w-full py-24 md:py-40 relative z-10 bg-white/50 backdrop-blur-sm">
                     <div className="max-w-6xl mx-auto px-4">
                         <div className="text-center mb-16 relative">
                             <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-4">
