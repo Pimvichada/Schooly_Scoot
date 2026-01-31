@@ -68,16 +68,67 @@ export const deleteQuiz = async (quizId) => {
 export const submitQuiz = async (quizId, studentId, submissionData) => {
     try {
         const submissionsCol = collection(db, 'quiz_submissions');
+
+        // Check if there's an existing "in-progress" submission to update
+        const existing = await checkSubmission(quizId, studentId);
+
+        if (existing) {
+            const docRef = doc(db, 'quiz_submissions', existing.firestoreId);
+            const updateData = {
+                ...submissionData,
+                status: 'submitted',
+                submittedAt: new Date().toISOString()
+            };
+            await updateDoc(docRef, updateData);
+            return { ...existing, ...updateData };
+        } else {
+            // Fallback for legacy behavior or if startQuizAttempt failed
+            const newSubmission = {
+                quizId,
+                studentId,
+                ...submissionData,
+                status: 'submitted',
+                submittedAt: new Date().toISOString()
+            };
+            const docRef = await addDoc(submissionsCol, newSubmission);
+            return { ...newSubmission, firestoreId: docRef.id };
+        }
+    } catch (error) {
+        console.error("Error submitting quiz:", error);
+        throw error;
+    }
+};
+
+
+/**
+ * Start a quiz attempt (Prevent re-entry)
+ * @param {string} quizId
+ * @param {string} studentId
+ * @param {string} studentName
+ */
+export const startQuizAttempt = async (quizId, studentId, studentName) => {
+    try {
+        const submissionsCol = collection(db, 'quiz_submissions');
+
+        // Check if already exists to avoid overwriting (double safety)
+        const existing = await checkSubmission(quizId, studentId);
+        if (existing) return existing;
+
         const newSubmission = {
             quizId,
             studentId,
-            ...submissionData,
-            submittedAt: new Date().toISOString()
+            studentName,
+            score: 0,
+            total: 0, // Will be updated on submit
+            answers: {},
+            status: 'in-progress',
+            startedAt: new Date().toISOString(),
+            submittedAt: null
         };
         const docRef = await addDoc(submissionsCol, newSubmission);
         return { ...newSubmission, firestoreId: docRef.id };
     } catch (error) {
-        console.error("Error submitting quiz:", error);
+        console.error("Error starting quiz:", error);
         throw error;
     }
 };

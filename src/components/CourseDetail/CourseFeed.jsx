@@ -67,13 +67,7 @@ const CourseFeed = ({
                 </div>
 
                 {/* Upcoming Work Card Placeholder or Logic */}
-                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-4 rounded-2xl border shadow-sm`}>
-                    <h3 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>งานที่ใกล้ถึงกำหนด</h3>
-                    <p className={`text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ไม่มีงานที่ต้องส่งเร็วๆ นี้</p>
-                    <div className="flex justify-end mt-2">
-                        <button className={`text-xs font-bold ${darkMode ? 'text-orange-400 hover:text-orange-300' : 'text-[#FF917B] hover:text-orange-600'}`} onClick={() => setCourseTab('work')}>ดูทั้งหมด</button>
-                    </div>
-                </div>
+
             </div>
 
             {/* Main Feed Area */}

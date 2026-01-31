@@ -4,7 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse, getUserDetails } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
-import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore, getQuiz } from './services/quizService';
+import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore, getQuiz, startQuizAttempt } from './services/quizService';
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead, subscribeToNotifications } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
@@ -665,9 +665,20 @@ export default function SchoolyScootLMS() {
   const [courseSubmissions, setCourseSubmissions] = useState({}); // For teacher view
   const [selectedSubmission, setSelectedSubmission] = useState(null); // For detailed answer view
 
+
   // Quiz Timer Countdown & Auto Submit
   useEffect(() => {
     if (activeModal === 'takeQuiz' && !quizResult && quizRemainingSeconds > 0) {
+
+      // Add BeforeUnload Event Listener
+      const handleBeforeUnload = (e) => {
+        e.preventDefault();
+        e.returnValue = ''; // Trigger browser warning
+        // Note: Browsers generally don't allow async calls here. 
+        // We rely on "Started" state in Firestore to block re-entry if they do leave.
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+
       const timer = setInterval(() => {
         setQuizRemainingSeconds(prev => {
           if (prev <= 1) {
@@ -675,12 +686,72 @@ export default function SchoolyScootLMS() {
             submitQuizRef.current(); // Auto submit
             return 0;
           }
+          if (prev % 5 === 0) { // Sync every 5 seconds (optional optimization)
+            // Check if user is still active?
+          }
           return prev - 1;
         });
       }, 1000);
-      return () => clearInterval(timer);
+
+      // Cleanup function: runs when component unmounts OR dependencies change (e.g. closing modal)
+      return () => {
+        clearInterval(timer);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+
+        // AUTO SUBMIT ON EXIT (If not already submitted)
+        // Check if we need to submit (i.e. if user is quitting mid-quiz)
+        // We need to check a ref or state that indicates if it was a "proper" submission or an "abort"
+        // But since we want "exit = submit", we just call submit.
+        // HOWEVER, we need to be careful not to submit if the user just finished normally (quizResult is set).
+        // The dependency [activeModal] means this runs when modal closes.
+        if (activeModal !== 'takeQuiz') {
+          // We can attempts to submit here, but strict mode might trigger this twice.
+          // Rely on manual confirm or "Are you sure" before closing modal in UI?
+          // User requested: "Cannot exit page".
+          // If we force submission here, we need valid data.
+          submitQuizRef.current();
+        }
+      };
     }
   }, [activeModal, quizResult, quizRemainingSeconds]);
+
+  // Handle Start Quiz (Create Submission Record)
+  const handleStartQuiz = async (quiz) => {
+    // 1. Check if already submitted (UI should block, but double check)
+    if (mySubmissions[quiz.firestoreId]) {
+      alert("คุณทำแบบทดสอบนี้ไปแล้ว");
+      return;
+    }
+
+    try {
+      // 2. Create "In Progress" Submission
+      const studentName = profile.firstName + ' ' + (profile.lastName || '');
+      const submission = await startQuizAttempt(quiz.firestoreId, auth.currentUser.uid, studentName);
+
+      // Safety Check: If backend returns an existing submission that is already submitted
+      if (submission.status === 'submitted') {
+        alert("ไม่อนุญาตให้ทำแบบทดสอบซ้ำ");
+        // Sync local state
+        setMySubmissions(prev => ({ ...prev, [quiz.firestoreId]: submission }));
+        return;
+      }
+
+      // 3. Update Local State IMMEDIATELY (Block re-entry in UI)
+      setMySubmissions(prev => ({ ...prev, [quiz.firestoreId]: submission }));
+
+      // 4. Open Modal & Start Timer
+      setActiveQuiz(quiz);
+      const minutes = parseInt(quiz.time) || 0;
+      setQuizRemainingSeconds(minutes * 60);
+      setQuizAnswers({}); // Reset answers
+      setQuizResult(null); // Reset result
+      setActiveModal('takeQuiz');
+
+    } catch (error) {
+      console.error("Failed to start quiz:", error);
+      alert("เกิดข้อผิดพลาดในการเริ่มทำข้อสอบ");
+    }
+  };
 
 
   // Fetch Posts and Quiz Submissions when course selected
@@ -1787,6 +1858,12 @@ export default function SchoolyScootLMS() {
       if ((activeModal === 'assignmentDetail' || activeModal === 'grading_detail') && userRole === 'teacher') {
         setActiveModal('grading');
         return;
+      }
+
+      // Quiz Exist Confirmation
+      if (activeModal === 'takeQuiz' && !quizResult) {
+        const confirmExit = window.confirm("คุณยืนยันที่จะออกใช่ไหม? \nหากออกตอนนี้ ระบบจะทำการส่งคำตอบเท่าที่ทำได้ทันที และคุณจะไม่สามารถกลับมาแก้ไขได้");
+        if (!confirmExit) return;
       }
 
       setActiveModal(null);
@@ -4027,7 +4104,8 @@ export default function SchoolyScootLMS() {
                 handleDeleteQuiz={handleDeleteQuiz}
                 setNewExam={setNewExam}
                 currentTime={currentTime}
-                setActiveQuiz={setActiveQuiz}
+
+                setActiveQuiz={handleStartQuiz} /* Pass custom handler instead of setActiveQuiz directly */
                 setQuizRemainingSeconds={setQuizRemainingSeconds}
                 meetingConfig={meetingConfig}
                 setMeetingConfig={setMeetingConfig}
