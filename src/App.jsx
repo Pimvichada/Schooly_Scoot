@@ -2416,15 +2416,7 @@ export default function SchoolyScootLMS() {
                   </div>
                 </div>
 
-                {/* FOOTER */}
-                <div className="px-8 py-5 border-t border-slate-100 bg-white flex justify-end">
-                  <button
-                    onClick={closeModal}
-                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200"
-                  >
-                    ปิดหน้าต่าง
-                  </button>
-                </div>
+
               </div>
             </div>
           )}
@@ -2661,7 +2653,7 @@ export default function SchoolyScootLMS() {
                   <div className="text-6xl font-bold text-[#FF917B] mb-8">
                     {quizResult.score} <span className="text-2xl text-slate-300">/ {quizResult.total}</span>
                   </div>
-                  <button onClick={closeModal} className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-700">ปิดหน้าต่าง</button>
+
                 </div>
               ) : (
                 <>
