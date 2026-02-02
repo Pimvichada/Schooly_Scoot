@@ -1222,6 +1222,14 @@ export default function SchoolyScootLMS() {
             try {
               const quiz = await getQuiz(notif.targetId);
               if (quiz) {
+                // Check if already submitted
+                const existingSubmission = await checkSubmission(notif.targetId, auth.currentUser.uid);
+
+                if (existingSubmission) {
+                  alert("คุณได้ทำแบบทดสอบนี้ไปแล้ว");
+                  return;
+                }
+
                 setActiveQuiz(quiz);
                 // Check locked
                 const scheduledTime = quiz.scheduledAt ? new Date(quiz.scheduledAt) : null;
@@ -1230,6 +1238,8 @@ export default function SchoolyScootLMS() {
                   const minutes = parseInt(quiz.time) || 0;
                   setQuizRemainingSeconds(minutes * 60);
                   setActiveModal('takeQuiz');
+                } else {
+                  alert("แบบทดสอบนี้ยังไม่เปิดให้ทำ");
                 }
               }
             } catch (e) { console.error(e); }
@@ -1510,7 +1520,7 @@ export default function SchoolyScootLMS() {
               ? `มีแบบทดสอบใหม่กำหนดสอบวันที่ ${new Date(examData.scheduledAt).toLocaleString('th-TH', {
                 day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
               })}`
-              : `มีแบบทดสอบใหม่ "${examData.title}" เปิดให้ทำแล้ว`;
+              : `มีแบบทดสอบใหม่ "${examData.title}" ทำเเบบทดสอบเเล้ว`;
 
             return createNotification(
               studentId,
