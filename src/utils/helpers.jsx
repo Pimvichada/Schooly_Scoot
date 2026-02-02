@@ -36,6 +36,31 @@ export const WELCOME_MESSAGES = {
     ]
 };
 
+export const formatThaiDate = (date) => {
+    if (!date) return "เมื่อสักครู่";
+
+    let d;
+    if (typeof date === 'object' && date.toDate) {
+        d = date.toDate();
+    } else if (date instanceof Date) {
+        d = date;
+    } else {
+        d = new Date(date);
+    }
+
+    if (isNaN(d.getTime())) return "เมื่อสักครู่";
+
+    // Format to match the "31/1/69 16:20" style seen in screenshots
+    return d.toLocaleString('th-TH', {
+        year: '2-digit',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+};
+
 export const getCourseIcon = (type) => {
     switch (type) {
         case 'square': return <MascotSquare className="w-12 h-12" />;

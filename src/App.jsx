@@ -20,6 +20,7 @@ import { useNotifications } from './hooks/useNotifications';
 import { useTime } from './hooks/useTime';
 import { useMeeting } from './hooks/useMeeting';
 import { useQuiz } from './hooks/useQuiz';
+import { usePosts } from './hooks/usePosts';
 
 
 import {
@@ -53,13 +54,11 @@ import {
   AlertCircle,
   AlertTriangle,
   Lock,
-
   Info,
   Send,
   Image as ImageIcon,
   Paperclip,
   ArrowRight,
-  ClipboardList,
   Clock,
   CheckCircle2,
   HelpCircle,
@@ -68,7 +67,6 @@ import {
   Heart,
   Star,
   Zap,
-  Trophy,
   GraduationCap,
   Smile,
   Copy,
@@ -76,11 +74,9 @@ import {
   EyeOff,
   Eye,
   Trash2,
-  BarChart3,
-  ClipboardCheck,
 } from 'lucide-react';
 
-import { MascotCircle, MascotSquare, MascotTriangle, MascotStar, Cute1 } from './components/Mascots';
+import { MascotCircle, MascotSquare, MascotTriangle, Cute1 } from './components/Mascots';
 import LoginPage from './components/LoginPage';
 import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './utils/helpers.jsx';
 import StatCard from './components/StatCard';
@@ -97,6 +93,7 @@ import ScheduleView from './components/ScheduleView';
 import SettingsView from './components/SettingsView';
 import PostItem from './components/PostItem';
 import ToastNotification from './components/ToastNotification';
+import QuizModals from './components/QuizModals';
 import notiSoundUrl from './assets/notisound.mp3';
 import logo_no_text from './assets/logo_no_tex3.png';
 
@@ -107,7 +104,7 @@ export default function SchoolyScootLMS() {
 
   // --- Custom Hooks ---
   const {
-    isLoggedIn, userRole, authLoading, profile,
+    uid, isLoggedIn, userRole, authLoading, profile,
     hiddenCourseIds, setHiddenCourseIds,
     editProfileData, setEditProfileData, isSavingProfile,
     handleUpdateProfile, handleProfileImageUpload
@@ -121,12 +118,12 @@ export default function SchoolyScootLMS() {
 
   const {
     courses, setCourses, handleToggleHideCourse, refreshCourses
-  } = useCourses(isLoggedIn, userRole, auth.currentUser?.uid, hiddenCourseIds, setHiddenCourseIds);
+  } = useCourses(isLoggedIn, userRole, uid, hiddenCourseIds, setHiddenCourseIds);
 
   const {
     notifications, activeNotifications,
     addNotification, removeNotification, markAsRead, markAllRead
-  } = useNotifications(auth.currentUser?.uid, notificationsEnabled);
+  } = useNotifications(uid, notificationsEnabled);
 
   const currentTime = useTime(); // Global Time
 
@@ -173,7 +170,13 @@ export default function SchoolyScootLMS() {
     manualScores, setManualScores,
     handleStartQuiz,
     submitQuiz
-  } = useQuiz(auth.currentUser, profile, selectedCourse, activeModal, setActiveModal);
+  } = useQuiz(uid, profile, selectedCourse, activeModal, setActiveModal);
+
+  const {
+    posts, setPosts, newPostContent, setNewPostContent, newPostFiles, setNewPostFiles,
+    loading: postsLoading, handleCreatePost, handleDeletePost, handleEditPost,
+    handlePostFileSelect, handleRemovePostFile
+  } = usePosts(uid, profile, selectedCourse);
 
 
   const [quizzes, setQuizzes] = useState([]);
@@ -196,10 +199,6 @@ export default function SchoolyScootLMS() {
   // const welcomeMessage = useMemo(...) -> Replaced with hook above
 
   // Auth Effect - Handled by useAuthUser
-
-
-
-
 
 
   // --- Data States ---
@@ -475,14 +474,7 @@ export default function SchoolyScootLMS() {
   const [editingScores, setEditingScores] = useState({}); // Stores unsaved scores { submissionId: score }
 
   const [gradingTab, setGradingTab] = useState('submitted'); // 'submitted' or 'missing'
-  // Post Feed State
-  const [posts, setPosts] = useState([]);
-  const [newPostContent, setNewPostContent] = useState('');
-  const [newPostFiles, setNewPostFiles] = useState([]);
-
-  // const [newPostFiles, setNewPostFiles] = useState([]);
   const [comments, setComments] = useState([]);
-  const [loading, setLoading] = useState(true);
 
 
   // Quiz Taking Logic
@@ -490,134 +482,9 @@ export default function SchoolyScootLMS() {
 
 
 
-  // Fetch Posts and Quiz Submissions when course selected
-  useEffect(() => {
-    const fetchAllData = async () => {
-      // ตรวจสอบว่ามี selectedCourse หรือไม่
-      if (!selectedCourse?.firestoreId) {
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
 
-      try {
-        setLoading(true); // เริ่มโหลด
 
-        // 1. Fetch Posts
-        const postsData = await getPostsByCourse(selectedCourse.firestoreId);
-        setPosts(postsData);
 
-        // 2. Fetch Quiz Submissions (if Student)
-        if (auth.currentUser && userRole === 'student') {
-          const courseQuizzes = await getQuizzesByCourse(selectedCourse.name); // Note: Current logic matches by course name or ID? checking createExam.. it uses course name.
-          // Wait, getQuizzesByCourse logic in App might depend on how quizzes are linked. Use logic similar to what we might expect.
-          // Actually, let's look at how quizzes are filtered in render: "const quizzes = allQuizzes.filter..."
-          // But wait, "quizzes" state might not be loaded yet if we only rely on this effect?
-          // The "quizzes" state seems to be global or fetched elsewhere?
-          // Let's check where "quizzes" comes from.
-          // If I look at line 1408: setQuizzes([...quizzes, createdQuiz]);
-          // It seems "quizzes" is a state.
-          // I should probably fetch quizzes here too if they aren't already?
-          // OR iterate over `quizzes` if it's already there?
-          // Issue: this effect runs on `selectedCourse`.
-          // Let's just fetch them for sure to be safe and accurate.
-
-          // Re-reading quizService: getQuizzesByCourse(courseName)
-          const fetchedQuizzes = await getQuizzesByCourse(selectedCourse.name);
-
-          const submissionsMap = {};
-          await Promise.all(fetchedQuizzes.map(async (q) => {
-            const sub = await checkSubmission(q.firestoreId, auth.currentUser.uid);
-            if (sub) {
-              submissionsMap[q.firestoreId] = sub;
-            }
-          }));
-          setMySubmissions(submissionsMap);
-        }
-
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false); // หยุดโหลดไม่ว่าจะสำเร็จหรือล้มเหลว
-      }
-    };
-
-    fetchAllData();
-  }, [selectedCourse, auth.currentUser, userRole]);
-
-  // Handle Create Post
-  const handleCreatePost = async (e) => {
-    e.preventDefault();
-    if (!newPostContent.trim() && newPostFiles.length === 0) return;
-
-    try {
-      const author = {
-        uid: auth.currentUser.uid,
-        name: `${profile.firstName} ${profile.lastName}`,
-        avatar: profile.photoURL,
-        role: profile.roleLabel
-      };
-
-      // Pass files to createPost
-      const newPost = await createPost(selectedCourse.firestoreId, newPostContent, author, newPostFiles);
-
-      // Notify Course Members
-      const recipients = new Set(selectedCourse.studentIds || []);
-      if (selectedCourse.ownerId) recipients.add(selectedCourse.ownerId);
-      recipients.delete(auth.currentUser.uid); // Don't notify self
-
-      recipients.forEach(async (uid) => {
-        await createNotification(
-          uid,
-          `โพสต์ใหม่ในวิชา ${selectedCourse.name}`,
-          'system',
-          `${profile.firstName} ได้โพสต์ประกาศใหม่`,
-          { courseId: selectedCourse.firestoreId, targetType: 'post', targetId: newPost.id }
-        );
-      });
-
-      // Update local state
-      setPosts([newPost, ...posts]);
-      setNewPostContent('');
-      setNewPostFiles([]); // Clear files
-      // alert('โพสต์ประกาศเรียบร้อย');
-    } catch (error) {
-      console.error("Failed to create post", error);
-      alert('ไม่สามารถสร้างโพสต์ได้: ' + error.message);
-    }
-  };
-
-  // Handle Delete Post
-  const handleDeletePost = async (postId) => {
-    try {
-      await deletePost(postId);
-      // Update local state
-      setPosts(prev => prev.filter(p => p.id !== postId));
-    } catch (error) {
-      console.error("Failed to delete post", error);
-      alert('ไม่สามารถลบโพสต์ได้');
-    }
-  };
-
-  // Handle Edit Post
-  const handleEditPost = (postId, newContent) => {
-    setPosts(prev => prev.map(p =>
-      p.id === postId ? { ...p, content: newContent } : p
-    ));
-  };
-
-  const handlePostFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      setNewPostFiles(prev => [...prev, ...files]);
-    }
-    // Reset value so the same file can be selected again
-    e.target.value = null;
-  };
-
-  const handleRemovePostFile = (index) => {
-    setNewPostFiles(prev => prev.filter((_, i) => i !== index));
-  };
 
 
   useEffect(() => {
@@ -639,46 +506,7 @@ export default function SchoolyScootLMS() {
   }, [selectedCourse]);
 
 
-  // Fetch Posts and Quiz Submissions when course selected
-  useEffect(() => {
-    const fetchAllData = async () => {
-      // ตรวจสอบว่ามี selectedCourse หรือไม่
-      if (!selectedCourse?.firestoreId) {
-        setPosts([]);
-        setLoading(false);
-        return;
-      }
 
-      try {
-        setLoading(true); // เริ่มโหลด
-
-        // 1. Fetch Posts
-        const postsData = await getPostsByCourse(selectedCourse.firestoreId);
-        setPosts(postsData);
-
-        // 2. Fetch Quiz Submissions (if Student)
-        if (auth.currentUser && userRole === 'student') {
-          const fetchedQuizzes = await getQuizzesByCourse(selectedCourse.name);
-
-          const submissionsMap = {};
-          await Promise.all(fetchedQuizzes.map(async (q) => {
-            const sub = await checkSubmission(q.firestoreId, auth.currentUser.uid);
-            if (sub) {
-              submissionsMap[q.firestoreId] = sub;
-            }
-          }));
-          setMySubmissions(submissionsMap);
-        }
-
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false); // หยุดโหลดไม่ว่าจะสำเร็จหรือล้มเหลว
-      }
-    };
-
-    fetchAllData();
-  }, [selectedCourse, auth.currentUser, userRole, setMySubmissions]);
 
   // Fetch Pending Members (For Teacher)
   useEffect(() => {
@@ -1675,1067 +1503,29 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div className={`${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'} rounded-3xl shadow-2xl w-full ${activeModal === 'createExam' ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail', 'pendingQuizzes'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
-          {!['grading', 'grading_detail'].includes(activeModal) && (
+        <div className={`${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'} rounded-3xl shadow-2xl w-full ${['createExam', 'viewAnswerDetail'].includes(activeModal) ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail', 'pendingQuizzes', 'viewResults'].includes(activeModal) ? 'max-w-6xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
+          {!['grading', 'grading_detail', 'viewAnswerDetail'].includes(activeModal) && (
             <button onClick={closeModal} className={`absolute top-4 right-4 p-2 rounded-full z-10 ${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}>
               <X size={20} className={`${darkMode ? 'text-slate-300' : 'text-slate-600'}`} />
             </button>
           )}
 
-          {/* CREATE EXAM MODAL (TEACHER) */}
-          {activeModal === 'createExam' && (
-            <div className="p-8 h-full flex flex-col">
-              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
-                <Plus className="mr-3 text-[#FF917B]" /> สร้างแบบทดสอบใหม่
-              </h2>
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
-                {/* Exam Details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อแบบทดสอบ</label>
-                    <input
-                      type="text"
-                      className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                      placeholder="เช่น สอบย่อยบทที่ 1"
-                      value={newExam.title}
-                      onChange={(e) => setNewExam({ ...newExam, title: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">วิชา</label>
-                    {selectedCourse ? (
-                      <input
-                        type="text"
-                        className="w-full p-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-500 font-bold outline-none cursor-not-allowed"
-                        value={selectedCourse.name}
-                        readOnly
-                      />
-                    ) : (
-                      <select
-                        className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none bg-white"
-                        value={newExam.course}
-                        onChange={(e) => setNewExam({ ...newExam, course: e.target.value })}
-                      >
-                        <option value="">-- เลือกวิชา --</option>
-                        {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                      </select>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">เวลาในการทำ (นาที)</label>
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <input
-                          type="number"
-                          className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                          placeholder="ระบุเวลา (นาที)"
-                          value={newExam.time}
-                          onChange={(e) => setNewExam({ ...newExam, time: parseInt(e.target.value) || '' })}
-                        />
-                        <span className="absolute right-4 top-3.5 text-slate-400 text-sm font-bold">นาที</span>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        {[15, 30, 45, 60, 90, 120].map(t => (
-                          <button
-                            key={t}
-                            onClick={() => setNewExam({ ...newExam, time: t })}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${newExam.time === t
-                              ? 'bg-[#96C68E] text-white border-[#96C68E]'
-                              : 'bg-white text-slate-500 border-slate-200 hover:border-[#96C68E] hover:text-[#96C68E]'
-                              }`}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Schedule Exam */}
-                  <div className="col-span-full bg-orange-50 p-4 rounded-xl border border-orange-100">
-                    <label className="flex items-center gap-3 cursor-pointer mb-2">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 accent-[#FF917B] rounded-lg"
-                        checked={!!newExam.scheduledAt}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            // Default to tomorrow 8:00 AM for convenience
-                            const tomorrow = new Date();
-                            tomorrow.setDate(tomorrow.getDate() + 1);
-                            tomorrow.setHours(8, 0, 0, 0);
-                            // Format to YYYY-MM-DDTHH:mm
-                            const localIso = new Date(tomorrow.getTime() - (tomorrow.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-                            setNewExam({ ...newExam, scheduledAt: localIso });
-                          } else {
-                            setNewExam({ ...newExam, scheduledAt: '' });
-                          }
-                        }}
-                      />
-                      <span className="font-bold text-slate-700 flex items-center">
-                        <Calendar size={18} className="mr-2 text-orange-500" /> กำหนดเวลาสอบ (Scheduled Release)
-                      </span>
-                    </label>
-                    <p className="text-sm text-slate-500 ml-8 mb-3">หากกำหนดเวลา นักเรียนจะไม่เห็นข้อสอบจนกว่าจะถึงเวลาที่กำหนด</p>
-
-                    {newExam.scheduledAt && (
-                      <div className="ml-8">
-                        <input
-                          type="datetime-local"
-                          className="w-full md:w-1/2 p-3 rounded-xl border border-orange-200 focus:border-orange-400 outline-none bg-white font-medium text-slate-700"
-                          value={newExam.scheduledAt}
-                          onChange={(e) => setNewExam({ ...newExam, scheduledAt: e.target.value })}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
+          {/* QUIZ MODALS (Extracted) */}
+          <QuizModals
+            {...{
+              activeModal, setActiveModal, closeModal, darkMode, profile, selectedCourse, courses,
+              isListLoading, pendingGradingList, setIsLoading: setIsListLoading, getQuizSubmissions, setSelectedCourse,
+              activeQuiz, setActiveQuiz, quizAnswers, setQuizAnswers, quizResult,
+              quizRemainingSeconds, courseSubmissions, setCourseSubmissions,
+              selectedSubmission, setSelectedSubmission, manualScores, setManualScores,
+              submitQuiz, newExam, setNewExam, handleAddQuestion, handleUpdateQuestion,
+              handleRemoveQuestion, handleQuestionImageUpload, handleOptionImageUpload,
+              handleUpdateOption, handleSaveExam
+            }}
+          />
 
 
 
-                {/* Question Editor */}
-                <div className="space-y-4">
-                  <h3 className="font-bold text-slate-700">รายการคำถาม ({newExam.items.length})</h3>
-                  {newExam.items.map((item, idx) => (
-                    <div key={idx} className="border border-slate-200 rounded-2xl p-4 relative group hover:border-[#BEE1FF] transition-all bg-white shadow-sm">
-                      {/* Header: Num, Type, Delete */}
-                      <div className="flex justify-between items-center mb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">ข้อที่ {idx + 1}</span>
-
-                          <select
-                            value={item.type || 'choice'}
-                            onChange={(e) => handleUpdateQuestion(idx, 'type', e.target.value)}
-                            className="text-xs font-bold text-slate-600 bg-white border border-slate-200 rounded-lg px-2 py-1 outline-none focus:border-[#96C68E]"
-                          >
-                            <option value="choice">ปรนัย (4 ตัวเลือก)</option>
-                            <option value="true_false">ถูก/ผิด (True/False)</option>
-                            <option value="matching">จับคู่ (Matching)</option>
-                            <option value="text">เติมคำ (Keywords)</option>
-                          </select>
-                          <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-2 py-1 border border-slate-200">
-                            <span className="text-xs font-bold text-slate-500">คะแนน:</span>
-                            <input
-                              type="number"
-                              min="1"
-                              className="w-12 text-xs font-black text-slate-700 bg-transparent outline-none text-center"
-                              value={item.points || 1}
-                              onChange={(e) => handleUpdateQuestion(idx, 'points', Number(e.target.value))}
-                            />
-                          </div>
-                        </div>
-                        <button onClick={() => handleRemoveQuestion(idx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash size={16} /></button>
-                      </div>
-
-                      {/* Question Text & Image */}
-                      <div className="mb-4">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            className="w-full p-3 pr-12 mb-2 border border-slate-200 rounded-xl focus:border-[#96C68E] outline-none font-bold text-slate-700 bg-slate-50 focus:bg-white transition-colors"
-                            placeholder="พิมพ์โจทย์คำถาม..."
-                            value={item.q}
-                            onChange={(e) => handleUpdateQuestion(idx, 'q', e.target.value)}
-                          />
-                          <label className="absolute right-2 top-2 p-2 cursor-pointer text-slate-400 hover:text-[#96C68E] hover:bg-slate-100 rounded-full transition-colors z-10">
-                            <ImageIcon size={20} />
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept="image/*"
-                              onClick={(e) => e.target.value = null}
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files[0]) {
-                                  handleQuestionImageUpload(idx, e.target.files[0]);
-                                }
-                              }}
-                            />
-                          </label>
-                        </div>
-                        {item.image && (
-                          <div className="relative w-fit mt-2">
-                            <img src={item.image} alt="Question" className="h-32 rounded-lg border border-slate-200 object-cover" />
-                            <button
-                              onClick={() => handleUpdateQuestion(idx, 'image', null)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Answer Editor based on Type */}
-                      <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                        {/* CASE: CHOICE */}
-                        {(!item.type || item.type === 'choice') && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {item.options.map((opt, optIdx) => (
-                              <div key={optIdx} className="bg-white p-3 rounded-xl border border-slate-200 focus-within:border-[#96C68E] focus-within:ring-1 focus-within:ring-[#96C68E] relative">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <input
-                                    type="radio"
-                                    name={`correct-${idx}`}
-                                    checked={item.correct === optIdx}
-                                    onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
-                                    className="w-4 h-4 accent-[#96C68E]"
-                                  />
-                                  <input
-                                    type="text"
-                                    className="flex-1 text-sm outline-none text-slate-600 font-medium bg-transparent"
-                                    placeholder={`ตัวเลือก ${optIdx + 1}`}
-                                    value={opt}
-                                    onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
-                                  />
-                                  <label className="p-1.5 hover:bg-slate-100 rounded-lg cursor-pointer text-slate-400 hover:text-[#96C68E] transition-colors" title="เพิ่มรูปภาพ">
-                                    <ImageIcon size={16} />
-                                    <input
-                                      type="file"
-                                      className="hidden"
-                                      accept="image/*"
-                                      onChange={(e) => handleOptionImageUpload(idx, optIdx, e.target.files[0])}
-                                    />
-                                  </label>
-                                </div>
-
-                                {item.optionImages && item.optionImages[optIdx] && (
-                                  <div className="relative w-full h-32 bg-slate-50 rounded-lg overflow-hidden border border-slate-100 mt-2 group/img">
-                                    <img src={item.optionImages[optIdx]} alt={`Option ${optIdx + 1}`} className="w-full h-full object-contain" />
-                                    <button
-                                      onClick={() => handleOptionImageUpload(idx, optIdx, null)} // This will need a slight adjustment in handleOptionImageUpload or a new handler if we pass null to delete
-                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 shadow-md opacity-0 group-hover/img:opacity-100 transition-opacity transform hover:scale-110"
-                                      title="ลบรูปภาพ"
-                                    >
-                                      <X size={12} />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* CASE: TRUE/FALSE */}
-                        {item.type === 'true_false' && (
-                          <div className="flex gap-4">
-                            <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold ${item.correctAnswer === true ? 'bg-green-50 border-green-500 text-green-700' : 'bg-white border-slate-200 text-slate-400 hover:border-green-200'}`}>
-                              <input
-                                type="radio"
-                                name={`tf-${idx}`}
-                                checked={item.correctAnswer === true}
-                                onChange={() => handleUpdateQuestion(idx, 'correctAnswer', true)}
-                                className="hidden"
-                              />
-                              <CheckCircle2 size={20} className="mr-2" /> ถูก (True)
-                            </label>
-                            <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold ${item.correctAnswer === false ? 'bg-red-50 border-red-500 text-red-700' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200'}`}>
-                              <input
-                                type="radio"
-                                name={`tf-${idx}`}
-                                checked={item.correctAnswer === false}
-                                onChange={() => handleUpdateQuestion(idx, 'correctAnswer', false)}
-                                className="hidden"
-                              />
-                              <X size={20} className="mr-2" /> ผิด (False)
-                            </label>
-                          </div>
-                        )}
-
-                        {/* CASE: MATCHING */}
-                        {item.type === 'matching' && (
-                          <div className="space-y-2">
-                            {(item.pairs || []).map((pair, pIdx) => (
-                              <div key={pIdx} className="flex gap-2 items-center">
-                                <input
-                                  placeholder="ฝั่งซ้าย (โจทย์)"
-                                  className="flex-1 p-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-[#96C68E]"
-                                  value={pair.left}
-                                  onChange={(e) => {
-                                    const newPairs = [...item.pairs];
-                                    newPairs[pIdx].left = e.target.value;
-                                    handleUpdateQuestion(idx, 'pairs', newPairs);
-                                  }}
-                                />
-                                <ArrowRight size={16} className="text-slate-300" />
-                                <input
-                                  placeholder="ฝั่งขวา (คำตอบ)"
-                                  className="flex-1 p-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-[#96C68E]"
-                                  value={pair.right}
-                                  onChange={(e) => {
-                                    const newPairs = [...item.pairs];
-                                    newPairs[pIdx].right = e.target.value;
-                                    handleUpdateQuestion(idx, 'pairs', newPairs);
-                                  }}
-                                />
-                                {item.pairs.length > 1 && (
-                                  <button
-                                    onClick={() => {
-                                      const newPairs = item.pairs.filter((_, i) => i !== pIdx);
-                                      handleUpdateQuestion(idx, 'pairs', newPairs);
-                                    }}
-                                    className="text-slate-300 hover:text-red-500"
-                                  >
-                                    <Trash size={16} />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            <button
-                              onClick={() => {
-                                const newPairs = [...(item.pairs || []), { left: '', right: '' }];
-                                handleUpdateQuestion(idx, 'pairs', newPairs);
-                              }}
-                              className="text-xs font-bold text-[#96C68E] hover:underline flex items-center"
-                            >
-                              <Plus size={12} className="mr-1" /> เพิ่มคู่จับคู่
-                            </button>
-                          </div>
-                        )}
-
-                        {/* CASE: TEXT / FILL IN BLANK */}
-                        {item.type === 'text' && (
-                          <div>
-                            <label className="flex items-center gap-2 mb-4 bg-yellow-50 p-3 rounded-xl border border-yellow-100 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                className="w-5 h-5 accent-yellow-500 rounded"
-                                checked={!!item.manualGrading}
-                                onChange={(e) => handleUpdateQuestion(idx, 'manualGrading', e.target.checked)}
-                              />
-                              <span className="font-bold text-slate-700 text-sm">ต้องการตรวจคำตอบเอง (Manual Grading)</span>
-                            </label>
-
-                            {!item.manualGrading && (
-                              <>
-                                <p className="text-xs font-bold text-slate-500 mb-2">คำตอบที่ถูกต้อง (Keywords)</p>
-                                <p className="text-[10px] text-slate-400 mb-2">ระบบจะตรวจคำตอบว่ามีคำเหล่านี้หรือไม่ (คั่นด้วยจุลภาค ,)</p>
-                                <input
-                                  type="text"
-                                  className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
-                                  placeholder="เช่น โปรตีน, เนื้อสัตว์, ถั่ว"
-                                  value={item.keywords ? item.keywords.join(', ') : ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    const keys = val.split(',').map(k => k.trim());
-                                    handleUpdateQuestion(idx, 'keywords', keys);
-                                  }}
-                                />
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    onClick={handleAddQuestion}
-                    className="w-full py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 font-bold hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-50 transition-all"
-                  >
-                    + เพิ่มข้อสอบ
-                  </button>
-                </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end gap-3">
-
-                <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
-                  <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW RESULTS MODAL */}
-          {activeModal === 'viewResults' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div className={`rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden ${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}>
-                {/* HEADER */}
-                <div className={`px-8 py-6 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-amber-100 p-3 rounded-2xl">
-                      <Trophy className="text-amber-500" size={32} />
-                    </div>
-                    <div>
-                      <h2 className={`text-3xl font-extrabold tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
-                        ผลคะแนนสอบ
-                      </h2>
-                      <p className={`font-medium mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        แบบทดสอบ: <span className="text-indigo-600">{activeQuiz?.title}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={closeModal}
-                    className="group p-2 hover:bg-red-50 rounded-xl transition-colors duration-200"
-                  >
-                    <X size={28} className="text-slate-400 group-hover:text-red-500 transition-colors" />
-                  </button>
-                </div>
-
-                {/* CONTENT */}
-                <div className={`flex-1 overflow-y-auto p-8 ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50/50'}`}>
-                  <div className="max-w-6xl mx-auto">
-                    {/* STATS GRID */}
-                    {courseSubmissions.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-slate-500 text-sm font-bold">คะแนนเฉลี่ย</p>
-                            <BarChart3 size={20} className="text-indigo-400" />
-                          </div>
-                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                            {(courseSubmissions.reduce((a, b) => a + b.score, 0) / courseSubmissions.length).toFixed(1)}
-                            {(courseSubmissions.reduce((a, b) => a + b.score, 0) / courseSubmissions.length).toFixed(1)}
-                            <span className="text-lg text-slate-400 font-medium ml-1">/ {activeQuiz?.totalPoints || activeQuiz?.items?.reduce((total, item) => total + (Number(item.points) || 1), 0) || 0}</span>
-                          </p>
-                        </div>
-                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-slate-500 text-sm font-bold">ผ่านเกณฑ์ (50%)</p>
-                            <CheckCircle2 size={20} className="text-green-400" />
-                          </div>
-                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                            {Math.round((courseSubmissions.filter(s => s.score >= (s.total / 2)).length / courseSubmissions.length) * 100)}%
-                          </p>
-                        </div>
-                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-slate-500 text-sm font-bold">คะแนนสูงสุด</p>
-                            <TrendingUp size={20} className="text-amber-400" />
-                          </div>
-                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                            {Math.max(...courseSubmissions.map(s => s.score))}
-                          </p>
-                        </div>
-                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-slate-500 text-sm font-bold">ส่งแล้ว</p>
-                            <Users size={20} className="text-blue-400" />
-                          </div>
-                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                            {courseSubmissions.length}
-                            <span className="text-lg text-slate-400 font-medium ml-1">/ {selectedCourse?.studentIds?.length || 0} คน</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* RESULTS TABLE */}
-                    <div className={`rounded-2xl shadow-sm border overflow-hidden min-h-[400px] ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
-                      {courseSubmissions.length > 0 ? (
-                        <table className="w-full text-left">
-                          <thead className={`text-sm border-b ${darkMode ? 'bg-slate-700 text-slate-300 border-slate-600' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-                            <tr>
-                              <th className="p-4 pl-6 font-bold">นักเรียน</th>
-                              <th className="p-4 font-bold">สถานะ</th>
-                              <th className="p-4 font-bold">เวลาส่ง</th>
-                              <th className="p-4 pr-6 font-bold text-right">คะแนนสอบ</th>
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
-                            {courseSubmissions.map((sub) => {
-                              const percent = (sub.score / sub.total) * 100;
-                              return (
-                                <tr
-                                  key={sub.firestoreId}
-                                  className="cursor-pointer group"
-                                  onClick={() => {
-                                    setSelectedSubmission(sub);
-                                    setManualScores(sub.itemScores || {});
-                                    setActiveModal('viewAnswerDetail');
-                                  }}
-                                >
-                                  <td className="p-4 pl-6">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border transition-colors ${darkMode ? 'bg-slate-700 text-slate-300 border-slate-600' : 'bg-slate-100 text-slate-500 border-slate-200 group-hover:border-indigo-200 group-hover:text-indigo-500'}`}>
-                                        {sub.studentName.charAt(0)}
-                                      </div>
-                                      <div>
-                                        <div className={`font-bold transition-colors ${darkMode ? 'text-slate-200 group-hover:text-indigo-400' : 'text-slate-700 group-hover:text-indigo-700'}`}>{sub.studentName}</div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="p-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold inline-flex items-center bg-green-100 text-green-700`}>
-                                      <CheckCircle2 size={12} className="mr-1" /> ส่งแล้ว
-                                    </span>
-                                  </td>
-                                  <td className="p-4">
-                                    <div className="flex items-center text-slate-500 font-medium text-sm">
-                                      <Clock size={16} className="mr-2 text-slate-400" />
-                                      {new Date(sub.submittedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
-                                    </div>
-                                  </td>
-                                  <td className="p-4 pr-6 text-right">
-                                    <div className="flex items-center justify-end gap-2">
-                                      {sub.status === 'pending_grading' ? (
-                                        <span className="text-xl font-bold text-orange-400">รอตรวจ</span>
-                                      ) : (
-                                        <span className={`text-2xl font-black ${percent >= 50 ? 'text-green-600' : 'text-red-500'}`}>
-                                          {sub.score}
-                                        </span>
-                                      )}
-                                      <span className="text-sm font-medium text-slate-400">/ {activeQuiz?.totalPoints || activeQuiz?.items?.reduce((total, item) => total + (Number(item.points) || 1), 0) || sub.total}</span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
-                        </table>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-[400px] text-slate-400">
-                          <div className="bg-slate-50 p-6 rounded-full mb-4">
-                            <ClipboardList size={48} className="opacity-50" />
-                          </div>
-                          <p className="font-medium">ยังไม่มีนักเรียนส่งคำตอบ</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-
-              </div>
-            </div>
-          )}
-
-
-
-          {/* VIEW ANSWER DETAIL MODAL */}
-          {activeModal === 'viewAnswerDetail' && selectedSubmission && activeQuiz && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div className={`rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden ${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}>
-                {/* HEADER */}
-                <div className={`px-8 py-6 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => setActiveModal('viewResults')}
-                      className={`p-3 rounded-2xl transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                    >
-                      <ChevronLeft size={24} />
-                    </button>
-                    <div className="bg-indigo-100 p-3 rounded-2xl">
-                      <FileText className="text-indigo-500" size={32} />
-                    </div>
-                    <div>
-                      <h2 className={`text-2xl font-extrabold tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
-                        {selectedSubmission.studentName}
-                      </h2>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนรวม:</span>
-                        <div className={`flex items-center gap-1 rounded-lg p-1 border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                          {selectedSubmission.status === 'pending_grading' ? (
-                            <span className="text-lg font-bold text-orange-400 px-2">รอตรวจ</span>
-                          ) : (
-                            <span className={`text-xl font-black px-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                              {/* CALCULATE DYNAMIC DISPLAY SCORE */}
-                              {activeQuiz.items.reduce((total, item, idx) => {
-                                const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
-                                let isCorrect = false;
-                                if (!item.type || item.type === 'choice') isCorrect = answer === item.correct;
-                                else if (item.type === 'true_false') isCorrect = answer === item.correctAnswer;
-                                else if (item.type === 'matching') isCorrect = (item.pairs || []).length > 0 && (item.pairs || []).every((p, pIdx) => (answer ? answer[pIdx] : null) === p.right);
-                                else if (item.type === 'text') {
-                                  if (!item.manualGrading) {
-                                    const userText = (answer || '').toString().trim().toLowerCase();
-                                    const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
-                                    isCorrect = keywords.some(k => userText.includes(k));
-                                  }
-                                }
-
-                                const itemScore = item.manualGrading
-                                  ? (manualScores[idx] !== undefined ? manualScores[idx] : (isCorrect ? (item.points || 1) : 0))
-                                  : (isCorrect ? (item.points || 1) : 0);
-
-                                return total + itemScore;
-                              }, 0)}
-                            </span>
-                          )}
-                          <span className="text-slate-400 font-medium pr-2">/ {activeQuiz?.totalPoints || activeQuiz?.items?.reduce((total, item) => total + (Number(item.points) || 1), 0) || selectedSubmission.total}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={async () => {
-                        try {
-                          // 1. Calculate New Total Score
-                          let newTotalScore = 0;
-                          const newItemScores = { ...manualScores }; // Start with manual scores
-
-                          activeQuiz.items.forEach((item, idx) => {
-                            const itemPoints = Number(item.points) || 1;
-                            let itemScore = 0;
-
-                            // Check if we have a manual score override for this item
-                            if (newItemScores[idx] !== undefined && newItemScores[idx] !== '') {
-                              itemScore = Number(newItemScores[idx]);
-                            } else {
-                              // Fallback to auto-grading logic if no manual score (or use existing calc)
-                              // But typically for manual grading we want to set it explicitly.
-                              // For auto-graded items, we should probably PRE-FILL manualScores with the auto value if not set?
-                              // Or re-calculate here.
-                              let isCorrect = false;
-                              const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
-
-                              if (!item.type || item.type === 'choice') isCorrect = answer === item.correct;
-                              else if (item.type === 'true_false') isCorrect = answer === item.correctAnswer;
-                              else if (item.type === 'matching') {
-                                const pairs = item.pairs || [];
-                                if (pairs.length > 0) isCorrect = pairs.every((p, pIdx) => (answer ? answer[pIdx] : null) === p.right);
-                              }
-                              else if (item.type === 'text' && !item.manualGrading) {
-                                const userText = (answer || '').toString().trim().toLowerCase();
-                                const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
-                                isCorrect = keywords.some(k => userText.includes(k));
-                              }
-
-                              if (isCorrect) itemScore = itemPoints;
-                            }
-                            newTotalScore += itemScore;
-                            // Ensure itemScores has entries for all
-                            newItemScores[idx] = itemScore;
-                          });
-
-                          // Calculate strict Max Total Points from current quiz
-                          const maxTotal = activeQuiz.items.reduce((sum, item) => sum + (Number(item.points) || 1), 0);
-
-                          // 2. Update Submission
-                          await updateQuizSubmission(selectedSubmission.firestoreId, {
-                            score: newTotalScore,
-                            total: maxTotal, // Update total to match current quiz Max Points
-                            itemScores: newItemScores,
-                            status: 'submitted' // Remove pending flag (or keep 'submitted')
-                          });
-
-                          // 3. Update Local State
-                          const updatedSub = { ...selectedSubmission, score: newTotalScore, total: maxTotal, itemScores: newItemScores, status: 'submitted' };
-                          setSelectedSubmission(updatedSub);
-                          setCourseSubmissions(prev => prev.map(s => s.firestoreId === selectedSubmission.firestoreId ? updatedSub : s));
-
-                          alert('บันทึกคะแนนเรียบร้อย');
-
-                          // Notify
-                          // Calculate total points for display
-                          const quizTotalPoints = activeQuiz.totalPoints || activeQuiz.items.reduce((total, item) => total + (Number(item.points) || 1), 0);
-
-                          if (selectedSubmission.studentId) {
-                            await createNotification(
-                              selectedSubmission.studentId,
-                              `ประกาศคะแนน: ${activeQuiz?.title}`,
-                              'grade',
-                              `คุณครูได้ตรวจข้อสอบของคุณแล้ว ได้คะแนน ${newTotalScore}/${quizTotalPoints}`,
-                              { courseId: selectedCourse.firestoreId, targetType: 'grades', targetId: activeQuiz.firestoreId }
-                            );
-                          }
-
-                        } catch (err) {
-                          console.error(err);
-                          alert('บันทึกไม่สำเร็จ: ' + err.message);
-                        }
-                      }}
-                      className="px-6 py-2 bg-[#96C68E] text-white rounded-xl hover:bg-[#85b57d] transition-colors shadow-md font-bold flex items-center gap-2"
-                    >
-                      <Save size={20} /> บันทึกการตรวจ
-                    </button>
-                    <button
-                      onClick={closeModal}
-                      className="group p-2 hover:bg-red-50 rounded-xl transition-colors duration-200"
-                    >
-                      <X size={28} className="text-slate-400 group-hover:text-red-500 transition-colors" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* CONTENT */}
-                <div className={`flex-1 overflow-y-auto p-8 ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50/50'}`}>
-                  <div className="max-w-5xl mx-auto space-y-6">
-                    {activeQuiz.items.map((item, idx) => {
-                      const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
-                      let isCorrect = false;
-
-                      // Scoring Logic Check (Visualization Only)
-                      if (!item.type || item.type === 'choice') {
-                        isCorrect = answer === item.correct;
-                      } else if (item.type === 'true_false') {
-                        isCorrect = answer === item.correctAnswer;
-                      } else if (item.type === 'matching') {
-                        const pairs = item.pairs || [];
-                        if (pairs.length > 0) isCorrect = pairs.every((p, pIdx) => (answer ? answer[pIdx] : null) === p.right);
-                      } else if (item.type === 'text') {
-                        if (item.manualGrading) {
-                          isCorrect = false; // Visualization default
-                        } else {
-                          const userText = (answer || '').toString().trim().toLowerCase();
-                          const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
-                          isCorrect = keywords.some(k => userText.includes(k));
-                        }
-                      }
-
-                      // Check manual score if exists to override visualization color?
-                      // If graded, show score/points
-                      // FIX: For auto-graded items, always use current activeQuiz points to ensure updates reflect immediately
-                      const currentScore = item.manualGrading
-                        ? (manualScores[idx] !== undefined ? manualScores[idx] : (isCorrect ? (item.points || 1) : 0))
-                        : (isCorrect ? (item.points || 1) : 0);
-
-                      const maxPoints = item.points || 1;
-
-                      return (
-                        <div key={idx} className={`p-6 rounded-3xl border shadow-sm transition-all hover:shadow-md ${item.manualGrading ? (darkMode ? 'bg-slate-800 border-orange-900/30 ring-4 ring-orange-900/10' : 'bg-white border-orange-100 ring-4 ring-orange-50/50') : (isCorrect ? (darkMode ? 'bg-slate-800 border-green-900/30 ring-4 ring-green-900/10' : 'bg-white border-green-100 ring-4 ring-green-50/50') : (darkMode ? 'bg-slate-800 border-red-900/30 ring-4 ring-red-900/10' : 'bg-white border-red-100 ring-4 ring-red-50/50'))}`}>
-                          <div className="flex justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                              <span className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                                {idx + 1}
-                              </span>
-                              <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.q}</h3>
-                            </div>
-
-                            {/* SCORE INPUT */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-400">คะแนน</span>
-                              <input
-                                type="number"
-                                min="0"
-                                max={maxPoints}
-                                disabled={!item.manualGrading}
-                                className={`w-16 p-1 text-center font-bold border rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 ${item.manualGrading ? (darkMode ? 'bg-orange-900/20 border-orange-700 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-700') : (darkMode ? 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed')}`}
-                                value={currentScore}
-                                onChange={(e) => {
-                                  if (item.manualGrading) {
-                                    setManualScores(prev => ({ ...prev, [idx]: Number(e.target.value) }));
-                                  }
-                                }}
-                              />
-                              <span className="text-slate-400 font-bold">/ {maxPoints}</span>
-                            </div>
-                          </div>
-
-                          {item.manualGrading && (
-                            <div className="mb-4">
-                              <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center w-fit ${darkMode ? 'bg-orange-900/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
-                                <AlertCircle size={14} className="mr-1" /> ต้องตรวจเอง (Manual Grading)
-                              </span>
-                            </div>
-                          )}
-
-                          {item.image && (
-                            <div className="mb-6 pl-11">
-                              <img src={item.image} alt="Question" className="h-48 rounded-2xl border border-slate-100 object-cover shadow-sm" />
-                            </div>
-                          )}
-
-                          <div className="pl-11 space-y-4">
-                            {/* Render Answers (ReadOnly) */}
-                            {(!item.type || item.type === 'choice') && (
-                              item.options.map((opt, optIdx) => {
-                                let optionClass = "p-3 rounded-xl border flex items-center justify-between transition-all relative overflow-hidden ";
-                                if (optIdx === item.correct) optionClass += (darkMode ? "bg-green-900/20 border-green-500/50 text-green-400 font-bold" : "bg-green-50 border-green-200 text-green-700 font-bold");
-                                else if (optIdx === answer) optionClass += (darkMode ? "bg-slate-700 border-slate-600 text-slate-300 font-bold" : "bg-slate-50 border-slate-200 text-slate-600 font-bold"); // Don't show red for manual view unless wrong?
-                                else optionClass += (darkMode ? "bg-slate-800 border-slate-700 text-slate-500 opacity-60" : "bg-white border-slate-100 text-slate-400 opacity-60");
-
-                                return (
-                                  <div key={optIdx} className={optionClass}>
-                                    <span className="flex items-center gap-3 relative z-10">
-                                      <div className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-[10px] opacity-50">
-                                        {['A', 'B', 'C', 'D'][optIdx]}
-                                      </div>
-                                      {opt}
-                                    </span>
-                                    {optIdx === item.correct && <CheckCircle size={18} className="text-green-500" />}
-                                    {optIdx === answer && optIdx !== item.correct && <span className="text-xs font-bold text-slate-400">ตอบ</span>}
-                                  </div>
-                                );
-                              })
-                            )}
-
-                            {item.type === 'text' && (
-                              <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-700/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                <p className="text-xs font-bold text-slate-400 mb-1">คำตอบของนักเรียน:</p>
-                                <p className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{answer || '-'}</p>
-                                <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                                  <p className="text-xs font-bold text-slate-400 mb-1">เฉลย (Keywords):</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {(item.keywords || []).map((k, kIdx) => (
-                                      <span key={kIdx} className={`border px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border- slate-200 text-slate-500'}`}>{k}</span>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* TRUE/FALSE and MATCHING skipped for brevity in visualization, similar structure */}
-                            {item.type === 'matching' && (
-                              <div className={`p-4 rounded-xl space-y-2 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
-                                {(item.pairs || []).map((pair, pIdx) => (
-                                  <div key={pIdx} className="flex justify-between items-center text-sm">
-                                    <span className={darkMode ? 'text-slate-300' : 'text-slate-700'}>{pair.left}</span>
-                                    <ArrowRight size={14} className="text-slate-300" />
-                                    <div className="flex flex-col items-end">
-                                      <span className={((answer && answer[pIdx]) === pair.right) ? 'text-green-600 font-bold' : 'text-slate-500'}>
-                                        {answer ? answer[pIdx] : '-'}
-                                      </span>
-                                      <span className="text-[10px] text-slate-400">(เฉลย: {pair.right})</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* FOOTER */}
-                <div className={`px-8 py-5 border-t flex justify-end ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
-                  <button
-                    onClick={() => setActiveModal('viewResults')}
-                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200"
-                  >
-                    กลับไปหน้าผลรวม
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* QUIZ TAKING MODAL */}
-          {activeModal === 'takeQuiz' && activeQuiz && (
-            <div className="p-8 h-[80vh] flex flex-col">
-              <div className={`mb-6 pb-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                    <ClipboardList className="mr-3 text-[#FF917B]" /> {activeQuiz.title}
-                  </h2>
-                  <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : (darkMode ? 'bg-green-900/20 text-[#96C68E] border border-[#96C68E]/30' : 'bg-[#F0FDF4] text-[#96C68E]')}`}>
-                    <Clock size={18} className="mr-2" />
-                    {quizRemainingSeconds > 0
-                      ? `${Math.floor(quizRemainingSeconds / 60)}:${(quizRemainingSeconds % 60).toString().padStart(2, '0')} นาที`
-                      : activeQuiz.time}
-
-                  </div>
-                </div>
-                <p className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
-              </div>
-
-              {quizResult ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-32 h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-6 shadow-lg">
-                    <MascotStar className="w-24 h-24" />
-                  </div>
-                  <h3 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ส่งข้อสอบเรียบร้อย!</h3>
-                  {quizResult.status === 'pending_grading' ? (
-                    <>
-                      <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ข้อสอบนี้มีส่วนที่ต้องรอคุณครูตรวจ</p>
-                      <div className={`text-4xl font-bold text-orange-400 mb-8 px-6 py-4 rounded-2xl border ${darkMode ? 'bg-orange-900/10 border-orange-500/30' : 'bg-orange-50 border-orange-100'}`}>
-                        รอการตรวจให้คะแนน
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คุณทำคะแนนได้</p>
-                      <div className="text-6xl font-bold text-[#FF917B] mb-8">
-                        {quizResult.score} <span className={`text-2xl ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>/ {quizResult.total}</span>
-                      </div>
-                    </>
-                  )}
-
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
-                    {activeQuiz.items.map((item, idx) => (
-                      <div key={idx} className="mb-8 last:mb-0">
-                        <div className="flex items-start gap-4 mb-4">
-                          <span className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${darkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                            {idx + 1}
-                          </span>
-                          <div className="flex-1">
-                            <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{item.q}</h3>
-                            {item.image && (
-                              <img src={item.image} alt="Question" className="h-48 rounded-xl border border-slate-200 object-cover mb-4" />
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="pl-12">
-                          {/* TYPE: CHOICE */}
-                          {(!item.type || item.type === 'choice') && (
-                            <div className="space-y-3">
-                              {item.options.map((opt, optIdx) => (
-                                <label key={optIdx} className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
-                                  ? (darkMode ? 'bg-green-900/20 border-[#96C68E]' : 'bg-[#F0FDF4] border-[#96C68E] shadow-sm')
-                                  : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-white border-slate-100 hover:border-[#96C68E]')
-                                  }`}>
-                                  <div className="flex items-center w-full">
-                                    <input
-                                      type="radio"
-                                      name={`q-${idx}`}
-                                      className="mr-3 w-5 h-5 accent-[#96C68E] flex-shrink-0"
-                                      onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
-                                      checked={quizAnswers[idx] === optIdx}
-                                    />
-                                    <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{opt}</span>
-                                  </div>
-                                  {item.optionImages && item.optionImages[optIdx] && (
-                                    <div className="ml-8 mt-3 w-fit">
-                                      <img src={item.optionImages[optIdx]} alt="Option" className="h-40 rounded-lg object-contain border border-slate-100" />
-                                    </div>
-                                  )}
-                                </label>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* TYPE: TRUE/FALSE */}
-                          {item.type === 'true_false' && (
-                            <div className="flex gap-4">
-                              <button
-                                onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: true })}
-                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === true ? 'border-green-500 bg-green-50 text-green-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-green-500' : 'border-slate-100 bg-white text-slate-400 hover:border-green-200')}`}
-                              >
-                                <CheckCircle2 size={24} /> ถูก (True)
-                              </button>
-                              <button
-                                onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: false })}
-                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === false ? 'border-red-500 bg-red-50 text-red-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-red-500' : 'border-slate-100 bg-white text-slate-400 hover:border-red-200')}`}
-                              >
-                                <X size={24} /> ผิด (False)
-                              </button>
-                            </div>
-                          )}
-
-                          {/* TYPE: MATCHING */}
-                          {item.type === 'matching' && (
-                            <div className={`space-y-4 p-4 rounded-xl ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
-                              {item.pairs.map((pair, pIdx) => (
-                                <div key={pIdx} className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
-                                  <div className={`flex-1 font-bold p-3 rounded-lg border ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
-                                    {pair.left}
-                                  </div>
-                                  <ArrowRight className="hidden md:block text-slate-300" />
-                                  <div className="flex-1">
-                                    <select
-                                      className={`w-full p-3 rounded-lg border outline-none focus:border-[#96C68E] cursor-pointer ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200'}`}
-                                      value={quizAnswers[idx] ? quizAnswers[idx][pIdx] || '' : ''}
-                                      onChange={(e) => {
-                                        const currentAns = quizAnswers[idx] || {};
-                                        setQuizAnswers({
-                                          ...quizAnswers,
-                                          [idx]: { ...currentAns, [pIdx]: e.target.value }
-                                        });
-                                      }}
-                                    >
-                                      <option value="">เลือกคำตอบ...</option>
-                                      {[...item.pairs].sort(() => Math.random() - 0.5).map((p, optionIdx) => (
-                                        <option key={optionIdx} value={p.right}>{p.right}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* TYPE: TEXT */}
-                          {item.type === 'text' && (
-                            <div>
-                              <input
-                                type="text"
-                                placeholder="พิมพ์คำตอบของคุณที่นี่..."
-                                className={`w-full p-4 rounded-xl border outline-none focus:border-[#96C68E] font-medium ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
-                                value={quizAnswers[idx] || ''}
-                                onChange={(e) => setQuizAnswers({ ...quizAnswers, [idx]: e.target.value })}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className={`mt-6 pt-4 border-t flex justify-end ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    <button
-                      onClick={submitQuiz}
-                      disabled={Object.keys(quizAnswers).length < activeQuiz.items.length}
-                      className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${Object.keys(quizAnswers).length === activeQuiz.items.length
-                        ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-md hover:translate-y-[-2px]'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                        }`}
-                    >
-                      ส่งข้อสอบ
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* PENDING QUIZZES MODAL */}
-          {activeModal === 'pendingQuizzes' && (
-            <div className="p-8 h-full flex flex-col w-full max-w-4xl">
-              <h2 className={`text-2xl font-bold mb-6 flex items-center ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
-                <ClipboardCheck className="mr-3 text-[#FF917B]" /> ตรวจข้อสอบ (Pending Grading)
-              </h2>
-              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
-                {isListLoading ? (
-                  <div className="flex flex-col items-center justify-center h-48 text-slate-400">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#96C68E] mb-3"></div>
-                    <p>กำลังค้นหาข้อสอบที่รอตรวจ...</p>
-                  </div>
-                ) : pendingGradingList.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400">
-                    <CheckCircle2 size={48} className="mx-auto mb-4 text-green-200" />
-                    <p>ไม่มีข้อสอบที่ต้องตรวจแล้ว!</p>
-                  </div>
-                ) : (
-                  pendingGradingList.map((quiz) => (
-                    <div key={quiz.firestoreId} className={`p-6 rounded-2xl border transition-all cursor-pointer shadow-sm hover:shadow-md ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-slate-50 border-slate-200 hover:border-[#96C68E]'}`}
-                      onClick={() => {
-                        const course = courses.find(c => c.name === quiz.courseName);
-                        if (course) {
-                          setIsLoading(true); // START LOADING
-                          setSelectedCourse(course);
-                          setActiveQuiz(quiz);
-                          // Fetch submissions for this quiz into 'courseSubmissions' state before viewing results
-                          getQuizSubmissions(quiz.firestoreId).then(subs => {
-                            if (subs) {
-                              setCourseSubmissions(subs);
-                              setActiveModal('viewResults');
-                            } else {
-                              alert('ไม่พบข้อมูลการส่งข้อสอบ');
-                            }
-                          }).catch(err => {
-                            console.error("Error loading submissions:", err);
-                            alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
-                          }).finally(() => {
-                            setIsLoading(false); // STOP LOADING
-                          });
-                        } else {
-                          alert('ไม่พบข้อมูลวิชา');
-                        }
-                      }}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${darkMode ? 'bg-orange-900/30 text-orange-400' : 'bg-orange-100 text-orange-600'}`}>
-                          รอตรวจ {quiz.pendingCount} คน
-                        </span>
-                      </div>
-                      <p className={`text-sm flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        <BookOpen size={14} /> {quiz.courseName}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
 
           {/* VIDEO CALL MODAL */}
           {activeModal === 'video' && (
@@ -4027,7 +2817,7 @@ export default function SchoolyScootLMS() {
                 fileInputRef={fileInputRef}
                 handlePostFileSelect={handlePostFileSelect}
                 handleCreatePost={handleCreatePost}
-                loading={loading}
+                loading={postsLoading}
                 posts={posts}
                 auth={auth}
                 handleDeletePost={handleDeletePost}

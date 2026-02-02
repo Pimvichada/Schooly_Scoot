@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { submitQuiz as submitQuizService, startQuizAttempt, getQuizSubmissions } from '../services/quizService';
+import { submitQuiz as submitQuizService, startQuizAttempt, getQuizSubmissions, getQuizzesByCourse, checkSubmission } from '../services/quizService';
 import { createNotification } from '../services/notificationService';
 import { auth } from '../../firebase';
 
-export const useQuiz = (user, profile, selectedCourse, activeModal, setActiveModal) => {
+export const useQuiz = (uid, profile, selectedCourse, activeModal, setActiveModal) => {
     const [activeQuiz, setActiveQuiz] = useState(null);
     const [quizAnswers, setQuizAnswers] = useState({});
     const [quizResult, setQuizResult] = useState(null);
@@ -13,6 +13,28 @@ export const useQuiz = (user, profile, selectedCourse, activeModal, setActiveMod
     const [courseSubmissions, setCourseSubmissions] = useState({}); // For teacher view
     const [selectedSubmission, setSelectedSubmission] = useState(null); // For detailed answer view
     const [manualScores, setManualScores] = useState({});
+
+    // Fetch submissions if student
+    useEffect(() => {
+        const fetchSubmissions = async () => {
+            if (uid && profile.role === 'student' && selectedCourse) {
+                try {
+                    const fetchedQuizzes = await getQuizzesByCourse(selectedCourse.name);
+                    const submissionsMap = {};
+                    await Promise.all(fetchedQuizzes.map(async (q) => {
+                        const sub = await checkSubmission(q.firestoreId, uid);
+                        if (sub) {
+                            submissionsMap[q.firestoreId] = sub;
+                        }
+                    }));
+                    setMySubmissions(submissionsMap);
+                } catch (error) {
+                    console.error("Error fetching student submissions:", error);
+                }
+            }
+        };
+        fetchSubmissions();
+    }, [uid, profile.role, selectedCourse, getQuizzesByCourse, checkSubmission]);
 
     // Handle Start Quiz (Create Submission Record)
     const handleStartQuiz = async (quiz) => {
@@ -25,7 +47,7 @@ export const useQuiz = (user, profile, selectedCourse, activeModal, setActiveMod
         try {
             // 2. Create "In Progress" Submission
             const studentName = profile.firstName + ' ' + (profile.lastName || '');
-            const submission = await startQuizAttempt(quiz.firestoreId, user.uid, studentName);
+            const submission = await startQuizAttempt(quiz.firestoreId, uid, studentName);
 
             // Safety Check: If backend returns an existing submission that is already submitted
             if (submission.status === 'submitted') {
@@ -53,7 +75,7 @@ export const useQuiz = (user, profile, selectedCourse, activeModal, setActiveMod
     };
 
     const submitQuiz = useCallback(async () => {
-        if (!user || !activeQuiz) return;
+        if (!uid || !activeQuiz) return;
 
         // Note: We don't always ask for confirmation here because this function is also called by the timer (auto-submit)
         // logic in App.jsx usually asks for confirmation via button click, but this function does the actual work.
@@ -71,11 +93,11 @@ export const useQuiz = (user, profile, selectedCourse, activeModal, setActiveMod
 
         // Refactored to accept 'force' parameter
 
-    }, [user, activeQuiz, quizAnswers, profile, selectedCourse, setMySubmissions, setQuizResult]);
+    }, [uid, activeQuiz, quizAnswers, profile, selectedCourse, setMySubmissions, setQuizResult]);
 
     // Re-implementing submitQuiz with a flag to bypass confirmation
     const handleSubmitQuiz = async (force = false) => {
-        if (!user || !activeQuiz) return;
+        if (!uid || !activeQuiz) return;
 
         if (!force && !confirm('ยืนยันที่จะส่งข้อสอบ?')) return;
 

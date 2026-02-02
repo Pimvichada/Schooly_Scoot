@@ -28,14 +28,8 @@ const auth = getAuth(app);
 // If ERR_QUIC_PROTOCOL_ERROR returns, it means the network is blocking UDP.
 // const db = getFirestore(app); // Replaced below
 
-// Initialize Firestore with Persistent Cache (New API)
-import { persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
-
-const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-});
+// Initialize Firestore (Persistence is handled by Firebase by default)
+const db = getFirestore(app);
 
 const storage = getStorage(app);
 const messaging = getMessaging(app);

@@ -1,5 +1,5 @@
-
 import { db } from '../../firebase';
+import { formatThaiDate } from '../utils/helpers.jsx';
 import {
     collection,
     addDoc,
@@ -115,7 +115,7 @@ export const createPost = async (courseId, content, author, attachments = []) =>
         };
 
         const docRef = await addDoc(postsCol, newPost);
-        return { id: docRef.id, ...newPost, createdAt: new Date().toISOString() };
+        return { id: docRef.id, ...newPost, createdAt: formatThaiDate(new Date()) };
     } catch (error) {
         console.error("Error creating post:", error);
         alert(error.message);
@@ -141,9 +141,7 @@ export const getPostsByCourse = async (courseId) => {
             return {
                 id: doc.id,
                 ...data,
-                createdAt: data.createdAt?.toDate
-                    ? data.createdAt.toDate().toLocaleString('th-TH', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                    : "เมื่อสักครู่"
+                createdAt: formatThaiDate(data.createdAt)
             };
         });
     } catch (error) {
@@ -169,9 +167,7 @@ export const subscribeToPosts = (courseId, callback) => {
             return {
                 id: doc.id,
                 ...data,
-                createdAt: data.createdAt?.toDate
-                    ? data.createdAt.toDate().toLocaleString('th-TH', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                    : "เมื่อสักครู่"
+                createdAt: formatThaiDate(data.createdAt)
             };
         });
         callback(posts);
@@ -209,7 +205,7 @@ export const addComment = async (postId, content, author) => {
         return {
             id: docRef.id,
             ...newComment,
-            createdAt: new Date().toISOString()
+            createdAt: formatThaiDate(new Date())
         };
     } catch (error) {
         console.error("Error adding comment:", error);
@@ -231,9 +227,7 @@ export const getComments = async (postId) => {
             return {
                 id: doc.id,
                 ...data,
-                createdAt: data.createdAt?.toDate
-                    ? data.createdAt.toDate().toLocaleString('th-TH', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                    : "เมื่อสักครู่"
+                createdAt: formatThaiDate(data.createdAt)
             };
         });
     } catch (error) {

@@ -5,7 +5,8 @@ import { auth, db } from '../../firebase';
 import { updateUserProfile } from '../services/authService';
 
 export const useAuthUser = () => {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [uid, setUid] = useState(auth.currentUser?.uid);
+    const [isLoggedIn, setIsLoggedIn] = useState(!!auth.currentUser);
     const [userRole, setUserRole] = useState('student');
     const [authLoading, setAuthLoading] = useState(true);
     const [hiddenCourseIds, setHiddenCourseIds] = useState([]);
@@ -30,6 +31,7 @@ export const useAuthUser = () => {
         let unsubscribeProfile = null;
 
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            setUid(user?.uid);
             // Unsubscribe from previous profile listener if exists
             if (unsubscribeProfile) {
                 unsubscribeProfile();
@@ -148,6 +150,7 @@ export const useAuthUser = () => {
     };
 
     return {
+        uid,
         isLoggedIn,
         userRole,
         authLoading,
