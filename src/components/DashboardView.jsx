@@ -190,6 +190,7 @@ const DashboardView = ({
                                 displayTime={notif.date ? new Date(notif.date).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                                 isSelected={selectedNotification?.firestoreId === notif.firestoreId}
                                 onClick={() => handleNotificationClick(notif)}
+                                darkMode={darkMode}
                             />
                         ))}
                     </div>

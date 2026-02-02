@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle, Moon, Sun } from 'lucide-react';
 import { loginUser, resetPassword, setAuthPersistence, registerUser, authenticateWithGoogle, completeGoogleRegistration } from '../services/authService';
 import logo_Schooly from '../assets/logo_Schooly.png';
 
-const LandingPage = ({ onGetStarted }) => {
+const LandingPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     const loginSectionRef = useRef(null);
     const teamSectionRef = useRef(null);
 
@@ -154,7 +154,7 @@ const LandingPage = ({ onGetStarted }) => {
     }, []);
 
     return (
-        <div className="w-full relative bg-[#f4f7f5] overflow-x-hidden font-sans scroll-smooth">
+        <div className={`w-full relative overflow-x-hidden font-sans scroll-smooth transition-colors duration-500 ${darkMode ? 'bg-slate-950' : 'bg-[#f4f7f5]'}`}>
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
                 .font-kanit { font-family: 'Kanit', sans-serif; }
@@ -194,24 +194,30 @@ const LandingPage = ({ onGetStarted }) => {
             </div>
 
             {/* Navbar */}
-            <nav className="fixed top-0 w-full p-8 flex justify-between items-center z-50 font-kanit">
-                <div className="text-2xl font-black tracking-tight text-slate-800">Schooly Scoot<span className="text-[#96C68E]">.</span></div>
-                <div className="hidden md:flex space-x-8 text-sm font-bold text-slate-500">
-                    {/* <a href="#" className="hover:text-[#96C68E] transition-colors">บริการ</a> */}
+            <nav className={`fixed top-0 w-full p-8 flex justify-between items-center z-50 font-kanit transition-colors duration-500 ${darkMode ? 'bg-slate-900/80 backdrop-blur-md border-b border-slate-800' : ''}`}>
+                <div className={`text-2xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot<span className="text-[#96C68E]">.</span></div>
+                <div className={`hidden md:flex items-center space-x-8 text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     <a onClick={handleScrollToTeam} className="hover:text-[#96C68E] transition-colors cursor-pointer">เกี่ยวกับเรา</a>
-                    <div className="flex space-x-2 pl-4 border-l border-slate-200">
-                        <span className="font-black text-slate-800 cursor-pointer">TH</span>
-                        {/* <span className="text-slate-300 hover:text-slate-500 cursor-pointer transition-colors">EN</span> */}
+                    <div className="flex items-center space-x-4 pl-4 border-l border-slate-200">
+                        <button
+                            onClick={() => setDarkMode(!darkMode)}
+                            className={`p-2 rounded-full transition-all duration-300 ${darkMode ? 'bg-slate-800 text-[#FF917B] hover:bg-slate-700' : 'bg-white text-slate-400 hover:text-[#FF917B] hover:bg-slate-50 shadow-sm'}`}
+                        >
+                            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+                        </button>
+                        <div className="flex space-x-2">
+                            <span className={`font-black cursor-pointer ${darkMode ? 'text-white' : 'text-slate-800'}`}>TH</span>
+                        </div>
                     </div>
                 </div>
             </nav>
 
             {/* HERO SECTION */}
             <div className="h-screen w-full flex flex-col items-center justify-center relative z-10 px-4 font-kanit">
-                <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-slate-800 mb-6 drop-shadow-sm text-center">
+                <h1 className={`text-6xl md:text-8xl font-black tracking-tighter mb-6 drop-shadow-sm text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                     Schooly Scoot
                 </h1>
-                <p className="text-xl md:text-3xl text-slate-500 font-medium mb-12 text-center max-w-2xl">
+                <p className={`text-xl md:text-3xl font-medium mb-12 text-center max-w-2xl ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     ระบบจัดการโรงเรียนที่<span className="text-[#96C68E] underline decoration-wavy decoration-2 underline-offset-4 px-1">สนุก</span>และ<span className="text-[#FF917B] underline decoration-wavy decoration-2 underline-offset-4 px-1">ง่าย</span>ที่สุด
                 </p>
                 <button onClick={handleScrollToLogin} className="login-btn group relative inline-flex items-center justify-center cursor-pointer">
@@ -290,7 +296,7 @@ const LandingPage = ({ onGetStarted }) => {
                 )}
 
                 {/* TAB-BASED AUTH SECTION */}
-                <div className="w-full max-w-md bg-white p-8  mb-50 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 border-white/50 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90">
+                <div className={`w-full max-w-md p-8  mb-50 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90 ${darkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-white/50'}`}>
                     {/* Tab Switcher */}
                     <div className="flex justify-center mb-8 space-x-8">
                         <button
@@ -319,7 +325,7 @@ const LandingPage = ({ onGetStarted }) => {
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         placeholder="example@school.com"
-                                        className="w-full px-6 py-4 rounded-3xl bg-[#f4f7f5] border-2 border-transparent focus:border-[#BEE1FF] focus:bg-white outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(190,225,255,0.3)]"
+                                        className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#BEE1FF] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(190,225,255,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                     />
                                 </div>
                                 <div>
@@ -330,7 +336,7 @@ const LandingPage = ({ onGetStarted }) => {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             placeholder="••••••••"
-                                            className="w-full px-6 py-4 rounded-3xl bg-[#f4f7f5] border-2 border-transparent focus:border-[#BEE1FF] focus:bg-white outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(190,225,255,0.3)]"
+                                            className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#BEE1FF] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(190,225,255,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                         />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#96C68E] transition-colors">
                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -360,7 +366,7 @@ const LandingPage = ({ onGetStarted }) => {
                                         name="fullName"
                                         onChange={handleRegChange}
                                         placeholder="สมชาย สกู๊ต"
-                                        className="w-full px-6 py-4 rounded-3xl bg-[#f4f7f5] border-2 border-transparent focus:border-[#FF917B] focus:bg-white outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)]"
+                                        className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                     />
                                 </div>
                                 <div>
@@ -370,7 +376,7 @@ const LandingPage = ({ onGetStarted }) => {
                                         name="email"
                                         onChange={handleRegChange}
                                         placeholder="yourname@email.com"
-                                        className="w-full px-6 py-4 rounded-3xl bg-[#f4f7f5] border-2 border-transparent focus:border-[#FF917B] focus:bg-white outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)]"
+                                        className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                     />
                                 </div>
                                 <div>
@@ -381,7 +387,7 @@ const LandingPage = ({ onGetStarted }) => {
                                             name="password"
                                             onChange={handleRegChange}
                                             placeholder="ตั้งรหัสผ่าน 8 ตัวขึ้นไป"
-                                            className="w-full px-6 py-4 rounded-3xl bg-[#f4f7f5] border-2 border-transparent focus:border-[#FF917B] focus:bg-white outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)]"
+                                            className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                         />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF917B] transition-colors">
                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -431,19 +437,19 @@ const LandingPage = ({ onGetStarted }) => {
                     </div>
 
                     {/* Google Login Button */}
-                    <button onClick={handleGoogleLogin} className="w-full border-2 border-gray-100 flex items-center justify-center space-x-3 py-3.5 rounded-3xl font-bold hover:bg-[#FFE787]/20 hover:border-[#FFE787] transition-all active:scale-95 group">
+                    <button onClick={handleGoogleLogin} className={`w-full border-2 flex items-center justify-center space-x-3 py-3.5 rounded-3xl font-bold transition-all active:scale-95 group ${darkMode ? 'border-slate-700 hover:bg-slate-800 hover:border-[#FFE787]' : 'border-gray-100 hover:bg-[#FFE787]/20 hover:border-[#FFE787]'}`}>
                         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 group-hover:scale-110 transition-transform" alt="Google" />
-                        <span className="text-gray-600 group-hover:text-gray-800">เข้าสู่ระบบด้วย Google</span>
+                        <span className={`${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-800'}`}>เข้าสู่ระบบด้วย Google</span>
                     </button>
                 </div>
 
 
 
                 {/* TEAM SECTION */}
-                <div ref={teamSectionRef} className="w-full py-24 md:py-40 relative z-10 bg-white/50 backdrop-blur-sm">
+                <div ref={teamSectionRef} className={`w-full py-24 md:py-40 relative z-10 backdrop-blur-sm ${darkMode ? 'bg-slate-900/50' : 'bg-white/50'}`}>
                     <div className="max-w-6xl mx-auto px-4">
                         <div className="text-center mb-16 relative">
-                            <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-4">
+                            <h2 className={`text-4xl md:text-5xl font-black tracking-tight mb-4 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                                 ทีมผู้พัฒนา
                             </h2>
                             <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto">
@@ -455,13 +461,13 @@ const LandingPage = ({ onGetStarted }) => {
                             {/* Member 1 */}
                             <div className="group relative">
                                 <div className="absolute inset-0 bg-[#96C68E] rounded-[2rem] rotate-3 group-hover:rotate-6 transition-transform opacity-20"></div>
-                                <div className="bg-white border-4 border-white shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                                <div className={`border-4 shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
                                     <div className="w-32 h-32 mx-auto bg-[#96C68E]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
 
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-800 mb-1">Pimvichada</h3>
+                                    <h3 className={`text-xl font-black mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Pimvichada</h3>
                                     <p className="text-[#96C68E] font-bold text-sm mb-4">6504780</p>
-                                    <p className="text-slate-500 text-sm leading-relaxed mb-6">"นักศึกษาชั้นปีที่ 4 "</p>
+                                    <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>"นักศึกษาชั้นปีที่ 4 "</p>
 
                                     <div className="flex justify-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
 
@@ -473,14 +479,14 @@ const LandingPage = ({ onGetStarted }) => {
                             {/* Member 2 */}
                             <div className="group relative mt-8 md:mt-0">
                                 <div className="absolute inset-0 bg-[#FF917B] rounded-[2rem] -rotate-2 group-hover:-rotate-6 transition-transform opacity-20"></div>
-                                <div className="bg-white border-4 border-white shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                                <div className={`border-4 shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
                                     <div className="w-32 h-32 mx-auto bg-[#FF917B]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
                                         😎
 
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-800 mb-1">Lalitwadee</h3>
+                                    <h3 className={`text-xl font-black mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Lalitwadee</h3>
                                     <p className="text-[#FF917B] font-bold text-sm mb-4">6504551</p>
-                                    <p className="text-slate-500 text-sm leading-relaxed mb-6">"นักศึกษาชั้นปีที่ 4"</p>
+                                    <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>"นักศึกษาชั้นปีที่ 4"</p>
                                     <div className="flex justify-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
                                         <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#FF917B] hover:text-white transition-colors cursor-pointer text-xs">IG</span>
                                     </div>
@@ -490,7 +496,7 @@ const LandingPage = ({ onGetStarted }) => {
                             {/* Member 3 */}
                             <div className="group relative">
                                 <div className="absolute inset-0 bg-[#BEE1FF] rounded-[2rem] rotate-2 group-hover:rotate-6 transition-transform opacity-20"></div>
-                                <div className="bg-white border-4 border-white shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden">
+                                <div className={`border-4 shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
                                     <div className="w-32 h-32 mx-auto bg-[#BEE1FF]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
                                         🤓
                                     </div>

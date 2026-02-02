@@ -2010,10 +2010,10 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div className={`bg-white rounded-3xl shadow-2xl w-full ${activeModal === 'createExam' ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail', 'pendingQuizzes'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
+        <div className={`${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'} rounded-3xl shadow-2xl w-full ${activeModal === 'createExam' ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail', 'pendingQuizzes'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
           {!['grading', 'grading_detail'].includes(activeModal) && (
-            <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
-              <X size={20} className="text-slate-600" />
+            <button onClick={closeModal} className={`absolute top-4 right-4 p-2 rounded-full z-10 ${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}>
+              <X size={20} className={`${darkMode ? 'text-slate-300' : 'text-slate-600'}`} />
             </button>
           )}
 
@@ -2382,18 +2382,18 @@ export default function SchoolyScootLMS() {
           {/* VIEW RESULTS MODAL */}
           {activeModal === 'viewResults' && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden">
+              <div className={`rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden ${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}>
                 {/* HEADER */}
-                <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className={`px-8 py-6 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
                   <div className="flex items-center space-x-4">
                     <div className="bg-amber-100 p-3 rounded-2xl">
                       <Trophy className="text-amber-500" size={32} />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">
+                      <h2 className={`text-3xl font-extrabold tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
                         ผลคะแนนสอบ
                       </h2>
-                      <p className="text-slate-500 font-medium mt-1">
+                      <p className={`font-medium mt-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         แบบทดสอบ: <span className="text-indigo-600">{activeQuiz?.title}</span>
                       </p>
                     </div>
@@ -2408,46 +2408,46 @@ export default function SchoolyScootLMS() {
                 </div>
 
                 {/* CONTENT */}
-                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+                <div className={`flex-1 overflow-y-auto p-8 ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50/50'}`}>
                   <div className="max-w-6xl mx-auto">
                     {/* STATS GRID */}
                     {courseSubmissions.length > 0 && (
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-slate-500 text-sm font-bold">คะแนนเฉลี่ย</p>
                             <BarChart3 size={20} className="text-indigo-400" />
                           </div>
-                          <p className="text-4xl font-black text-slate-800">
+                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                             {(courseSubmissions.reduce((a, b) => a + b.score, 0) / courseSubmissions.length).toFixed(1)}
                             {(courseSubmissions.reduce((a, b) => a + b.score, 0) / courseSubmissions.length).toFixed(1)}
                             <span className="text-lg text-slate-400 font-medium ml-1">/ {activeQuiz?.totalPoints || activeQuiz?.items?.reduce((total, item) => total + (Number(item.points) || 1), 0) || 0}</span>
                           </p>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-slate-500 text-sm font-bold">ผ่านเกณฑ์ (50%)</p>
                             <CheckCircle2 size={20} className="text-green-400" />
                           </div>
-                          <p className="text-4xl font-black text-slate-800">
+                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                             {Math.round((courseSubmissions.filter(s => s.score >= (s.total / 2)).length / courseSubmissions.length) * 100)}%
                           </p>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-slate-500 text-sm font-bold">คะแนนสูงสุด</p>
                             <TrendingUp size={20} className="text-amber-400" />
                           </div>
-                          <p className="text-4xl font-black text-slate-800">
+                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                             {Math.max(...courseSubmissions.map(s => s.score))}
                           </p>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                        <div className={`p-6 rounded-2xl shadow-sm border transition-shadow ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100 hover:shadow-md'}`}>
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-slate-500 text-sm font-bold">ส่งแล้ว</p>
                             <Users size={20} className="text-blue-400" />
                           </div>
-                          <p className="text-4xl font-black text-slate-800">
+                          <p className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                             {courseSubmissions.length}
                             <span className="text-lg text-slate-400 font-medium ml-1">/ {selectedCourse?.studentIds?.length || 0} คน</span>
                           </p>
@@ -2456,10 +2456,10 @@ export default function SchoolyScootLMS() {
                     )}
 
                     {/* RESULTS TABLE */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
+                    <div className={`rounded-2xl shadow-sm border overflow-hidden min-h-[400px] ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                       {courseSubmissions.length > 0 ? (
                         <table className="w-full text-left">
-                          <thead className="bg-slate-50 text-slate-500 text-sm border-b border-slate-200">
+                          <thead className={`text-sm border-b ${darkMode ? 'bg-slate-700 text-slate-300 border-slate-600' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
                             <tr>
                               <th className="p-4 pl-6 font-bold">นักเรียน</th>
                               <th className="p-4 font-bold">สถานะ</th>
@@ -2467,7 +2467,7 @@ export default function SchoolyScootLMS() {
                               <th className="p-4 pr-6 font-bold text-right">คะแนนสอบ</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className={`divide-y ${darkMode ? 'divide-slate-700' : 'divide-slate-100'}`}>
                             {courseSubmissions.map((sub) => {
                               const percent = (sub.score / sub.total) * 100;
                               return (
@@ -2482,11 +2482,11 @@ export default function SchoolyScootLMS() {
                                 >
                                   <td className="p-4 pl-6">
                                     <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200 group-hover:border-indigo-200 group-hover:text-indigo-500 transition-colors">
+                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border transition-colors ${darkMode ? 'bg-slate-700 text-slate-300 border-slate-600' : 'bg-slate-100 text-slate-500 border-slate-200 group-hover:border-indigo-200 group-hover:text-indigo-500'}`}>
                                         {sub.studentName.charAt(0)}
                                       </div>
                                       <div>
-                                        <div className="font-bold text-slate-700 group-hover:text-indigo-700">{sub.studentName}</div>
+                                        <div className={`font-bold transition-colors ${darkMode ? 'text-slate-200 group-hover:text-indigo-400' : 'text-slate-700 group-hover:text-indigo-700'}`}>{sub.studentName}</div>
                                       </div>
                                     </div>
                                   </td>
@@ -2540,13 +2540,13 @@ export default function SchoolyScootLMS() {
           {/* VIEW ANSWER DETAIL MODAL */}
           {activeModal === 'viewAnswerDetail' && selectedSubmission && activeQuiz && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden">
+              <div className={`rounded-3xl shadow-2xl w-full max-w-7xl h-[92vh] flex flex-col overflow-hidden ${darkMode ? 'bg-slate-900 border border-slate-700' : 'bg-white'}`}>
                 {/* HEADER */}
-                <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                <div className={`px-8 py-6 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
                   <div className="flex items-center space-x-4">
                     <button
                       onClick={() => setActiveModal('viewResults')}
-                      className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-colors text-slate-600"
+                      className={`p-3 rounded-2xl transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                     >
                       <ChevronLeft size={24} />
                     </button>
@@ -2554,16 +2554,16 @@ export default function SchoolyScootLMS() {
                       <FileText className="text-indigo-500" size={32} />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                      <h2 className={`text-2xl font-extrabold tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
                         {selectedSubmission.studentName}
                       </h2>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-slate-500 font-medium">คะแนนรวม:</span>
-                        <div className="flex items-center gap-1 bg-slate-50 rounded-lg p-1 border border-slate-200">
+                        <span className={`font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนรวม:</span>
+                        <div className={`flex items-center gap-1 rounded-lg p-1 border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                           {selectedSubmission.status === 'pending_grading' ? (
                             <span className="text-lg font-bold text-orange-400 px-2">รอตรวจ</span>
                           ) : (
-                            <span className="text-xl font-black text-slate-800 px-2">
+                            <span className={`text-xl font-black px-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                               {/* CALCULATE DYNAMIC DISPLAY SCORE */}
                               {activeQuiz.items.reduce((total, item, idx) => {
                                 const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
@@ -2686,7 +2686,7 @@ export default function SchoolyScootLMS() {
                 </div>
 
                 {/* CONTENT */}
-                <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
+                <div className={`flex-1 overflow-y-auto p-8 ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50/50'}`}>
                   <div className="max-w-5xl mx-auto space-y-6">
                     {activeQuiz.items.map((item, idx) => {
                       const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
@@ -2720,13 +2720,13 @@ export default function SchoolyScootLMS() {
                       const maxPoints = item.points || 1;
 
                       return (
-                        <div key={idx} className={`bg-white p-6 rounded-3xl border shadow-sm transition-all hover:shadow-md ${item.manualGrading ? 'border-orange-100 ring-4 ring-orange-50/50' : (isCorrect ? 'border-green-100 ring-4 ring-green-50/50' : 'border-red-100 ring-4 ring-red-50/50')}`}>
+                        <div key={idx} className={`p-6 rounded-3xl border shadow-sm transition-all hover:shadow-md ${item.manualGrading ? (darkMode ? 'bg-slate-800 border-orange-900/30 ring-4 ring-orange-900/10' : 'bg-white border-orange-100 ring-4 ring-orange-50/50') : (isCorrect ? (darkMode ? 'bg-slate-800 border-green-900/30 ring-4 ring-green-900/10' : 'bg-white border-green-100 ring-4 ring-green-50/50') : (darkMode ? 'bg-slate-800 border-red-900/30 ring-4 ring-red-900/10' : 'bg-white border-red-100 ring-4 ring-red-50/50'))}`}>
                           <div className="flex justify-between mb-4">
                             <div className="flex items-center gap-3">
-                              <span className="flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg font-bold text-slate-500 text-sm">
+                              <span className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
                                 {idx + 1}
                               </span>
-                              <h3 className="font-bold text-slate-700 text-lg">{item.q}</h3>
+                              <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.q}</h3>
                             </div>
 
                             {/* SCORE INPUT */}
@@ -2737,7 +2737,7 @@ export default function SchoolyScootLMS() {
                                 min="0"
                                 max={maxPoints}
                                 disabled={!item.manualGrading}
-                                className={`w-16 p-1 text-center font-bold border rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 ${item.manualGrading ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'}`}
+                                className={`w-16 p-1 text-center font-bold border rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 ${item.manualGrading ? (darkMode ? 'bg-orange-900/20 border-orange-700 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-700') : (darkMode ? 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed')}`}
                                 value={currentScore}
                                 onChange={(e) => {
                                   if (item.manualGrading) {
@@ -2751,7 +2751,7 @@ export default function SchoolyScootLMS() {
 
                           {item.manualGrading && (
                             <div className="mb-4">
-                              <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-bold flex items-center w-fit">
+                              <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center w-fit ${darkMode ? 'bg-orange-900/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
                                 <AlertCircle size={14} className="mr-1" /> ต้องตรวจเอง (Manual Grading)
                               </span>
                             </div>
@@ -2768,9 +2768,9 @@ export default function SchoolyScootLMS() {
                             {(!item.type || item.type === 'choice') && (
                               item.options.map((opt, optIdx) => {
                                 let optionClass = "p-3 rounded-xl border flex items-center justify-between transition-all relative overflow-hidden ";
-                                if (optIdx === item.correct) optionClass += "bg-green-50 border-green-200 text-green-700 font-bold";
-                                else if (optIdx === answer) optionClass += "bg-slate-50 border-slate-200 text-slate-600 font-bold"; // Don't show red for manual view unless wrong?
-                                else optionClass += "bg-white border-slate-100 text-slate-400 opacity-60";
+                                if (optIdx === item.correct) optionClass += (darkMode ? "bg-green-900/20 border-green-500/50 text-green-400 font-bold" : "bg-green-50 border-green-200 text-green-700 font-bold");
+                                else if (optIdx === answer) optionClass += (darkMode ? "bg-slate-700 border-slate-600 text-slate-300 font-bold" : "bg-slate-50 border-slate-200 text-slate-600 font-bold"); // Don't show red for manual view unless wrong?
+                                else optionClass += (darkMode ? "bg-slate-800 border-slate-700 text-slate-500 opacity-60" : "bg-white border-slate-100 text-slate-400 opacity-60");
 
                                 return (
                                   <div key={optIdx} className={optionClass}>
@@ -2788,14 +2788,14 @@ export default function SchoolyScootLMS() {
                             )}
 
                             {item.type === 'text' && (
-                              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                              <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-700/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                                 <p className="text-xs font-bold text-slate-400 mb-1">คำตอบของนักเรียน:</p>
-                                <p className="text-lg font-bold text-slate-800">{answer || '-'}</p>
-                                <div className="mt-3 pt-3 border-t border-slate-200">
+                                <p className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{answer || '-'}</p>
+                                <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
                                   <p className="text-xs font-bold text-slate-400 mb-1">เฉลย (Keywords):</p>
                                   <div className="flex flex-wrap gap-2">
                                     {(item.keywords || []).map((k, kIdx) => (
-                                      <span key={kIdx} className="bg-white border px-2 py-1 rounded text-xs text-slate-500">{k}</span>
+                                      <span key={kIdx} className={`border px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border- slate-200 text-slate-500'}`}>{k}</span>
                                     ))}
                                   </div>
                                 </div>
@@ -2804,10 +2804,10 @@ export default function SchoolyScootLMS() {
 
                             {/* TRUE/FALSE and MATCHING skipped for brevity in visualization, similar structure */}
                             {item.type === 'matching' && (
-                              <div className="bg-slate-50 p-4 rounded-xl space-y-2">
+                              <div className={`p-4 rounded-xl space-y-2 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
                                 {(item.pairs || []).map((pair, pIdx) => (
                                   <div key={pIdx} className="flex justify-between items-center text-sm">
-                                    <span>{pair.left}</span>
+                                    <span className={darkMode ? 'text-slate-300' : 'text-slate-700'}>{pair.left}</span>
                                     <ArrowRight size={14} className="text-slate-300" />
                                     <div className="flex flex-col items-end">
                                       <span className={((answer && answer[pIdx]) === pair.right) ? 'text-green-600 font-bold' : 'text-slate-500'}>
@@ -2828,7 +2828,7 @@ export default function SchoolyScootLMS() {
                 </div>
 
                 {/* FOOTER */}
-                <div className="px-8 py-5 border-t border-slate-100 bg-white flex justify-end">
+                <div className={`px-8 py-5 border-t flex justify-end ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
                   <button
                     onClick={() => setActiveModal('viewResults')}
                     className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200"
@@ -2843,12 +2843,12 @@ export default function SchoolyScootLMS() {
           {/* QUIZ TAKING MODAL */}
           {activeModal === 'takeQuiz' && activeQuiz && (
             <div className="p-8 h-[80vh] flex flex-col">
-              <div className="mb-6 pb-4 border-b border-slate-100">
+              <div className={`mb-6 pb-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                 <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-2xl font-bold text-slate-800 flex items-center">
+                  <h2 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                     <ClipboardList className="mr-3 text-[#FF917B]" /> {activeQuiz.title}
                   </h2>
-                  <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : 'bg-[#F0FDF4] text-[#96C68E]'}`}>
+                  <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : (darkMode ? 'bg-green-900/20 text-[#96C68E] border border-[#96C68E]/30' : 'bg-[#F0FDF4] text-[#96C68E]')}`}>
                     <Clock size={18} className="mr-2" />
                     {quizRemainingSeconds > 0
                       ? `${Math.floor(quizRemainingSeconds / 60)}:${(quizRemainingSeconds % 60).toString().padStart(2, '0')} นาที`
@@ -2856,7 +2856,7 @@ export default function SchoolyScootLMS() {
 
                   </div>
                 </div>
-                <p className="text-slate-500">{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
+                <p className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
               </div>
 
               {quizResult ? (
@@ -2864,19 +2864,19 @@ export default function SchoolyScootLMS() {
                   <div className="w-32 h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-6 shadow-lg">
                     <MascotStar className="w-24 h-24" />
                   </div>
-                  <h3 className="text-3xl font-bold text-slate-800 mb-2">ส่งข้อสอบเรียบร้อย!</h3>
+                  <h3 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ส่งข้อสอบเรียบร้อย!</h3>
                   {quizResult.status === 'pending_grading' ? (
                     <>
-                      <p className="text-slate-500 mb-6">ข้อสอบนี้มีส่วนที่ต้องรอคุณครูตรวจ</p>
-                      <div className="text-4xl font-bold text-orange-400 mb-8 px-6 py-4 bg-orange-50 rounded-2xl border border-orange-100">
+                      <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ข้อสอบนี้มีส่วนที่ต้องรอคุณครูตรวจ</p>
+                      <div className={`text-4xl font-bold text-orange-400 mb-8 px-6 py-4 rounded-2xl border ${darkMode ? 'bg-orange-900/10 border-orange-500/30' : 'bg-orange-50 border-orange-100'}`}>
                         รอการตรวจให้คะแนน
                       </div>
                     </>
                   ) : (
                     <>
-                      <p className="text-slate-500 mb-6">คุณทำคะแนนได้</p>
+                      <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คุณทำคะแนนได้</p>
                       <div className="text-6xl font-bold text-[#FF917B] mb-8">
-                        {quizResult.score} <span className="text-2xl text-slate-300">/ {quizResult.total}</span>
+                        {quizResult.score} <span className={`text-2xl ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>/ {quizResult.total}</span>
                       </div>
                     </>
                   )}
@@ -2888,11 +2888,11 @@ export default function SchoolyScootLMS() {
                     {activeQuiz.items.map((item, idx) => (
                       <div key={idx} className="mb-8 last:mb-0">
                         <div className="flex items-start gap-4 mb-4">
-                          <span className="flex-shrink-0 w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-500 text-sm">
+                          <span className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${darkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
                             {idx + 1}
                           </span>
                           <div className="flex-1">
-                            <h3 className="text-lg font-bold text-slate-800 mb-2">{item.q}</h3>
+                            <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{item.q}</h3>
                             {item.image && (
                               <img src={item.image} alt="Question" className="h-48 rounded-xl border border-slate-200 object-cover mb-4" />
                             )}
@@ -2905,8 +2905,8 @@ export default function SchoolyScootLMS() {
                             <div className="space-y-3">
                               {item.options.map((opt, optIdx) => (
                                 <label key={optIdx} className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
-                                  ? 'bg-[#F0FDF4] border-[#96C68E] shadow-sm'
-                                  : 'bg-white border-slate-100 hover:border-[#96C68E]'
+                                  ? (darkMode ? 'bg-green-900/20 border-[#96C68E]' : 'bg-[#F0FDF4] border-[#96C68E] shadow-sm')
+                                  : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-white border-slate-100 hover:border-[#96C68E]')
                                   }`}>
                                   <div className="flex items-center w-full">
                                     <input
@@ -2916,7 +2916,7 @@ export default function SchoolyScootLMS() {
                                       onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
                                       checked={quizAnswers[idx] === optIdx}
                                     />
-                                    <span className="text-slate-700 font-medium">{opt}</span>
+                                    <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{opt}</span>
                                   </div>
                                   {item.optionImages && item.optionImages[optIdx] && (
                                     <div className="ml-8 mt-3 w-fit">
@@ -2933,13 +2933,13 @@ export default function SchoolyScootLMS() {
                             <div className="flex gap-4">
                               <button
                                 onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: true })}
-                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === true ? 'border-green-500 bg-green-50 text-green-700' : 'border-slate-100 bg-white text-slate-400 hover:border-green-200'}`}
+                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === true ? 'border-green-500 bg-green-50 text-green-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-green-500' : 'border-slate-100 bg-white text-slate-400 hover:border-green-200')}`}
                               >
                                 <CheckCircle2 size={24} /> ถูก (True)
                               </button>
                               <button
                                 onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: false })}
-                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === false ? 'border-red-500 bg-red-50 text-red-700' : 'border-slate-100 bg-white text-slate-400 hover:border-red-200'}`}
+                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === false ? 'border-red-500 bg-red-50 text-red-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-red-500' : 'border-slate-100 bg-white text-slate-400 hover:border-red-200')}`}
                               >
                                 <X size={24} /> ผิด (False)
                               </button>
@@ -2948,16 +2948,16 @@ export default function SchoolyScootLMS() {
 
                           {/* TYPE: MATCHING */}
                           {item.type === 'matching' && (
-                            <div className="space-y-4 bg-slate-50 p-4 rounded-xl">
+                            <div className={`space-y-4 p-4 rounded-xl ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                               {item.pairs.map((pair, pIdx) => (
                                 <div key={pIdx} className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
-                                  <div className="flex-1 font-bold text-slate-700 bg-white p-3 rounded-lg border border-slate-200">
+                                  <div className={`flex-1 font-bold p-3 rounded-lg border ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
                                     {pair.left}
                                   </div>
                                   <ArrowRight className="hidden md:block text-slate-300" />
                                   <div className="flex-1">
                                     <select
-                                      className="w-full p-3 rounded-lg border border-slate-200 outline-none focus:border-[#96C68E] bg-white cursor-pointer"
+                                      className={`w-full p-3 rounded-lg border outline-none focus:border-[#96C68E] cursor-pointer ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200'}`}
                                       value={quizAnswers[idx] ? quizAnswers[idx][pIdx] || '' : ''}
                                       onChange={(e) => {
                                         const currentAns = quizAnswers[idx] || {};
@@ -2984,7 +2984,7 @@ export default function SchoolyScootLMS() {
                               <input
                                 type="text"
                                 placeholder="พิมพ์คำตอบของคุณที่นี่..."
-                                className="w-full p-4 rounded-xl border border-slate-200 outline-none focus:border-[#96C68E] font-medium text-slate-700"
+                                className={`w-full p-4 rounded-xl border outline-none focus:border-[#96C68E] font-medium ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
                                 value={quizAnswers[idx] || ''}
                                 onChange={(e) => setQuizAnswers({ ...quizAnswers, [idx]: e.target.value })}
                               />
@@ -2994,7 +2994,7 @@ export default function SchoolyScootLMS() {
                       </div>
                     ))}
                   </div>
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end">
+                  <div className={`mt-6 pt-4 border-t flex justify-end ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                     <button
                       onClick={submitQuiz}
                       disabled={Object.keys(quizAnswers).length < activeQuiz.items.length}
@@ -3014,7 +3014,7 @@ export default function SchoolyScootLMS() {
           {/* PENDING QUIZZES MODAL */}
           {activeModal === 'pendingQuizzes' && (
             <div className="p-8 h-full flex flex-col w-full max-w-4xl">
-              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+              <h2 className={`text-2xl font-bold mb-6 flex items-center ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
                 <ClipboardCheck className="mr-3 text-[#FF917B]" /> ตรวจข้อสอบ (Pending Grading)
               </h2>
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
@@ -3030,7 +3030,7 @@ export default function SchoolyScootLMS() {
                   </div>
                 ) : (
                   pendingGradingList.map((quiz) => (
-                    <div key={quiz.firestoreId} className="bg-slate-50 p-6 rounded-2xl border border-slate-200 hover:border-[#96C68E] transition-all cursor-pointer shadow-sm hover:shadow-md"
+                    <div key={quiz.firestoreId} className={`p-6 rounded-2xl border transition-all cursor-pointer shadow-sm hover:shadow-md ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-slate-50 border-slate-200 hover:border-[#96C68E]'}`}
                       onClick={() => {
                         const course = courses.find(c => c.name === quiz.courseName);
                         if (course) {
@@ -3057,12 +3057,12 @@ export default function SchoolyScootLMS() {
                       }}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-lg text-slate-700">{quiz.title}</h3>
-                        <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">
+                        <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${darkMode ? 'bg-orange-900/30 text-orange-400' : 'bg-orange-100 text-orange-600'}`}>
                           รอตรวจ {quiz.pendingCount} คน
                         </span>
                       </div>
-                      <p className="text-slate-500 text-sm flex items-center gap-2">
+                      <p className={`text-sm flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         <BookOpen size={14} /> {quiz.courseName}
                       </p>
                     </div>
@@ -3290,12 +3290,12 @@ export default function SchoolyScootLMS() {
           {activeModal === 'notificationsList' && (
             <div className="p-6 h-[80vh] flex flex-col">
               <div className="flex items-center gap-4 mb-6">
-                <h2 className='text-2xl font-bold text-slate-800 flex items-center'>
+                <h2 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                   <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
                 </h2>
                 <button
                   onClick={handleMarkAllRead}
-                  className="flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full transition-all shadow-sm text-[#96C68E] hover:text-white bg-white hover:bg-[#96C68E] border-[#96C68E] hover:shadow-md active:scale-95"
+                  className={`flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full transition-all shadow-sm ${darkMode ? 'text-[#96C68E] hover:text-white bg-slate-800 hover:bg-[#96C68E] border-[#96C68E]' : 'text-[#96C68E] hover:text-white bg-white hover:bg-[#96C68E] border-[#96C68E]'} hover:shadow-md active:scale-95`}
                 >
                   <CheckCircle size={12} />
                   อ่านทั้งหมด
@@ -3309,6 +3309,7 @@ export default function SchoolyScootLMS() {
                     displayTime={notif.date ? new Date(notif.date).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                     isSelected={selectedNotification?.firestoreId === notif.firestoreId}
                     onClick={() => handleNotificationClick(notif)}
+                    darkMode={darkMode}
                   />
 
                 ))}
@@ -3320,8 +3321,8 @@ export default function SchoolyScootLMS() {
           {activeModal === 'notificationDetail' && selectedNotification && (
             <div className="p-6">
               <div className="flex items-center gap-4 mb-4">
-                <button onClick={() => setActiveModal('notificationsList')} className="p-2 rounded-full hover:bg-slate-100">
-                  <ChevronLeft size={24} className="text-slate-700" />
+                <button onClick={() => setActiveModal('notificationsList')} className={`p-2 rounded-full ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
+                  <ChevronLeft size={24} className={`${darkMode ? 'text-slate-300' : 'text-slate-700'}`} />
                 </button>
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center 
                    ${selectedNotification.type === 'homework' ? 'bg-[#FFE787]' : selectedNotification.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
@@ -3329,13 +3330,13 @@ export default function SchoolyScootLMS() {
                     selectedNotification.type === 'grade' ? <CheckSquare size={24} className="text-white" /> : <User size={24} className="text-slate-700" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800">รายละเอียดการแจ้งเตือน</h3>
-                  <p className="text-sm text-slate-500">{selectedNotification.time}</p>
+                  <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>รายละเอียดการแจ้งเตือน</h3>
+                  <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{selectedNotification.time}</p>
                 </div>
               </div>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
-                <h4 className="font-bold text-slate-700 mb-2">{selectedNotification.message}</h4>
-                <p className="text-slate-600 text-sm leading-relaxed">
+              <div className={`p-4 rounded-xl border mb-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                <h4 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedNotification.message}</h4>
+                <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                   {selectedNotification.detail || "ไม่มีรายละเอียดเพิ่มเติม"}
                 </p>
               </div>
@@ -3349,8 +3350,8 @@ export default function SchoolyScootLMS() {
                   <FileText size={32} className="text-slate-700" />
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-slate-800">{currentAssignmentData.title}</h2>
-                  <p className="text-slate-500">{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate ? new Date(currentAssignmentData.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
+                  <h2 className={`text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{currentAssignmentData.title}</h2>
+                  <p className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate ? new Date(currentAssignmentData.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
                 </div>
                 <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold whitespace-nowrap">
                   {(currentAssignmentData.score !== null && currentAssignmentData.score !== undefined && currentAssignmentData.score !== '')
@@ -3359,23 +3360,23 @@ export default function SchoolyScootLMS() {
                 </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
-                <h3 className="font-bold text-slate-700 mb-2">คำชี้แจง</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{currentAssignmentData.description}</p>
+              <div className={`p-4 rounded-2xl border mb-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                <h3 className={`font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>คำชี้แจง</h3>
+                <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{currentAssignmentData.description}</p>
 
                 {/* Display attached files from teacher */}
                 {currentAssignmentData.files && currentAssignmentData.files.length > 0 && (
-                  <div className="mt-4 border-t border-slate-100 pt-3">
-                    <h4 className="text-sm font-bold text-slate-600 mb-2 flex items-center gap-2">
+                  <div className={`mt-4 border-t pt-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <h4 className={`text-sm font-bold mb-2 flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                       <Paperclip size={16} /> ไฟล์แนบ ({currentAssignmentData.files.length})
                     </h4>
                     <div className="grid grid-cols-1 gap-2">
                       {currentAssignmentData.files.map((file, idx) => (
-                        <div key={idx} className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl justify-between group">
+                        <div key={idx} className={`flex items-center gap-3 border p-3 rounded-xl justify-between group ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                           <div className="flex items-center gap-3 overflow-hidden">
                             <FileText className="text-[#BEE1FF] flex-shrink-0" size={20} />
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
+                              <p className={`text-sm font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</p>
                               <p className="text-xs text-slate-400">{(file.size ? (file.size / 1024).toFixed(1) : 0)} KB</p>
                             </div>
                           </div>
@@ -3397,18 +3398,18 @@ export default function SchoolyScootLMS() {
                 )}
                 {/* Fallback for old single file data */}
                 {currentAssignmentData.fileName && !currentAssignmentData.files && (
-                  <div className="mt-4 border-t border-slate-100 pt-3">
-                    <div className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl">
+                  <div className={`mt-4 border-t pt-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                    <div className={`flex items-center gap-3 border p-3 rounded-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
                       <FileText className="text-[#BEE1FF]" size={20} />
-                      <p className="text-sm font-bold text-slate-700">{currentAssignmentData.fileName}</p>
+                      <p className={`text-sm font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{currentAssignmentData.fileName}</p>
                     </div>
                   </div>
                 )}
               </div>
 
 
-              <div className="border-t border-slate-100 pt-6">
-                <h3 className="font-bold text-slate-800 mb-4">งานของคุณ</h3>
+              <div className={`border-t pt-6 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                <h3 className={`font-bold mb-4 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>งานของคุณ</h3>
 
                 {/* 1. กรณีส่งงานเรียบร้อยแล้ว */}
                 {currentAssignmentData.status === 'submitted' ? (
@@ -3420,10 +3421,10 @@ export default function SchoolyScootLMS() {
 
                     <div className="space-y-2">
                       {currentAssignmentData.submittedFiles?.map((file, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl group hover:border-[#96C68E] transition-colors">
+                        <div key={idx} className={`flex items-center justify-between border p-3 rounded-xl group hover:border-[#96C68E] transition-colors ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                           <div className="flex items-center gap-3">
                             <FileText size={18} className="text-[#96C68E]" />
-                            <span className="text-sm font-medium text-slate-700">{file.name}</span>
+                            <span className={`text-sm font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</span>
                           </div>
                           <button
                             onClick={() => {
@@ -3472,7 +3473,7 @@ export default function SchoolyScootLMS() {
                         onChange={handleFileUpload}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
-                      <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${uploadFile.length > 0 ? 'border-[#96C68E] bg-[#F0FDF4]' : 'border-slate-300 hover:bg-slate-50'
+                      <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${uploadFile.length > 0 ? (darkMode ? 'border-[#96C68E] bg-green-900/10' : 'border-[#96C68E] bg-[#F0FDF4]') : (darkMode ? 'border-slate-600 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-50')
                         }`}>
                         <Upload size={32} className="mx-auto text-slate-400 mb-2" />
                         <p className="text-slate-500 font-bold">คลิกเพื่ออัพโหลดไฟล์งาน</p>
@@ -3483,10 +3484,10 @@ export default function SchoolyScootLMS() {
                     {uploadFile.length > 0 && (
                       <div className="space-y-2 mb-4">
                         {uploadFile.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-white border border-slate-200 p-3 rounded-xl animate-in slide-in-from-bottom-2">
+                          <div key={index} className={`flex items-center justify-between border p-3 rounded-xl animate-in slide-in-from-bottom-2 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                             <div className="flex items-center gap-3">
                               <FileText size={18} className="text-[#96C68E]" />
-                              <span className="text-sm font-medium text-slate-700 truncate max-w-[200px]">{file.name}</span>
+                              <span className={`text-sm font-medium truncate max-w-[200px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</span>
                             </div>
                             <button onClick={() => removeFile(index)} className="text-red-400 hover:text-red-600">
                               <Trash size={16} />
@@ -3499,7 +3500,7 @@ export default function SchoolyScootLMS() {
                     <button
                       onClick={() => handleConfirmSubmit(currentAssignmentData.id)}
                       disabled={uploadFile.length === 0}
-                      className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${uploadFile.length > 0 ? 'bg-[#96C68E] text-white hover:scale-[1.02]' : 'bg-slate-200 text-slate-400'
+                      className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${uploadFile.length > 0 ? 'bg-[#96C68E] text-white hover:scale-[1.02]' : (darkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400')
                         }`}
                     >
                       <CheckCircle className="mr-2" /> ส่งการบ้าน {uploadFile.length > 0 && `(${uploadFile.length} ไฟล์)`}
@@ -3796,26 +3797,26 @@ export default function SchoolyScootLMS() {
             <div className="h-[80vh] flex flex-col relative">
               {/* Overlay for Detail View */}
               {activeModal === 'grading_detail' && (
-                <div className="absolute inset-0 z-50 bg-white p-8 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                <div className={`absolute inset-0 z-50 ${darkMode ? 'bg-slate-900' : 'bg-white'} p-8 flex flex-col animate-in fade-in zoom-in-95 duration-200`}>
                   <div className="flex items-start gap-4 mb-6">
                     <div className="bg-[#FFE787] p-3 rounded-2xl">
                       <FileText size={32} className="text-slate-700" />
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-2xl font-bold text-slate-800">{selectedAssignment.title}</h2>
+                      <h2 className={`text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{selectedAssignment.title}</h2>
                       <p className="text-slate-500">{selectedAssignment.course} • ครบกำหนด {selectedAssignment.dueDate ? new Date(selectedAssignment.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
                     </div>
                     <button
                       onClick={() => setActiveModal('grading')}
-                      className="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition-colors"
+                      className={`${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'} p-2 rounded-full transition-colors`}
                     >
                       <X size={24} className="text-slate-500" />
                     </button>
                   </div>
 
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 mb-6 flex-1 overflow-y-auto custom-scrollbar">
-                    <h3 className="font-bold text-slate-700 mb-4 text-lg border-b border-slate-200 pb-2">คำชี้แจง</h3>
-                    <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{selectedAssignment.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
+                  <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-2xl border mb-6 flex-1 overflow-y-auto custom-scrollbar`}>
+                    <h3 className={`font-bold ${darkMode ? 'text-slate-200 border-slate-700' : 'text-slate-700 border-slate-200'} mb-4 text-lg border-b pb-2`}>คำชี้แจง</h3>
+                    <p className={`${darkMode ? 'text-slate-300' : 'text-slate-600'} leading-relaxed whitespace-pre-wrap`}>{selectedAssignment.description || 'ไม่มีรายละเอียดเพิ่มเติม'}</p>
 
                     {/* Display attached files */}
                     {selectedAssignment.files && selectedAssignment.files.length > 0 && (
@@ -3825,7 +3826,7 @@ export default function SchoolyScootLMS() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {selectedAssignment.files.map((file, idx) => (
-                            <div key={idx} className="flex items-center gap-3 bg-white border border-slate-200 p-3 rounded-xl hover:border-[#96C68E] transition-colors group cursor-pointer"
+                            <div key={idx} className={`flex items-center gap-3 border p-3 rounded-xl hover:border-[#96C68E] transition-colors group cursor-pointer ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}
                               onClick={() => {
                                 if (file.content) openBase64InNewTab(file.content, file.type || 'application/pdf');
                                 else alert('ไม่สามารถเปิดไฟล์ได้');
@@ -3835,7 +3836,7 @@ export default function SchoolyScootLMS() {
                                 <FileText className="text-[#96C68E]" size={20} />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-bold text-slate-700 truncate">{file.name}</p>
+                                <p className={`text-sm font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</p>
                                 <p className="text-xs text-slate-400">{(file.size ? (file.size / 1024).toFixed(1) : 0)} KB</p>
                               </div>
                             </div>
@@ -3847,10 +3848,10 @@ export default function SchoolyScootLMS() {
                 </div>
               )}
 
-              <div className="p-8 flex flex-col h-full">
-                <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+              <div className={`p-8 flex flex-col h-full ${darkMode ? 'text-slate-200' : ''}`}>
+                <div className={`flex justify-between items-start mb-6 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'} pb-4`}>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-800">ตรวจงาน: {selectedAssignment.title}</h2>
+                    <h2 className={`text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ตรวจงาน: {selectedAssignment.title}</h2>
                     <div className="flex items-center gap-3 text-slate-500">
                       <p>{selectedAssignment.course}</p>
                       <div className="h-1 w-1 rounded-full bg-slate-300"></div>
@@ -3860,7 +3861,7 @@ export default function SchoolyScootLMS() {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setActiveModal('grading_detail')}
-                      className="hover:text-[#96C68E] cursor-pointer transition-colors flex items-center gap-1 font-bold text-sm bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 hover:border-[#96C68E]"
+                      className={`hover:text-[#96C68E] cursor-pointer transition-colors flex items-center gap-1 font-bold text-sm px-3 py-2 rounded-xl border hover:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                       title="ดูรายละเอียดงานต้นฉบับ"
                     >
                       <Eye size={16} /> ดูโจทย์
@@ -3872,7 +3873,7 @@ export default function SchoolyScootLMS() {
                 </div>
 
                 {/* Grading Tabs */}
-                <div className="flex gap-2 mt-4 border-b border-slate-100 pb-2">
+                <div className={`flex gap-2 mt-4 border-b pb-2 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                   <button
                     onClick={() => setGradingTab('submitted')}
                     className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${gradingTab === 'submitted' ? 'bg-[#96C68E] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
@@ -3895,7 +3896,7 @@ export default function SchoolyScootLMS() {
                     </div>
                   ) : gradingTab === 'submitted' ? (
                     <table className="w-full">
-                      <thead className="text-left text-slate-500 text-sm border-b border-slate-100">
+                      <thead className={`text-left text-sm border-b ${darkMode ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
                         <tr>
                           <th className="pb-2">ชื่อ-นามสกุล</th>
                           <th className="pb-2">สถานะ</th>
@@ -3903,10 +3904,10 @@ export default function SchoolyScootLMS() {
                           <th className="pb-2 text-center">คะแนน</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-50">
+                      <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
                         {submissions.length > 0 ? submissions.map((student) => (
-                          <tr key={student.firestoreId || student.id} className="group hover:bg-slate-50">
-                            <td className="py-3 font-medium text-slate-700">{student.userName || 'Unknown'}</td>
+                          <tr key={student.firestoreId || student.id} className={`group ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}>
+                            <td className={`py-3 font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{student.userName || 'Unknown'}</td>
                             <td className="py-3">
                               <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
                             </td>
@@ -3928,7 +3929,7 @@ export default function SchoolyScootLMS() {
                                             alert(`ไม่พบเนื้อหาไฟล์: ${f.name}`);
                                           }
                                         }}
-                                        className="text-left font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 bg-slate-50 border border-slate-200 px-2 py-1 rounded cursor-pointer text-sm max-w-full"
+                                        className={`text-left font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 border px-2 py-1 rounded cursor-pointer text-sm max-w-full ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                                         title={f.name || `File ${idx + 1}`}
                                       >
                                         <FileText size={16} className="text-blue-500 flex-shrink-0" />
@@ -3956,7 +3957,7 @@ export default function SchoolyScootLMS() {
                                     [student.firestoreId || student.id]: val
                                   }));
                                 }}
-                                className="w-16 p-2 border border-slate-200 rounded-lg text-center font-bold focus:border-[#96C68E] outline-none"
+                                className={`w-16 p-2 border rounded-lg text-center font-bold focus:border-[#96C68E] outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                               />
                             </td>
                           </tr>
@@ -3970,12 +3971,12 @@ export default function SchoolyScootLMS() {
                       {missingSubmissions.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {missingSubmissions.map((student, idx) => (
-                            <div key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-                              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold">
+                            <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'border-slate-100 bg-slate-50/50'}`}>
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
                                 {student.fullName ? student.fullName.charAt(0) : '?'}
                               </div>
                               <div>
-                                <div className="font-bold text-slate-700">{student.fullName || 'Unknown'}</div>
+                                <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{student.fullName || 'Unknown'}</div>
                                 <div className="text-xs text-red-400 font-bold flex items-center gap-1">
                                   <AlertCircle size={12} /> ยังไม่ส่งงาน
                                 </div>
@@ -3993,10 +3994,10 @@ export default function SchoolyScootLMS() {
                   )}
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-slate-100 flex justify-end gap-3">
+                <div className={`mt-6 pt-4 border-t flex justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                   <button
                     onClick={closeModal}
-                    className="px-6 py-3 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+                    className={`px-6 py-3 rounded-xl border font-bold ${darkMode ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                   >
                     ปิด
                   </button>
@@ -4232,7 +4233,11 @@ export default function SchoolyScootLMS() {
       );
     } else {
       // Default to Landing Page (which contains Login)
-      return <LandingPage onNavigateToRegister={() => setCurrentView('register')} />;
+      return <LandingPage
+        onNavigateToRegister={() => setCurrentView('register')}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />;
     }
   }
 
