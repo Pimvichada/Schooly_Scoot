@@ -4577,7 +4577,7 @@ export default function SchoolyScootLMS() {
                   />
                 )}
                 {activeTab === 'messages' && renderMessages()}
-                {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} />}
+                {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} darkMode={darkMode} />}
                 {activeTab === 'analytics' && <AnalyticsView setView={setActiveTab} courses={courses} assignments={assignments} userRole={userRole} userId={auth.currentUser?.uid} darkMode={darkMode} />}
                 {activeTab === 'settings' && (
                   <SettingsView

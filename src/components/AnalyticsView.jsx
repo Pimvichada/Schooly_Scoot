@@ -91,12 +91,15 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
         // 3. Total Study Hours 
         let weeklyMinutes = 0;
         courses.forEach(course => {
-            if (course.schedule) {
-                course.schedule.forEach(slot => {
+            // Support both data formats
+            const schedule = course.scheduleItems || course.schedule;
+            if (schedule && Array.isArray(schedule)) {
+                schedule.forEach(slot => {
+                    if (!slot.startTime || !slot.endTime) return;
                     const [startH, startM] = slot.startTime.split(':').map(Number);
                     const [endH, endM] = slot.endTime.split(':').map(Number);
                     const durationCurrent = (endH * 60 + endM) - (startH * 60 + startM);
-                    weeklyMinutes += durationCurrent;
+                    if (durationCurrent > 0) weeklyMinutes += durationCurrent;
                 });
             }
         });
@@ -116,7 +119,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                     m = parseFloat(a.maxScore) || parseFloat(a.points) || 10;
                 }
                 if (!isNaN(s) && !isNaN(m) && m > 0) {
-                    graded.push({ score: s, max: m, ...a });
+                    graded.push({ ...a, score: s, max: m });
                 }
             }
         });
@@ -209,7 +212,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                 </button>
                 <div>
                     <h1 className={`text-2xl font-bold flex items-center gap-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                        <TrendingUp className="text-[#96C68E] animate-bounce" /> วิเคราะห์การเรียน
+                        <TrendingUp className="text-[#96C68E] " /> วิเคราะห์การเรียน
                     </h1>
                     <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                         {userRole === 'teacher' ? 'ภาพรวมติดตามผู้เรียน' : 'ภาพรวมสถิติจากข้อมูลจริงของคุณ'}
@@ -340,7 +343,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                             className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border relative overflow-hidden group hover:shadow-md transition-all duration-700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
                             style={{ transitionDelay: '0ms' }}
                         >
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:rotate-12">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 ">
                                 <BarChart2 size={80} className="text-[#96C68E]" />
                             </div>
                             <div className={`w-12 h-12 ${darkMode ? 'bg-green-500/20' : 'bg-[#F0FDF4]'} rounded-2xl flex items-center justify-center mb-4 text-[#96C68E] group-hover:scale-110 transition-transform duration-300`}>
@@ -357,7 +360,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                             className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border relative overflow-hidden group hover:shadow-md transition-all duration-700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
                             style={{ transitionDelay: '100ms' }}
                         >
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:-rotate-12">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
                                 <Users size={80} className="text-[#BEE1FF]" />
                             </div>
                             <div className={`w-12 h-12 ${darkMode ? 'bg-blue-500/20' : 'bg-[#E3F2FD]'} rounded-2xl flex items-center justify-center mb-4 text-[#5B9BD5] group-hover:scale-110 transition-transform duration-300`}>
@@ -375,7 +378,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                             className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-6 rounded-3xl shadow-sm border relative overflow-hidden group hover:shadow-md transition-all duration-700 ${animate ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
                             style={{ transitionDelay: '200ms' }}
                         >
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity duration-500 group-hover:scale-110 group-hover:rotate-12">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 ">
                                 <Award size={80} className="text-[#A78BFA]" />
                             </div>
                             <div className={`w-12 h-12 ${darkMode ? 'bg-purple-500/20' : 'bg-[#F3E8FF]'} rounded-2xl flex items-center justify-center mb-4 text-[#A78BFA] group-hover:scale-110 transition-transform duration-300`}>
@@ -411,7 +414,7 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                                 </div>
 
                                 {stats.coursePerformance.length > 0 ? (
-                                    <div className="h-64 flex items-end justify-start gap-4 px-4 pb-2 border-b border-slate-100 overflow-x-auto custom-scrollbar">
+                                    <div className="h-64 flex items-end justify-center gap-4 px-4 pb-2 border-b border-slate-100 overflow-x-auto custom-scrollbar">
                                         {stats.coursePerformance.map((item, i) => (
                                             <div key={i} className="flex flex-col items-center gap-2 h-full justify-end group w-16 flex-shrink-0">
                                                 <div className="relative w-full bg-slate-50 rounded-2xl h-full flex flex-col-reverse overflow-hidden">
