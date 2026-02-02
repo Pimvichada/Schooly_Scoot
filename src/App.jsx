@@ -2604,12 +2604,15 @@ export default function SchoolyScootLMS() {
                           alert('บันทึกคะแนนเรียบร้อย');
 
                           // Notify
+                          // Calculate total points for display
+                          const quizTotalPoints = activeQuiz.totalPoints || activeQuiz.items.reduce((total, item) => total + (Number(item.points) || 1), 0);
+
                           if (selectedSubmission.studentId) {
                             await createNotification(
                               selectedSubmission.studentId,
                               `ประกาศคะแนน: ${activeQuiz?.title}`,
                               'grade',
-                              `คุณครูได้ตรวจข้อสอบของคุณแล้ว ได้คะแนน ${newTotalScore}/${activeQuiz.total}`,
+                              `คุณครูได้ตรวจข้อสอบของคุณแล้ว ได้คะแนน ${newTotalScore}/${quizTotalPoints}`,
                               { courseId: selectedCourse.firestoreId, targetType: 'grades', targetId: activeQuiz.firestoreId }
                             );
                           }
