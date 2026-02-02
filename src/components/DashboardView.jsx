@@ -6,7 +6,8 @@ import {
     FileText,
     Clock,
     Video,
-    Bell
+    Bell,
+    ClipboardCheck
 } from 'lucide-react';
 import StatCard from './StatCard';
 import NotificationItem from './NotificationItem';
@@ -40,9 +41,15 @@ const DashboardView = ({
                         {welcomeMessage}
                     </p>
                     <div className="mt-6 flex space-x-3">
-                        <button onClick={() => setActiveTab('schedule')} className={`bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all ${darkMode ? 'bg-slate-700 text-slate-200 border border-slate-600' : ''}`}>
-                            ดูตารางเรียน
-                        </button>
+                        {userRole === 'teacher' ? (
+                            <button onClick={() => setActiveModal('pendingQuizzes')} className={`bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all border border-slate-100 flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-slate-200 border-slate-600' : ''}`}>
+                                <ClipboardCheck size={18} className="text-[#96C68E]" /> ตรวจข้อสอบ
+                            </button>
+                        ) : (
+                            <button onClick={() => setActiveTab('schedule')} className={`bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all ${darkMode ? 'bg-slate-700 text-slate-200 border border-slate-600' : ''}`}>
+                                ดูตารางเรียน
+                            </button>
+                        )}
                         <button onClick={() => setActiveTab('analytics')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
                             <TrendingUp size={18} className="inline mr-1" /> วิเคราะห์การเรียน
                         </button>

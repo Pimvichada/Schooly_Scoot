@@ -70,6 +70,7 @@ import {
   Eye,
   Trash2,
   BarChart3,
+  ClipboardCheck,
 } from 'lucide-react';
 
 import { MascotCircle, MascotSquare, MascotTriangle, MascotStar, Cute1 } from './components/Mascots';
@@ -106,6 +107,7 @@ export default function SchoolyScootLMS() {
   const [authLoading, setAuthLoading] = useState(true);
   const [hiddenCourseIds, setHiddenCourseIds] = useState([]); // Store hidden course IDs locally
   const [currentView, setCurrentView] = useState('landing'); // 'current' หรือ 'all'
+  const [isLoading, setIsLoading] = useState(false); // Global loading state
 
 
   // Meeting State
@@ -338,6 +340,7 @@ export default function SchoolyScootLMS() {
   const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers {questionIndex: optionIndex }
   const [quizResult, setQuizResult] = useState(null); // Stores final score
   const [quizzes, setQuizzes] = useState([]);
+  const [pendingGradingList, setPendingGradingList] = useState([]);
 
 
   // Fetch quizzes when entering a course or changing tab to quizzes
@@ -361,6 +364,8 @@ export default function SchoolyScootLMS() {
     };
     fetchQuizzesAndSubmissions();
   }, [selectedCourse, courseTab, userRole]);
+
+
 
 
   // Fetch Assignments
@@ -565,6 +570,43 @@ export default function SchoolyScootLMS() {
 
   // Modal State
   const [activeModal, setActiveModal] = useState(null);
+  const [isListLoading, setIsListLoading] = useState(false); // Loading state for modal list
+
+  // Fetch Pending Quizzes for Dashboard Monitor (Must be after activeModal is defined)
+  useEffect(() => {
+    const fetchPendingQuizzes = async () => {
+      if (activeModal === 'pendingQuizzes' && userRole === 'teacher' && auth.currentUser) {
+        setIsListLoading(true);
+        try {
+          const myCourses = courses.filter(c => c.ownerId === auth.currentUser.uid);
+          // console.log("Checking courses:", myCourses);
+          const results = [];
+
+          for (const course of myCourses) {
+            const courseQuizzes = await getQuizzesByCourse(course.name);
+            for (const quiz of courseQuizzes) {
+              const submissions = await getQuizSubmissions(quiz.firestoreId);
+              // console.log(`Quiz ${quiz.title} submissions:`, submissions);
+              const pendingCount = submissions.filter(s => s.status === 'pending_grading').length;
+              if (pendingCount > 0) {
+                results.push({
+                  ...quiz,
+                  courseName: course.name,
+                  pendingCount
+                });
+              }
+            }
+          }
+          setPendingGradingList(results);
+        } catch (error) {
+          console.error("Error fetching pending quizzes:", error);
+        } finally {
+          setIsListLoading(false);
+        }
+      }
+    };
+    fetchPendingQuizzes();
+  }, [activeModal, userRole, courses]);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
   // Data States
@@ -1950,7 +1992,15 @@ export default function SchoolyScootLMS() {
         }));
 
         // Notify Teacher
-        // (You can add notification logic here if needed)
+        if (selectedCourse?.ownerId && selectedCourse.ownerId !== auth.currentUser.uid) {
+          await createNotification(
+            selectedCourse.ownerId,
+            `มีการส่งข้อสอบ: ${activeQuiz.title}`,
+            'quiz',
+            `${profile.firstName} ${profile.lastName || ''} ได้ส่งข้อสอบแล้ว`,
+            { courseId: selectedCourse.firestoreId, targetType: 'quiz_submission', targetId: activeQuiz.firestoreId }
+          );
+        }
 
       } catch (error) {
         console.error("Failed to submit quiz", error);
@@ -1960,7 +2010,7 @@ export default function SchoolyScootLMS() {
 
     return (
       <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div className={`bg-white rounded-3xl shadow-2xl w-full ${activeModal === 'createExam' ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
+        <div className={`bg-white rounded-3xl shadow-2xl w-full ${activeModal === 'createExam' ? 'max-w-7xl h-[90vh]' : ['grading', 'grading_detail', 'takeQuiz', 'create', 'assignmentDetail', 'pendingQuizzes'].includes(activeModal) ? 'max-w-4xl' : 'max-w-md'} max-h-[90vh] overflow-y-auto relative`}>
           {!['grading', 'grading_detail'].includes(activeModal) && (
             <button onClick={closeModal} className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 z-10">
               <X size={20} className="text-slate-600" />
@@ -2958,6 +3008,67 @@ export default function SchoolyScootLMS() {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* PENDING QUIZZES MODAL */}
+          {activeModal === 'pendingQuizzes' && (
+            <div className="p-8 h-full flex flex-col w-full max-w-4xl">
+              <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                <ClipboardCheck className="mr-3 text-[#FF917B]" /> ตรวจข้อสอบ (Pending Grading)
+              </h2>
+              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4">
+                {isListLoading ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#96C68E] mb-3"></div>
+                    <p>กำลังค้นหาข้อสอบที่รอตรวจ...</p>
+                  </div>
+                ) : pendingGradingList.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <CheckCircle2 size={48} className="mx-auto mb-4 text-green-200" />
+                    <p>ไม่มีข้อสอบที่ต้องตรวจแล้ว!</p>
+                  </div>
+                ) : (
+                  pendingGradingList.map((quiz) => (
+                    <div key={quiz.firestoreId} className="bg-slate-50 p-6 rounded-2xl border border-slate-200 hover:border-[#96C68E] transition-all cursor-pointer shadow-sm hover:shadow-md"
+                      onClick={() => {
+                        const course = courses.find(c => c.name === quiz.courseName);
+                        if (course) {
+                          setIsLoading(true); // START LOADING
+                          setSelectedCourse(course);
+                          setActiveQuiz(quiz);
+                          // Fetch submissions for this quiz into 'courseSubmissions' state before viewing results
+                          getQuizSubmissions(quiz.firestoreId).then(subs => {
+                            if (subs) {
+                              setCourseSubmissions(subs);
+                              setActiveModal('viewResults');
+                            } else {
+                              alert('ไม่พบข้อมูลการส่งข้อสอบ');
+                            }
+                          }).catch(err => {
+                            console.error("Error loading submissions:", err);
+                            alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                          }).finally(() => {
+                            setIsLoading(false); // STOP LOADING
+                          });
+                        } else {
+                          alert('ไม่พบข้อมูลวิชา');
+                        }
+                      }}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-bold text-lg text-slate-700">{quiz.title}</h3>
+                        <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">
+                          รอตรวจ {quiz.pendingCount} คน
+                        </span>
+                      </div>
+                      <p className="text-slate-500 text-sm flex items-center gap-2">
+                        <BookOpen size={14} /> {quiz.courseName}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
@@ -4385,6 +4496,15 @@ export default function SchoolyScootLMS() {
           />
         ))}
       </div>
+
+      {isLoading && (
+        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96C68E] mb-4"></div>
+            <p className="text-lg font-bold text-slate-700">กำลังโหลดข้อมูล...</p>
+          </div>
+        </div>
+      )}
 
     </div>
   );
