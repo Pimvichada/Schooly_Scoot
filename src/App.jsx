@@ -341,6 +341,7 @@ export default function SchoolyScootLMS() {
   const [quizResult, setQuizResult] = useState(null); // Stores final score
   const [quizzes, setQuizzes] = useState([]);
   const [pendingGradingList, setPendingGradingList] = useState([]);
+  const [monitoredQuizzes, setMonitoredQuizzes] = useState([]); // Upcoming scheduled quizzes
 
 
   // Fetch quizzes when entering a course or changing tab to quizzes
@@ -448,26 +449,20 @@ export default function SchoolyScootLMS() {
             audio.play()
               .then(() => console.log("Initial sound played successfully."))
               .catch(error => {
-                console.warn("Initial sound blocked (Autoplay Policy):", error);
+                console.error("Audio play failed:", error);
               });
-          } catch (e) {
-            console.error("Audio initialization error:", e);
+          } catch (err) {
+            console.error("Audio error:", err);
           }
         }
         return;
-      }
-
-      // Subsequent snapshots: Check specifically for "added" changes
-
-      if (changes) {
-        console.log(`Real-time update: ${changes.length} changes detected.`);
+      } else {
+        // Changes snapshot:
         changes.forEach(change => {
           if (change.type === 'added') {
-            const newNoti = change.doc.data();
-            console.log("New notification detected:", newNoti);
-            // Show toast & play sound if unread
-            if (!newNoti.read) {
-              addNotification({ ...newNoti, firestoreId: change.doc.id });
+            const newNotif = { ...change.doc.data(), firestoreId: change.doc.id };
+            if (!newNotif.read) {
+              addNotification(newNotif);
             }
           }
         });
@@ -475,7 +470,81 @@ export default function SchoolyScootLMS() {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid, isLoggedIn]); // Stable addNotification and notificationsEnabledRef removed from deps
+  }, [auth.currentUser, notificationsEnabled, addNotification]);
+
+  // Monitor All Quizzes for Scheduled Start Times (Across all enrolled courses)
+  useEffect(() => {
+    const fetchUpcomingQuizzes = async () => {
+      if (!isLoggedIn || !auth.currentUser || courses.length === 0) return;
+
+      try {
+        const allQuizzes = [];
+        for (const course of courses) {
+          const courseQuizzes = await getQuizzesByCourse(course.name);
+          allQuizzes.push(...courseQuizzes.map(q => ({
+            ...q,
+            courseName: course.name,
+            courseFirestoreId: course.firestoreId
+          })));
+        }
+
+        // Filter for quizzes that are scheduled in the future
+        const now = new Date();
+        const upcoming = allQuizzes.filter(q => {
+          if (!q.scheduledAt) return false;
+          const scheduledDate = new Date(q.scheduledAt);
+          return scheduledDate > now;
+        });
+
+        setMonitoredQuizzes(upcoming);
+      } catch (err) {
+        console.error("Failed to fetch upcoming quizzes for monitoring:", err);
+      }
+    };
+
+    fetchUpcomingQuizzes();
+    // Refresh list periodically or when courses change
+    const interval = setInterval(fetchUpcomingQuizzes, 30000); // Every 30 seconds
+    return () => clearInterval(interval);
+  }, [isLoggedIn, auth.currentUser, courses]);
+
+  // Monitor current time against scheduled quizzes
+  useEffect(() => {
+    if (userRole !== 'student' || monitoredQuizzes.length === 0) return;
+
+    monitoredQuizzes.forEach(async (quiz) => {
+      if (!quiz.scheduledAt) return;
+
+      const scheduledTime = new Date(quiz.scheduledAt);
+
+      // If scheduled time has passed and we haven't notified yet
+      if (scheduledTime <= currentTime) {
+        // Check if we already have a notification for this quiz start
+        const hasNotified = notifications.some(n =>
+          n.targetId === quiz.firestoreId &&
+          n.type === 'quiz_opened'
+        );
+
+        if (!hasNotified) {
+          console.log(`Quiz opening: ${quiz.title}`);
+          await createNotification(
+            auth.currentUser.uid,
+            `ถึงเวลาทำแบบทดสอบแล้ว!`,
+            'quiz_opened',
+            `แบบทดสอบ "${quiz.title}" ในวิชา ${quiz.courseName} เปิดให้ทำแล้ว`,
+            {
+              courseId: quiz.courseFirestoreId,
+              targetType: 'quiz',
+              targetId: quiz.firestoreId
+            }
+          );
+
+          // Remove from monitored list so we don't try again
+          setMonitoredQuizzes(prev => prev.filter(q => q.firestoreId !== quiz.firestoreId));
+        }
+      }
+    });
+  }, [currentTime, monitoredQuizzes, userRole, notifications, auth.currentUser]);
 
 
 
