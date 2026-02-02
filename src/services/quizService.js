@@ -76,7 +76,7 @@ export const submitQuiz = async (quizId, studentId, submissionData) => {
             const docRef = doc(db, 'quiz_submissions', existing.firestoreId);
             const updateData = {
                 ...submissionData,
-                status: 'submitted',
+                status: submissionData.status || 'submitted', // Respect passed status or default to submitted
                 submittedAt: new Date().toISOString()
             };
             await updateDoc(docRef, updateData);
@@ -87,7 +87,7 @@ export const submitQuiz = async (quizId, studentId, submissionData) => {
                 quizId,
                 studentId,
                 ...submissionData,
-                status: 'submitted',
+                status: submissionData.status || 'submitted', // Respect status passed from App.jsx
                 submittedAt: new Date().toISOString()
             };
             const docRef = await addDoc(submissionsCol, newSubmission);
@@ -209,6 +209,23 @@ export const updateQuizSubmissionScore = async (submissionId, newScore) => {
         throw error;
     }
 };
+
+/**
+ * Update any fields of a quiz submission
+ * @param {string} submissionId 
+ * @param {Object} updateData 
+ */
+export const updateQuizSubmission = async (submissionId, updateData) => {
+    try {
+        const docRef = doc(db, 'quiz_submissions', submissionId);
+        await updateDoc(docRef, updateData);
+        return true;
+    } catch (error) {
+        console.error("Error updating quiz submission:", error);
+        throw error;
+    }
+};
+
 
 /**
  * Get a single quiz by ID
