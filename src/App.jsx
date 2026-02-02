@@ -418,59 +418,94 @@ export default function SchoolyScootLMS() {
     setActiveNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
-  const isFirstLoad = useRef(true);
+  const notificationSessionRef = useRef({
+    handlingInitial: true,
+    initialCount: 0,
+    seenIds: new Set(),
+    hasShownSummary: false,
+    firstUnread: null
+  });
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser) {
+      notificationSessionRef.current = {
+        handlingInitial: true,
+        initialCount: 0,
+        seenIds: new Set(),
+        hasShownSummary: false,
+        firstUnread: null
+      };
+      return;
+    }
 
+    // Grace period: Collect all existing notifications for 2 seconds
+    const syncTimeout = setTimeout(() => {
+      notificationSessionRef.current.handlingInitial = false;
 
+      const session = notificationSessionRef.current;
+      if (session.initialCount > 0 && notificationsEnabledRef.current && !session.hasShownSummary) {
+        session.hasShownSummary = true;
+
+        if (session.initialCount > 1) {
+          addNotification({
+            id: 'summary-' + Date.now(),
+            message: `คุณมีรายการใหม่ที่ยังไม่ได้อ่าน ${session.initialCount} รายการ`,
+            type: 'summary',
+            detail: 'ตรวจสอบได้ที่แถบแจ้งเตือนและการบ้าน',
+            read: false
+          });
+        } else if (session.firstUnread) {
+          // Exactly one - show it individualy
+          addNotification(session.firstUnread);
+        }
+
+        // Sound
+        try {
+          const audio = new Audio(notiSoundUrl);
+          audio.volume = 0.5;
+          audio.play().catch(() => { });
+        } catch (err) { }
+      }
+    }, 2000);
 
     const unsubscribe = subscribeToNotifications(auth.currentUser.uid, (allNotifications, changes) => {
-      // Update the notifications list (optional if you want to show list)
+      setNotifications(allNotifications);
 
+      const session = notificationSessionRef.current;
 
-      // Update the notifications list (optional if you want to show list)
-      setNotifications(allNotifications); // 1. Always update the full list for UI (Dashboard/List)
-
-      // 2. Handle Real-time Alerts (Sound & Toast)
-      // 2. Handle Real-time Alerts (Sound & Toast)
-      if (isFirstLoad.current) {
-        // First snapshot (initial load):
-        isFirstLoad.current = false;
-
-        const unreadCount = allNotifications.filter(n => !n.read).length;
-        console.log(`Initial Load: Found ${unreadCount} unread notifications.`);
-
-        if (unreadCount > 0 && notificationsEnabled) {
-          console.log("Attempting to play initial sound...");
-          try {
-            const audio = new Audio(notiSoundUrl);
-            audio.volume = 0.5;
-            audio.play()
-              .then(() => console.log("Initial sound played successfully."))
-              .catch(error => {
-                console.error("Audio play failed:", error);
-              });
-          } catch (err) {
-            console.error("Audio error:", err);
-          }
+      if (session.handlingInitial) {
+        // Phase 1: Buffering
+        const unreadList = allNotifications.filter(n => !n.read);
+        session.initialCount = unreadList.length;
+        if (unreadList.length > 0) {
+          session.firstUnread = unreadList[0];
         }
-        return;
+        // Register all current IDs so they never trigger individual toasts later
+        allNotifications.forEach(n => session.seenIds.add(n.firestoreId));
       } else {
-        // Changes snapshot:
-        changes.forEach(change => {
-          if (change.type === 'added') {
-            const newNotif = { ...change.doc.data(), firestoreId: change.doc.id };
-            if (!newNotif.read) {
-              addNotification(newNotif);
+        // Phase 2: Live Updates
+        if (changes) {
+          changes.forEach(change => {
+            if (change.type === 'added') {
+              const data = change.doc.data();
+              const id = change.doc.id;
+
+              // Only toast if unread AND hasn't been seen/handled yet
+              if (!data.read && !session.seenIds.has(id)) {
+                session.seenIds.add(id);
+                addNotification({ ...data, firestoreId: id });
+              }
             }
-          }
-        });
+          });
+        }
       }
     });
 
-    return () => unsubscribe();
-  }, [auth.currentUser, notificationsEnabled, addNotification]);
+    return () => {
+      unsubscribe();
+      clearTimeout(syncTimeout);
+    };
+  }, [auth.currentUser?.uid, addNotification]);
 
   // Monitor All Quizzes for Scheduled Start Times (Across all enrolled courses)
   useEffect(() => {

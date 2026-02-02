@@ -50,7 +50,8 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 20000
                             type === 'meeting' ? 'เรียกเข้าเรียน' :
                                 type === 'quiz' ? 'แบบทดสอบใหม่' :
                                     type === 'post' ? 'ประกาศใหม่' :
-                                        'แจ้งเตือนระบบ'}
+                                        type === 'summary' ? 'สรุปการแจ้งเตือน' :
+                                            'แจ้งเตือนระบบ'}
                     </h4>
                     <p className="text-slate-600 text-xs leading-relaxed break-words">{message}</p>
                 </div>
