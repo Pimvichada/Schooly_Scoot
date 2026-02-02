@@ -19,6 +19,7 @@ import { useCourses } from './hooks/useCourses';
 import { useNotifications } from './hooks/useNotifications';
 import { useTime } from './hooks/useTime';
 import { useMeeting } from './hooks/useMeeting';
+import { useQuiz } from './hooks/useQuiz';
 
 
 import {
@@ -148,14 +149,36 @@ export default function SchoolyScootLMS() {
 
   // Time State - Handled by useTime
   // const [currentTime, setCurrentTime] = useState(new Date());
-  const [quizRemainingSeconds, setQuizRemainingSeconds] = useState(0);
+  // States for course selection and tabs (needed by hooks)
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courseTab, setCourseTab] = useState('home');
 
-  // Schedule Editing State
-  const [scheduleForm, setScheduleForm] = useState({ day: '1', start: '', end: '', room: '' });
-  const [editingScheduleIndex, setEditingScheduleIndex] = useState(null);
+  // App Settings & UI State
   const [fontSize, setFontSize] = useState(100);
   const [darkMode, setDarkMode] = useState(false);
-  const [manualScores, setManualScores] = useState({});
+  const [scheduleForm, setScheduleForm] = useState({ day: '1', start: '', end: '', room: '' });
+  const [editingScheduleIndex, setEditingScheduleIndex] = useState(null);
+
+  // Modal State needs to be defined BEFORE useQuiz because useQuiz uses it (pass setter or value)
+  const [activeModal, setActiveModal] = useState(null);
+
+  const {
+    activeQuiz, setActiveQuiz,
+    quizAnswers, setQuizAnswers,
+    quizResult, setQuizResult,
+    quizRemainingSeconds, setQuizRemainingSeconds,
+    mySubmissions, setMySubmissions,
+    courseSubmissions, setCourseSubmissions,
+    selectedSubmission, setSelectedSubmission,
+    manualScores, setManualScores,
+    handleStartQuiz,
+    submitQuiz
+  } = useQuiz(auth.currentUser, profile, selectedCourse, activeModal, setActiveModal);
+
+
+  const [quizzes, setQuizzes] = useState([]);
+  const [pendingGradingList, setPendingGradingList] = useState([]);
+  const [monitoredQuizzes, setMonitoredQuizzes] = useState([]); // Upcoming scheduled quizzes
 
 
 
@@ -189,8 +212,6 @@ export default function SchoolyScootLMS() {
   // courses -> useCourses
   // selectedCourse logic remains here 
 
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [courseTab, setCourseTab] = useState('home');
   // State for creating course
   const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
   const [newCourseData, setNewCourseData] = useState({
@@ -241,12 +262,7 @@ export default function SchoolyScootLMS() {
 
     return () => unsubscribe();
   }, [selectedCourse?.firestoreId]);
-  const [activeQuiz, setActiveQuiz] = useState(null); // Which quiz is currently being taken
-  const [quizAnswers, setQuizAnswers] = useState({}); // Stores answers {questionIndex: optionIndex }
-  const [quizResult, setQuizResult] = useState(null); // Stores final score
-  const [quizzes, setQuizzes] = useState([]);
-  const [pendingGradingList, setPendingGradingList] = useState([]);
-  const [monitoredQuizzes, setMonitoredQuizzes] = useState([]); // Upcoming scheduled quizzes
+
 
 
   // Fetch quizzes when entering a course or changing tab to quizzes
@@ -411,8 +427,6 @@ export default function SchoolyScootLMS() {
     scheduledAt: '' // New field for scheduling
   });
 
-  // Modal State
-  const [activeModal, setActiveModal] = useState(null);
   const [isListLoading, setIsListLoading] = useState(false); // Loading state for modal list
 
   // Fetch Pending Quizzes for Dashboard Monitor (Must be after activeModal is defined)
@@ -473,171 +487,7 @@ export default function SchoolyScootLMS() {
 
   // Quiz Taking Logic
   // Quiz Taking Logic
-  const submitQuiz = useCallback(async () => {
-    if (!activeQuiz) return;
-    let score = 0;
-    activeQuiz.items.forEach((item, idx) => {
-      const answer = quizAnswers[idx];
-      let isCorrect = false;
 
-      if (!item.type || item.type === 'choice') {
-        isCorrect = answer === item.correct;
-      } else if (item.type === 'true_false') {
-        isCorrect = answer === item.correctAnswer;
-      } else if (item.type === 'matching') {
-        // all pairs must match
-        const pairs = item.pairs || [];
-        isCorrect = pairs.every((p, pIdx) => {
-          const userRight = answer ? answer[pIdx] : null;
-          return userRight === p.right;
-        });
-      } else if (item.type === 'text') {
-        if (item.manualGrading) {
-          isCorrect = false;
-        } else {
-          const userText = (answer || '').trim().toLowerCase();
-          const keywords = (item.keywords || []).map(k => k.trim().toLowerCase());
-          isCorrect = keywords.some(k => userText.includes(k));
-        }
-      }
-
-      if (isCorrect) score++;
-    });
-
-    const total = activeQuiz.items.length;
-    setQuizResult({ score, total });
-
-    // Save submission to Backend
-    if (auth.currentUser) {
-      try {
-        const submissionData = {
-          score,
-          total,
-          answers: quizAnswers,
-          studentName: profile.firstName + ' ' + (profile.lastName || ''),
-        };
-        const savedSub = await submitQuizService(activeQuiz.firestoreId, auth.currentUser.uid, submissionData);
-
-        // Update local state to reflect submission
-        setMySubmissions(prev => ({
-          ...prev,
-          [activeQuiz.firestoreId]: savedSub
-        }));
-
-        // NOTIFY TEACHER
-        if (selectedCourse?.ownerId && selectedCourse.ownerId !== auth.currentUser.uid) {
-          await createNotification(
-            selectedCourse.ownerId,
-            `มีการส่งแบบทดสอบ: ${activeQuiz.title}`,
-            'system',
-            `${submissionData.studentName} ได้ส่งแบบทดสอบแล้ว`,
-            { courseId: activeQuiz.courseId || selectedCourse.firestoreId, targetType: 'quiz_result', targetId: activeQuiz.firestoreId }
-          );
-        }
-      } catch (error) {
-        console.error("Failed to submit quiz:", error);
-        alert("เกิดข้อผิดพลาดในการส่งคำตอบ แต่คะแนนถูกคำนวณแล้ว");
-      }
-    }
-  }, [activeQuiz, quizAnswers, profile, auth.currentUser]);
-
-  // Use a ref to access the latest submitQuiz function inside the interval
-  const submitQuizRef = useRef(submitQuiz);
-  useEffect(() => {
-    submitQuizRef.current = submitQuiz;
-  }, [submitQuiz]);
-
-  const [mySubmissions, setMySubmissions] = useState({}); // Map: quizId -> submission
-  const [courseSubmissions, setCourseSubmissions] = useState({}); // For teacher view
-  const [selectedSubmission, setSelectedSubmission] = useState(null); // For detailed answer view
-
-
-  // Quiz Timer Countdown & Auto Submit
-  useEffect(() => {
-    if (activeModal === 'takeQuiz' && !quizResult && quizRemainingSeconds > 0) {
-
-      // Add BeforeUnload Event Listener
-      const handleBeforeUnload = (e) => {
-        e.preventDefault();
-        e.returnValue = ''; // Trigger browser warning
-        // Note: Browsers generally don't allow async calls here. 
-        // We rely on "Started" state in Firestore to block re-entry if they do leave.
-      };
-      window.addEventListener('beforeunload', handleBeforeUnload);
-
-      const timer = setInterval(() => {
-        setQuizRemainingSeconds(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            submitQuizRef.current(); // Auto submit
-            return 0;
-          }
-          if (prev % 5 === 0) { // Sync every 5 seconds (optional optimization)
-            // Check if user is still active?
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      // Cleanup function: runs when component unmounts OR dependencies change (e.g. closing modal)
-      return () => {
-        clearInterval(timer);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-
-        // AUTO SUBMIT ON EXIT (If not already submitted)
-        // Check if we need to submit (i.e. if user is quitting mid-quiz)
-        // We need to check a ref or state that indicates if it was a "proper" submission or an "abort"
-        // But since we want "exit = submit", we just call submit.
-        // HOWEVER, we need to be careful not to submit if the user just finished normally (quizResult is set).
-        // The dependency [activeModal] means this runs when modal closes.
-        if (activeModal !== 'takeQuiz') {
-          // We can attempts to submit here, but strict mode might trigger this twice.
-          // Rely on manual confirm or "Are you sure" before closing modal in UI?
-          // User requested: "Cannot exit page".
-          // If we force submission here, we need valid data.
-          submitQuizRef.current();
-        }
-      };
-    }
-  }, [activeModal, quizResult, quizRemainingSeconds]);
-
-  // Handle Start Quiz (Create Submission Record)
-  const handleStartQuiz = async (quiz) => {
-    // 1. Check if already submitted (UI should block, but double check)
-    if (mySubmissions[quiz.firestoreId]) {
-      alert("คุณทำแบบทดสอบนี้ไปแล้ว");
-      return;
-    }
-
-    try {
-      // 2. Create "In Progress" Submission
-      const studentName = profile.firstName + ' ' + (profile.lastName || '');
-      const submission = await startQuizAttempt(quiz.firestoreId, auth.currentUser.uid, studentName);
-
-      // Safety Check: If backend returns an existing submission that is already submitted
-      if (submission.status === 'submitted') {
-        alert("ไม่อนุญาตให้ทำแบบทดสอบซ้ำ");
-        // Sync local state
-        setMySubmissions(prev => ({ ...prev, [quiz.firestoreId]: submission }));
-        return;
-      }
-
-      // 3. Update Local State IMMEDIATELY (Block re-entry in UI)
-      setMySubmissions(prev => ({ ...prev, [quiz.firestoreId]: submission }));
-
-      // 4. Open Modal & Start Timer
-      setActiveQuiz(quiz);
-      const minutes = parseInt(quiz.time) || 0;
-      setQuizRemainingSeconds(minutes * 60);
-      setQuizAnswers({}); // Reset answers
-      setQuizResult(null); // Reset result
-      setActiveModal('takeQuiz');
-
-    } catch (error) {
-      console.error("Failed to start quiz:", error);
-      alert("เกิดข้อผิดพลาดในการเริ่มทำข้อสอบ");
-    }
-  };
 
 
   // Fetch Posts and Quiz Submissions when course selected
@@ -787,6 +637,48 @@ export default function SchoolyScootLMS() {
     };
     fetchMembers();
   }, [selectedCourse]);
+
+
+  // Fetch Posts and Quiz Submissions when course selected
+  useEffect(() => {
+    const fetchAllData = async () => {
+      // ตรวจสอบว่ามี selectedCourse หรือไม่
+      if (!selectedCourse?.firestoreId) {
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true); // เริ่มโหลด
+
+        // 1. Fetch Posts
+        const postsData = await getPostsByCourse(selectedCourse.firestoreId);
+        setPosts(postsData);
+
+        // 2. Fetch Quiz Submissions (if Student)
+        if (auth.currentUser && userRole === 'student') {
+          const fetchedQuizzes = await getQuizzesByCourse(selectedCourse.name);
+
+          const submissionsMap = {};
+          await Promise.all(fetchedQuizzes.map(async (q) => {
+            const sub = await checkSubmission(q.firestoreId, auth.currentUser.uid);
+            if (sub) {
+              submissionsMap[q.firestoreId] = sub;
+            }
+          }));
+          setMySubmissions(submissionsMap);
+        }
+
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false); // หยุดโหลดไม่ว่าจะสำเร็จหรือล้มเหลว
+      }
+    };
+
+    fetchAllData();
+  }, [selectedCourse, auth.currentUser, userRole, setMySubmissions]);
 
   // Fetch Pending Members (For Teacher)
   useEffect(() => {
