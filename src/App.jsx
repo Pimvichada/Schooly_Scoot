@@ -13,6 +13,12 @@ import { getUsersByIds } from './services/authService';
 import { uploadFile } from './services/uploadService';
 import LandingPage from './components/LandingPage';
 import AnalyticsView from './components/AnalyticsView';
+import { useWelcomeMessage } from './hooks/useWelcomeMessage';
+import { useAuthUser } from './hooks/useAuthUser';
+import { useCourses } from './hooks/useCourses';
+import { useNotifications } from './hooks/useNotifications';
+import { useTime } from './hooks/useTime';
+import { useMeeting } from './hooks/useMeeting';
 
 
 import {
@@ -96,29 +102,52 @@ import logo_no_text from './assets/logo_no_tex3.png';
 
 
 // --- MAIN COMPONENT ---
-
 export default function SchoolyScootLMS() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState('student');
+
+  // --- Custom Hooks ---
+  const {
+    isLoggedIn, userRole, authLoading, profile,
+    hiddenCourseIds, setHiddenCourseIds,
+    editProfileData, setEditProfileData, isSavingProfile,
+    handleUpdateProfile, handleProfileImageUpload
+  } = useAuthUser();
+
+  // Notification Settings (Persistent) - Kept here as it's passed to hook
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('schooly_notifications_enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  const {
+    courses, setCourses, handleToggleHideCourse, refreshCourses
+  } = useCourses(isLoggedIn, userRole, auth.currentUser?.uid, hiddenCourseIds, setHiddenCourseIds);
+
+  const {
+    notifications, activeNotifications,
+    addNotification, removeNotification, markAsRead, markAllRead
+  } = useNotifications(auth.currentUser?.uid, notificationsEnabled);
+
+  const currentTime = useTime(); // Global Time
+
+  const { meetingConfig, setMeetingConfig, startMeeting } = useMeeting();
+
+  const welcomeMessage = useWelcomeMessage(userRole);
+
+  // States that remain in App.jsx (UI specific or not yet refactored)
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [workView, setWorkView] = useState('current');
   // const [currentView, setCurrentView] = useState('login'); // 'current' หรือ 'all'
-  const [authLoading, setAuthLoading] = useState(true);
-  const [hiddenCourseIds, setHiddenCourseIds] = useState([]); // Store hidden course IDs locally
-  const [currentView, setCurrentView] = useState('landing'); // 'current' หรือ 'all'
-  const [isLoading, setIsLoading] = useState(false); // Global loading state
+  // const [authLoading, setAuthLoading] = useState(true); // Handled by useAuthUser
+  // const [hiddenCourseIds, setHiddenCourseIds] = useState([]); // Handled by useAuthUser
+  const [currentView, setCurrentView] = useState('landing');
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Meeting State - Handled by useMeeting
+  // const [meetingConfig, setMeetingConfig] = useState({...});
 
-  // Meeting State
-  const [meetingConfig, setMeetingConfig] = useState({
-    topic: '',
-    isActive: false,
-    roomName: ''
-  });
-
-  // Time State
-  const [currentTime, setCurrentTime] = useState(new Date());
+  // Time State - Handled by useTime
+  // const [currentTime, setCurrentTime] = useState(new Date());
   const [quizRemainingSeconds, setQuizRemainingSeconds] = useState(0);
 
   // Schedule Editing State
@@ -128,26 +157,10 @@ export default function SchoolyScootLMS() {
   const [darkMode, setDarkMode] = useState(false);
   const [manualScores, setManualScores] = useState({});
 
-  // Notification Settings (Persistent)
-  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
-    const saved = localStorage.getItem('schooly_notifications_enabled');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-
-  // Ref to track toggle state without triggering effect re-subscriptions
-  const notificationsEnabledRef = useRef(notificationsEnabled);
-
-  useEffect(() => {
-    notificationsEnabledRef.current = notificationsEnabled;
-    localStorage.setItem('schooly_notifications_enabled', JSON.stringify(notificationsEnabled));
-  }, [notificationsEnabled]);
 
 
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000); // Update every second
-    return () => clearInterval(timer);
-  }, []);
+
 
   // Global Font Scale Effect
   useEffect(() => {
@@ -155,91 +168,27 @@ export default function SchoolyScootLMS() {
   }, [fontSize]);
 
 
-  // Profile State
-  const [profile, setProfile] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    roleLabel: '',
-    photoURL: ''
-  });
+  // Profile State - Handled by useAuthUser
+  // const [profile, setProfile] = useState({...});
+  // const welcomeMessage = useMemo(...) -> Replaced with hook above
 
-  const welcomeMessage = useMemo(() => {
-    const messages = WELCOME_MESSAGES[userRole] || WELCOME_MESSAGES.student;
-    return messages[Math.floor(Math.random() * messages.length)];
-  }, [userRole]);
-
-  useEffect(() => {
-    let unsubscribeProfile = null;
-
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      // Unsubscribe from previous profile listener if exists
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
-        unsubscribeProfile = null;
-      }
-
-      if (user) {
-        setAuthLoading(true);
-        // Real-time listener for user profile
-        const userRef = doc(db, "users", user.uid);
-        unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const userProfile = docSnap.data();
-            setUserRole(userProfile.role);
-
-            // Safer splitting and defaults
-            const fullName = userProfile.fullName || '';
-            const parts = fullName.split(' ');
-
-            setProfile({
-              firstName: parts[0] || 'User',
-              lastName: parts.slice(1).join(' ') || '',
-              email: user.email,
-              roleLabel: userProfile.role === 'student' ? 'นักเรียน' : 'ครูผู้สอน',
-              photoURL: userProfile.photoURL || user.photoURL || ''
-            });
-            setHiddenCourseIds(userProfile.hiddenCourses || []);
-            setIsLoggedIn(true);
-          } else {
-            // User exists in Auth but not yet in Firestore (creating...)
-          }
-          setAuthLoading(false);
-        }, (error) => {
-          console.error("Error listening to user profile:", error);
-          setAuthLoading(false);
-        });
-
-      } else {
-        setIsLoggedIn(false);
-        setProfile({
-          firstName: '',
-          lastName: '',
-          email: '',
-          roleLabel: '',
-          photoURL: ''
-        });
-        setAuthLoading(false);
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-      if (unsubscribeProfile) unsubscribeProfile();
-    };
-  }, []);
+  // Auth Effect - Handled by useAuthUser
 
 
 
 
 
 
+  // --- Data States ---
   // Chat State
   const [chatInput, setChatInput] = useState('');
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [courses, setCourses] = useState([]); // Empty initially
+  // Custom Hooks Usage replaced local state/effects
+  // courses -> useCourses
+  // selectedCourse logic remains here 
+
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseTab, setCourseTab] = useState('home');
   // State for creating course
@@ -251,56 +200,12 @@ export default function SchoolyScootLMS() {
   });
   const [joinCode, setJoinCode] = useState(''); // State for student joining
 
+  // Fetch Courses handled by useCourses
 
+  // Handle Toggle Hide Course handled by useCourses
 
+  // Filter visible and hidden courses
 
-
-
-
-  // Fetch Courses
-  useEffect(() => {
-    const fetchCourses = async () => {
-      if (!isLoggedIn || !auth.currentUser) return;
-
-      try {
-        const fetchedCourses = await getCoursesForUser(userRole, auth.currentUser.uid);
-        if (fetchedCourses.length > 0) {
-          // Map icon string back to component
-          const coursesWithIcons = fetchedCourses.map(c => ({
-            ...c,
-            icon: getCourseIcon(c.iconType)
-          }));
-          setCourses(coursesWithIcons);
-        } else {
-          setCourses([]);
-        }
-      } catch (err) {
-        console.error("Failed to load courses", err);
-      }
-    };
-    fetchCourses();
-    fetchCourses();
-  }, [isLoggedIn, userRole]); // Re-fetch when login state or role changes
-
-  const handleToggleHideCourse = async (course) => {
-    if (!auth.currentUser) return;
-    const isHidden = hiddenCourseIds.includes(course.firestoreId);
-
-    // Optimistic Update
-    setHiddenCourseIds(prev =>
-      isHidden ? prev.filter(id => id !== course.firestoreId) : [...prev, course.firestoreId]
-    );
-
-    try {
-      await toggleHiddenCourse(auth.currentUser.uid, course.firestoreId, !isHidden);
-    } catch (error) {
-      console.error("Failed to toggle hide", error);
-      // Revert if failed
-      setHiddenCourseIds(prev =>
-        isHidden ? [...prev, course.firestoreId] : prev.filter(id => id !== course.firestoreId)
-      );
-    }
-  };
 
   // Filter visible and hidden courses
   const visibleCourses = courses.filter(c => !hiddenCourseIds.includes(c.firestoreId));
@@ -384,128 +289,9 @@ export default function SchoolyScootLMS() {
 
   //  Assignment State (สำคัญมาก)
 
-  // Notification System
-  const [notifications, setNotifications] = useState([]); // Store ALL notifications for the list
-  const [activeNotifications, setActiveNotifications] = useState([]); // Store ONLY active toasts
 
 
-  const addNotification = useCallback((notification) => {
-    const noti = { ...notification, id: notification.id || Date.now().toString() };
 
-    // Only show toast and play sound if notifications are enabled
-    // Use Ref to avoid having notificationsEnabled as a dependency (which causes re-subscriptions)
-    if (notificationsEnabledRef.current) {
-      setActiveNotifications(prev => {
-        // Prevent exact duplicates if checking by firestoreId within short timeframe
-        if (noti.firestoreId && prev.some(n => n.firestoreId === noti.firestoreId)) {
-          return prev;
-        }
-        return [...prev, noti];
-      });
-
-      // Play Sound
-      try {
-        const audio = new Audio(notiSoundUrl);
-        audio.volume = 0.5; // Adjust volume as needed
-        audio.play().catch(e => console.error("Audio play failed (user interaction needed first?):", e));
-      } catch (err) {
-        console.error("Error initializing audio:", err);
-      }
-    }
-  }, []); // Empty dependency array to keep reference stable
-
-  const removeNotification = useCallback((id) => {
-    setActiveNotifications(prev => prev.filter(n => n.id !== id));
-  }, []);
-
-  const notificationSessionRef = useRef({
-    handlingInitial: true,
-    initialCount: 0,
-    seenIds: new Set(),
-    hasShownSummary: false,
-    firstUnread: null
-  });
-
-  useEffect(() => {
-    if (!auth.currentUser) {
-      notificationSessionRef.current = {
-        handlingInitial: true,
-        initialCount: 0,
-        seenIds: new Set(),
-        hasShownSummary: false,
-        firstUnread: null
-      };
-      return;
-    }
-
-    // Grace period: Collect all existing notifications for 2 seconds
-    const syncTimeout = setTimeout(() => {
-      notificationSessionRef.current.handlingInitial = false;
-
-      const session = notificationSessionRef.current;
-      if (session.initialCount > 0 && notificationsEnabledRef.current && !session.hasShownSummary) {
-        session.hasShownSummary = true;
-
-        if (session.initialCount > 1) {
-          addNotification({
-            id: 'summary-' + Date.now(),
-            message: `คุณมีรายการใหม่ที่ยังไม่ได้อ่าน ${session.initialCount} รายการ`,
-            type: 'summary',
-            detail: 'ตรวจสอบได้ที่แถบแจ้งเตือนและการบ้าน',
-            read: false
-          });
-        } else if (session.firstUnread) {
-          // Exactly one - show it individualy
-          addNotification(session.firstUnread);
-        }
-
-        // Sound
-        try {
-          const audio = new Audio(notiSoundUrl);
-          audio.volume = 0.5;
-          audio.play().catch(() => { });
-        } catch (err) { }
-      }
-    }, 2000);
-
-    const unsubscribe = subscribeToNotifications(auth.currentUser.uid, (allNotifications, changes) => {
-      setNotifications(allNotifications);
-
-      const session = notificationSessionRef.current;
-
-      if (session.handlingInitial) {
-        // Phase 1: Buffering
-        const unreadList = allNotifications.filter(n => !n.read);
-        session.initialCount = unreadList.length;
-        if (unreadList.length > 0) {
-          session.firstUnread = unreadList[0];
-        }
-        // Register all current IDs so they never trigger individual toasts later
-        allNotifications.forEach(n => session.seenIds.add(n.firestoreId));
-      } else {
-        // Phase 2: Live Updates
-        if (changes) {
-          changes.forEach(change => {
-            if (change.type === 'added') {
-              const data = change.doc.data();
-              const id = change.doc.id;
-
-              // Only toast if unread AND hasn't been seen/handled yet
-              if (!data.read && !session.seenIds.has(id)) {
-                session.seenIds.add(id);
-                addNotification({ ...data, firestoreId: id });
-              }
-            }
-          });
-        }
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      clearTimeout(syncTimeout);
-    };
-  }, [auth.currentUser?.uid, addNotification]);
 
   // Monitor All Quizzes for Scheduled Start Times (Across all enrolled courses)
   useEffect(() => {
@@ -587,54 +373,7 @@ export default function SchoolyScootLMS() {
 
 
 
-  const handleStartMeeting = async () => {
-    if (!meetingConfig.topic) {
-      alert('กรุณาระบุหัวข้อการเรียน');
-      return;
-    }
 
-    const roomID = `SchoolyScoot_${selectedCourse.code}_${Date.now()}`;  // Generate Unique Room
-    const meetingData = {
-      topic: meetingConfig.topic,
-      isActive: true,
-      roomName: roomID
-    };
-
-    // 1. Update Local State (Immediate Feedback)
-    setMeetingConfig(meetingData);
-    setActiveModal('videoConference');
-
-    // 2. Sync to Firestore
-    try {
-      await updateCourse(selectedCourse.firestoreId, {
-        meeting: meetingData
-      });
-
-      // 3. Notify Students
-      // 3. Notify Students (Fetch latest data to ensure no one is missed)
-      const courseRef = doc(db, 'courses', selectedCourse.firestoreId);
-      const courseSnap = await getDoc(courseRef);
-
-      if (courseSnap.exists()) {
-        const latestCourseData = courseSnap.data();
-        if (latestCourseData.studentIds && latestCourseData.studentIds.length > 0) {
-          console.log("Sending notifications to:", latestCourseData.studentIds);
-          latestCourseData.studentIds.forEach(studentId => {
-            createNotification(
-              studentId,
-              `เข้าเรียน: ${meetingConfig.topic}`,
-              'meeting',
-              `วิชา ${selectedCourse.name} เริ่มการเรียนการสอนแล้ว! กดเพื่อเข้าร่วม`,
-              { courseId: selectedCourse.firestoreId, targetType: 'meeting' }
-            );
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Failed to start meeting:", error);
-      alert("เกิดข้อผิดพลาดในการเริ่มคลาสเรียน");
-    }
-  };
 
   // งาน
   const [assignments, setAssignments] = useState([]);
@@ -1030,64 +769,7 @@ export default function SchoolyScootLMS() {
     setNewPostFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Edit Profile State
-  const [editProfileData, setEditProfileData] = useState({
-    firstName: '',
-    lastName: '',
-    photoURL: ''
-  });
 
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-
-  // Handle Update Profile
-  const handleUpdateProfile = async (e) => {
-    e.preventDefault();
-    if (isSavingProfile) return;
-    setIsSavingProfile(true);
-    try {
-      if (!auth.currentUser) return;
-
-      const fullName = `${editProfileData.firstName} ${editProfileData.lastName}`.trim();
-      const updatePayload = {
-        fullName,
-        photoURL: editProfileData.photoURL
-      };
-
-      await updateUserProfile(auth.currentUser.uid, updatePayload);
-
-      // Update local state
-      setProfile(prev => ({
-        ...prev,
-        firstName: editProfileData.firstName,
-        lastName: editProfileData.lastName,
-        photoURL: editProfileData.photoURL
-      }));
-
-      setActiveModal(null);
-      alert('บันทึกข้อมูลโปรไฟล์เรียบร้อย');
-    } catch (error) {
-      console.error("Failed to update profile", error);
-      alert('เกิดข้อผิดพลาดในการบันทึกโปรไฟล์: ' + (error.message || 'Unknown Error'));
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  // Handle File Upload (Convert to Base64)
-  const handleProfileImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 500 * 1024) { // 500KB limit for base64
-        alert('รูปภาพต้องมีขนาดไม่เกิน 500KB เพื่อให้บันทึกได้สำเร็จ (Base64 มีข้อจำกัดด้านขนาด)');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditProfileData(prev => ({ ...prev, photoURL: reader.result }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
   useEffect(() => {
     const fetchMembers = async () => {
       if (selectedCourse && selectedCourse.studentIds && selectedCourse.studentIds.length > 0) {
@@ -1273,33 +955,10 @@ export default function SchoolyScootLMS() {
 
 
 
-  const markNotificationRead = (id) => {
-    // Optimistic update
-    setNotifications(prev => prev.map(n => n.firestoreId === id ? { ...n, read: true } : n));
-    // Sync with Firestore
-    const notif = notifications.find(n => n.firestoreId === id);
-    if (notif && notif.firestoreId) {
-      markNotificationAsRead(notif.firestoreId);
-    }
-    if (selectedNotification && selectedNotification.firestoreId === id) {
-      setSelectedNotification(prev => prev ? { ...prev, read: true } : prev);
-    }
-  };
-
-  const handleMarkAllRead = async () => {
-    // Optimistic update
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-
-    // Call service
-    if (auth.currentUser) {
-      await markAllNotificationsAsRead(auth.currentUser.uid);
-    }
-  };
-
   // Smart Navigation Handler
   const handleNotificationClick = async (notif) => {
-    setSelectedNotification(notif);
-    markNotificationRead(notif.firestoreId);
+    setSelectedNotification({ ...notif, read: true });
+    markAsRead(notif.firestoreId);
     setActiveModal('notificationDetail'); // Default open detail
 
     // 1. Try Metadata Navigation (New System)
@@ -3408,7 +3067,7 @@ export default function SchoolyScootLMS() {
                   <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
                 </h2>
                 <button
-                  onClick={handleMarkAllRead}
+                  onClick={markAllRead}
                   className={`flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full transition-all shadow-sm ${darkMode ? 'text-[#96C68E] hover:text-white bg-slate-800 hover:bg-[#96C68E] border-[#96C68E]' : 'text-[#96C68E] hover:text-white bg-white hover:bg-[#96C68E] border-[#96C68E]'} hover:shadow-md active:scale-95`}
                 >
                   <CheckCircle size={12} />
@@ -4509,7 +4168,7 @@ export default function SchoolyScootLMS() {
                 meetingConfig={meetingConfig}
                 setMeetingConfig={setMeetingConfig}
                 updateCourse={updateCourse}
-                handleStartMeeting={handleStartMeeting}
+                handleStartMeeting={startMeeting}
                 editingCourse={editingCourse}
                 setEditingCourse={setEditingCourse}
                 scheduleForm={scheduleForm}
@@ -4624,7 +4283,6 @@ export default function SchoolyScootLMS() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
