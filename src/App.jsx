@@ -4610,7 +4610,7 @@ export default function SchoolyScootLMS() {
             key={noti.id}
             message={noti.message}
             type={noti.type}
-            duration={20000} // 20 seconds
+            duration={10000} // 10 seconds
             onClose={() => removeNotification(noti.id)}
           />
         ))}

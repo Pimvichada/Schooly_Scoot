@@ -1,25 +1,33 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { X, Bell } from 'lucide-react';
 
-const ToastNotification = ({ message, type = 'system', onClose, duration = 20000 }) => {
+const ToastNotification = ({ message, type = 'system', onClose, duration = 10000 }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(true);
 
+    const onCloseRef = useRef(onClose);
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
+
     useEffect(() => {
         // Animation in
-        setTimeout(() => setIsVisible(true), 10);
+        const showTimer = setTimeout(() => setIsVisible(true), 10);
 
         const timer = setTimeout(() => {
             setIsVisible(false);
             // Wait for animation out to finish before calling onClose
             setTimeout(() => {
                 setShouldRender(false);
-                onClose();
+                onCloseRef.current();
             }, 300);
         }, duration);
 
-        return () => clearTimeout(timer);
-    }, [duration, onClose]);
+        return () => {
+            clearTimeout(showTimer);
+            clearTimeout(timer);
+        };
+    }, [duration]);
 
     if (!message || !shouldRender) return null;
 
