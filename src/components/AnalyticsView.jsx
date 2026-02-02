@@ -401,11 +401,11 @@ const AnalyticsView = ({ setView, courses = [], assignments = [], userRole = 'st
                                     <div className="flex gap-4">
                                         <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 rounded-full bg-[#BEE1FF]"></div>
-                                            <span className="text-xs font-bold text-slate-500">คะแนนเก็บ</span>
+                                            <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนเก็บ</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 rounded-full bg-[#FF917B]"></div>
-                                            <span className="text-xs font-bold text-slate-500">คะแนนสอบ</span>
+                                            <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนสอบ</span>
                                         </div>
                                     </div>
                                 </div>
