@@ -60,7 +60,7 @@ const Sidebar = ({
                     />
                 </h1>
 
-                <span className="text-xl font-bold text-slate-800 tracking-tight text-center mb-6">Schooly Scoot</span>
+                <span className={`text-xl font-bold tracking-tight text-center mb-6 transition-colors ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot</span>
 
                 <nav className="flex-1 overflow-y-auto custom-scrollbar">
                     <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">เมนูหลัก</p>
