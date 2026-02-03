@@ -75,7 +75,7 @@ import { MascotCircle, MascotSquare, MascotTriangle, Cute1 } from './components/
 
 import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './utils/helpers.jsx';
 
-import Sidebar from './components/Sidebar';
+import Sidebar, { MobileHeader, TopHeader } from './components/Sidebar';
 import NotificationItem, { NotificationModals } from './components/NotificationItem';
 import VideoConference from './components/VideoConference';
 import RegisterPage from './components/RegisterPage';
@@ -1635,40 +1635,22 @@ export default function SchoolyScootLMS() {
 
       {/* Main Content */}
       <main className={`flex-1 flex flex-col h-screen overflow-hidden relative ${darkMode ? 'bg-slate-950 text-slate-100' : ''}`}>
-        <header className={`md:hidden ${darkMode ? 'bg-slate-900 border-slate-800 shadow-lg' : 'bg-white shadow-sm border-slate-100'} p-4 flex items-center justify-between z-10 border-b`}>
-          <button onClick={() => setIsMobileMenuOpen(true)} className={`${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-            <Menu />
-          </button>
-          <span className={`font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot</span>
-          <button
-            onClick={() => setActiveModal('notificationsList')}
-            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center relative"
-          >
-            <Bell size={16} className="text-slate-600" />
-            {hasUnread && <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>}
-          </button>
-        </header>
-
+        <MobileHeader
+          darkMode={darkMode}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          setActiveModal={setActiveModal}
+          hasUnread={hasUnread}
+        />
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
           <div className="max-w-6xl mx-auto">
-
-            <div className="hidden md:flex justify-between items-center mb-8">
-              <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                {activeTab === 'dashboard' ? 'ภาพรวม' :
-                  activeTab === 'courses' ? 'ห้องเรียน' :
-                    activeTab === 'assignments' ? (userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน') :
-                      activeTab === 'schedule' ? 'ตารางเรียน' : 'ตั้งค่า'}
-              </h2>
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => setActiveModal('notificationsList')}
-                  className={`w-10 h-10 rounded-xl ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50'} border flex items-center justify-center relative`}>
-                  <Bell size={20} className="text-slate-600" />
-                  {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>}
-                </button>
-              </div>
-            </div>
+            <TopHeader
+              activeTab={activeTab}
+              userRole={userRole}
+              setActiveModal={setActiveModal}
+              darkMode={darkMode}
+              hasUnread={hasUnread}
+            />
 
             {selectedCourse ? (
               <CourseDetailView

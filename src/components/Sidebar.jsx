@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieChart, BookOpen, CheckSquare, Calendar, Settings, User } from 'lucide-react';
+import { PieChart, BookOpen, CheckSquare, Calendar, Settings, User, Menu, Bell } from 'lucide-react';
 import logo_no_text from '../assets/logo_no_tex3.png';
 
 const SidebarItem = ({ id, label, icon: Icon, activeTab, onSelect }) => {
@@ -132,3 +132,64 @@ const Sidebar = ({
 };
 
 export default Sidebar;
+
+export const MobileHeader = ({
+    darkMode,
+    setIsMobileMenuOpen,
+    setActiveModal,
+    hasUnread
+}) => {
+    return (
+        <header className={`md:hidden ${darkMode ? 'bg-slate-900 border-slate-800 shadow-lg' : 'bg-white shadow-sm border-slate-100'} p-4 flex items-center justify-between z-10 border-b`}>
+            <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className={`${darkMode ? 'text-slate-300' : 'text-slate-600'}`}
+            >
+                <Menu />
+            </button>
+            <span className={`font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot</span>
+            <button
+                onClick={() => setActiveModal('notificationsList')}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center relative"
+            >
+                <Bell size={16} className="text-slate-600" />
+                {hasUnread && <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>}
+            </button>
+        </header>
+    );
+};
+
+export const TopHeader = ({
+    activeTab,
+    userRole,
+    setActiveModal,
+    darkMode,
+    hasUnread
+}) => {
+    const getHeaderText = () => {
+        switch (activeTab) {
+            case 'dashboard': return 'ภาพรวม';
+            case 'courses': return 'ห้องเรียน';
+            case 'assignments': return userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน';
+            case 'schedule': return 'ตารางเรียน';
+            default: return 'ตั้งค่า';
+        }
+    };
+
+    return (
+        <div className="hidden md:flex justify-between items-center mb-8">
+            <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                {getHeaderText()}
+            </h2>
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={() => setActiveModal('notificationsList')}
+                    className={`w-10 h-10 rounded-xl ${darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white border-slate-200 hover:bg-slate-50'} border flex items-center justify-center relative`}
+                >
+                    <Bell size={20} className="text-slate-600" />
+                    {hasUnread && <span className="absolute top-2 right-2 w-2 h-2 bg-[#FF917B] rounded-full ring-2 ring-white"></span>}
+                </button>
+            </div>
+        </div>
+    );
+};
