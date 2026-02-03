@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Edit2, LogOut, Settings, BarChart3, Bell, Moon, Sun } from 'lucide-react';
+import { User, Edit2, LogOut, Settings, BarChart3, Bell, Moon, Sun, Upload } from 'lucide-react';
 
 const SettingsView = ({
     darkMode,
@@ -204,3 +204,75 @@ const ToggleCard = ({ icon, title, value, onClick, darkMode }) => (
 );
 
 export default SettingsView;
+
+export const EditProfileModal = ({
+    activeModal,
+    editProfileData,
+    setEditProfileData,
+    handleUpdateProfile,
+    isSavingProfile,
+    handleProfileImageUpload
+}) => {
+    if (activeModal !== 'editProfile') return null;
+
+    return (
+        <div className="p-8">
+            <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
+                <User className="mr-3 text-[#96C68E]" /> แก้ไขโปรไฟล์
+            </h2>
+            <div className="space-y-6">
+                {/* Avatar Selection */}
+                <div className="flex flex-col items-center mb-6">
+                    <div className="w-24 h-24 rounded-full bg-slate-100 mb-4 overflow-hidden border-4 border-white shadow-md relative group">
+                        {editProfileData.photoURL ? (
+                            <img src={editProfileData.photoURL} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-[#BEE1FF] text-3xl font-bold text-slate-600">
+                                {editProfileData.firstName?.[0]}
+                            </div>
+                        )}
+                        <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-bold text-xs">
+                            <Upload size={20} className="mb-1" />
+                            <input type="file" className="hidden" accept="image/*" onChange={handleProfileImageUpload} />
+                        </label>
+                    </div>
+                    <p className="text-xs text-slate-400">คลิกที่รูปเพื่ออัปโหลดภาพใหม่</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1">ชื่อ</label>
+                        <input
+                            type="text"
+                            value={editProfileData.firstName}
+                            onChange={(e) => setEditProfileData({ ...editProfileData, firstName: e.target.value })}
+                            className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-600 mb-1">นามสกุล</label>
+                        <input
+                            type="text"
+                            value={editProfileData.lastName}
+                            onChange={(e) => setEditProfileData({ ...editProfileData, lastName: e.target.value })}
+                            className="w-full p-3 rounded-xl border border-slate-200 focus:border-[#96C68E] outline-none"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleUpdateProfile}
+                    disabled={isSavingProfile}
+                    className={`w-full py-3 text-white rounded-xl font-bold shadow-lg transition-all ${isSavingProfile ? 'bg-slate-300 cursor-not-allowed' : 'bg-[#96C68E] hover:bg-[#85b57d] hover:shadow-xl'}`}
+                >
+                    {isSavingProfile ? (
+                        <div className="flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>กำลังบันทึก...</span>
+                        </div>
+                    ) : 'บันทึกการเปลี่ยนแปลง'}
+                </button>
+            </div>
+        </div>
+    );
+};
