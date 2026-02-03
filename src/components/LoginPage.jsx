@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle, Moon, Sun } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle, Moon, Sun, Instagram, Check } from 'lucide-react';
 import { loginUser, resetPassword, setAuthPersistence, registerUser, authenticateWithGoogle, completeGoogleRegistration } from '../services/authService';
 import logo_Schooly from '../assets/logo_Schooly.png';
+import Lalitwadee from '../assets/member/m1.jpg';
+import Pim from '../assets/member/m2.jpg';
+import fink from '../assets/member/m3.jpg';
 
 const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     const loginSectionRef = useRef(null);
@@ -33,6 +36,15 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
 
     const handleScrollToLogin = () => {
         loginSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // --- COPY EMAIL LOGIC ---
+    const [copiedId, setCopiedId] = useState(null);
+
+    const handleCopyEmail = (email, id) => {
+        navigator.clipboard.writeText(email);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
     };
 
     // --- LOGIN LOGIC ---
@@ -446,68 +458,155 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
 
 
                 {/* TEAM SECTION */}
-                <div ref={teamSectionRef} className={`w-full py-24 md:py-40 relative z-10 backdrop-blur-sm ${darkMode ? 'bg-slate-900/50' : 'bg-white/50'}`}>
-                    <div className="max-w-6xl mx-auto px-4">
-                        <div className="text-center mb-16 relative">
-                            <h2 className={`text-4xl md:text-5xl font-black tracking-tight mb-4 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                                ทีมผู้พัฒนา
-                            </h2>
-                            <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto">
-                                พวกเราคือทีมเล็กๆ ที่มีความฝันยิ่งใหญ่ อยากให้การเรียนการสอนเป็นเรื่องสนุกสำหรับทุกคน!
-                            </p>
+                <div ref={teamSectionRef} className={`w-full py-24 md:py-20 relative z-10 backdrop-blur-sm ${darkMode ? 'bg-slate-900/50' : 'bg-white/50'}`}>
+                    <div className="max-w-6xl mx-auto px-4 relative">
+
+                        {/* Center Hub (Desktop Only) */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20 hidden md:block">
+                            <h2 className={`text-5xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>ทีมผู้พัฒนา</h2>
+                            <div className="w-px h-16 bg-gray-300 mx-auto mt-1 mb-150"></div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                            {/* Member 1 */}
-                            <div className="group relative">
-                                <div className="absolute inset-0 bg-[#96C68E] rounded-[2rem] rotate-3 group-hover:rotate-6 transition-transform opacity-20"></div>
-                                <div className={`border-4 shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
-                                    <div className="w-32 h-32 mx-auto bg-[#96C68E]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
+                        {/* Distributed Layout */}
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-16 md:gap-0">
 
+                            {/* Member 1: Pimvichada (Top Left) */}
+                            <div className="flex flex-col items-center md:items-center md:w-1/3 md:-mt-50 order-1  ">
+                                <div className="relative w-[280px] h-[280px] ">
+                                    <div className="absolute -right-8 -top-8 z-10 animate-blob mix-blend-multiply opacity-80">
+                                        <svg width="90" height="90" viewBox="0 0 100 100" fill="none">
+                                            <path d="M50 0 C22.4 0 0 22.4 0 50 C0 77.6 22.4 100 50 100 C77.6 100 100 77.6 100 50 C100 22.4 77.6 0 50 0 Z" fill="#96C68E" fillOpacity="0.3" />
+                                            <circle cx="35" cy="35" r="10" fill="#96C68E" />
+                                        </svg>
                                     </div>
-                                    <h3 className={`text-xl font-black mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Pimvichada</h3>
-                                    <p className="text-[#96C68E] font-bold text-sm mb-4">6504780</p>
-                                    <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>"นักศึกษาชั้นปีที่ 4 "</p>
+                                    <img src={Pim} className="w-full h-full rounded-full object-cover border-[8px] border-white shadow-2xl bg-slate-200 transition-all duration-700 ease-out group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-[0_20px_60px_-15px_rgba(150,198,142,0.6)]" alt="Pimvichada" />
+                                </div>
+                                <div className="text-center md:text-center mt-10">
+                                    <h3 className={`font-black text-4xl mb-2 tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Pimvichada</h3>
+                                    <div className="flex flex-col items-center md:items-center space-y-2">
+                                        <div className="bg-gradient-to-r from-[#96C68E] to-[#7fb377] text-white px-5 py-1.5 rounded-full text-xs font-bold shadow-md">นักศึกษาชั้นปีที่ 4</div>
+                                        <div className={`space-y-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                                            <p className="text-sm font-medium">สาขาวิทยาการคอมพิวเตอร์</p>
+                                            <p className="text-sm font-medium">คณะนวัตกรรมเทคโนโลยีดิจิทัล</p>
+                                            <p className="text-sm font-medium">มหาวิทยาลัยรังสิต</p>
+                                        </div>
+                                        <p className={`text-[10px] tracking-widest font-black opacity-40 uppercase ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>ID: 6504780</p>
 
-                                    <div className="flex justify-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
-
-                                        <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#96C68E] hover:text-white transition-colors cursor-pointer text-xs">IG</span>
+                                        {/* Contact Icons */}
+                                        <div className="flex space-x-3 mt-4">
+                                            <a href="https://www.instagram.com/pimvichada?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500 text-white rounded-full hover:scale-110 hover:-rotate-12 transition-all shadow-lg hover:shadow-pink-500/30">
+                                                <Instagram size={18} />
+                                            </a>
+                                            <button
+                                                onClick={() => handleCopyEmail('Pimvichada172546@gmail.com', 'pimvichada')}
+                                                className="relative p-2.5 bg-gradient-to-tr from-blue-400 to-cyan-400 text-white rounded-full hover:scale-110 hover:rotate-12 transition-all shadow-lg hover:shadow-blue-400/30 group"
+                                            >
+                                                {copiedId === 'pimvichada' ? <Check size={18} /> : <Mail size={18} />}
+                                                {copiedId === 'pimvichada' && (
+                                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap">
+                                                        คัดลอกแล้ว!
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Member 2 */}
-                            <div className="group relative mt-8 md:mt-0">
-                                <div className="absolute inset-0 bg-[#FF917B] rounded-[2rem] -rotate-2 group-hover:-rotate-6 transition-transform opacity-20"></div>
-                                <div className={`border-4 shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
-                                    <div className="w-32 h-32 mx-auto bg-[#FF917B]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
-                                        😎
-
+                            {/* Member 2: Lalitwadee (Center Bottom) */}
+                            <div className="flex flex-col items-center md:w-1/3 mt-30 order-2 relative z-30">
+                                <div className="relative w-[280px] h-[280px]">
+                                    <div className="absolute -left-10 -top-4 z-10 animate-blob animation-delay-2000 mix-blend-multiply opacity-80">
+                                        <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
+                                            <path d="M50 0L61 35H98L68 57L79 91L50 70L21 91L32 57L2 35H39L50 0Z" fill="#FF917B" fillOpacity="0.3" />
+                                            <circle cx="50" cy="50" r="15" fill="#FF917B" />
+                                        </svg>
                                     </div>
-                                    <h3 className={`text-xl font-black mb-1 ${darkMode ? 'text-white' : 'text-slate-800'}`}>Lalitwadee</h3>
-                                    <p className="text-[#FF917B] font-bold text-sm mb-4">6504551</p>
-                                    <p className={`text-sm leading-relaxed mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>"นักศึกษาชั้นปีที่ 4"</p>
-                                    <div className="flex justify-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
-                                        <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#FF917B] hover:text-white transition-colors cursor-pointer text-xs">IG</span>
+                                    <img src={Lalitwadee} className="w-full h-full rounded-full object-cover border-[8px] border-white shadow-2xl bg-slate-200 transition-all duration-700 ease-out group-hover:scale-105 group-hover:-rotate-3 group-hover:shadow-[0_20px_60px_-15px_rgba(255,145,123,0.6)]" alt="Lalitwadee" />
+                                </div>
+                                <div className="text-center mt-10">
+                                    <h3 className={`font-black text-4xl mb-2  ${darkMode ? 'text-white' : 'text-slate-800'}`}>Lalitwadee</h3>
+                                    <div className="flex flex-col items-center space-y-2">
+                                        <div className="bg-gradient-to-r from-[#FF917B] to-[#ff7e65] text-white px-5 py-1.5 rounded-full text-xs font-bold shadow-md">นักศึกษาชั้นปีที่ 4</div>
+                                        <div className={`space-y-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                                            <p className="text-sm font-medium">สาขาวิทยาการคอมพิวเตอร์</p>
+                                            <p className="text-sm font-medium">คณะนวัตกรรมเทคโนโลยีดิจิทัล</p>
+                                            <p className="text-sm font-medium">มหาวิทยาลัยรังสิต</p>
+                                        </div>
+                                        <p className={`text-[10px] tracking-widest font-black opacity-40 uppercase ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>ID: 6504551</p>
+
+                                        {/* Contact Icons */}
+                                        <div className="flex space-x-3 mt-4">
+                                            <a href="https://www.instagram.com/aaim_tsw?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500 text-white rounded-full hover:scale-110 hover:-rotate-12 transition-all shadow-lg hover:shadow-pink-500/30">
+                                                <Instagram size={18} />
+                                            </a>
+                                            <button
+                                                onClick={() => handleCopyEmail('Lalitwadee.999@gmail.com', 'lalitwadee')}
+                                                className="relative p-2.5 bg-gradient-to-tr from-blue-400 to-cyan-400 text-white rounded-full hover:scale-110 hover:rotate-12 transition-all shadow-lg hover:shadow-blue-400/30 group"
+                                            >
+                                                {copiedId === 'lalitwadee' ? <Check size={18} /> : <Mail size={18} />}
+                                                {copiedId === 'lalitwadee' && (
+                                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap">
+                                                        คัดลอกแล้ว!
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Member 3 */}
-                            <div className="group relative">
-                                <div className="absolute inset-0 bg-[#BEE1FF] rounded-[2rem] rotate-2 group-hover:rotate-6 transition-transform opacity-20"></div>
-                                <div className={`border-4 shadow-xl rounded-[2rem] p-6 text-center transform group-hover:-translate-y-2 transition-all duration-300 relative overflow-hidden ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-white'}`}>
-                                    <div className="w-32 h-32 mx-auto bg-[#BEE1FF]/20 rounded-full mb-4 flex items-center justify-center text-5xl relative group-hover:scale-110 transition-transform">
-                                        🤓
+                            {/* Member 3: Onphairin (Top Right) */}
+                            <div className="flex flex-col items-center md:items-center md:w-1/3 md:-mt-50 order-3 ">
+                                <div className="relative w-[280px] h-[280px] ">
+                                    <div className="absolute -right-6 -bottom-6 z-10 animate-blob mix-blend-multiply opacity-80">
+                                        <svg width="80" height="80" viewBox="0 0 100 100" fill="none">
+                                            <circle cx="30" cy="30" r="30" fill="#BEE1FF" fillOpacity="0.4" />
+                                            <circle cx="70" cy="70" r="20" fill="#fce883" />
+                                        </svg>
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-800 mb-1">Onphairin</h3>
-                                    <p className="text-[#BEE1FF] font-bold text-sm mb-4">6504552</p>
-                                    <p className="text-slate-500 text-sm leading-relaxed mb-6">"นักศึกษาชั้นปีที่ 4"</p>
-                                    <div className="flex justify-center space-x-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0">
-                                        <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-[#BEE1FF] hover:text-white transition-colors cursor-pointer text-xs">IG</span>
+                                    <img src={fink} className="w-full h-full rounded-full object-cover border-[8px] border-white shadow-2xl bg-slate-200 transition-all duration-700 ease-out group-hover:scale-105 group-hover:rotate-3 group-hover:shadow-[0_20px_60px_-15px_rgba(190,225,255,0.6)]" alt="Onphairin" />
+                                </div>
+                                <div className="text-center md:text-center mt-10">
+                                    <h3 className={`font-black text-4xl mb-2 tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Onphairin</h3>
+                                    <div className="flex flex-col items-center md:items-center space-y-2">
+                                        <div className="bg-gradient-to-r from-[#BEE1FF] to-[#9acdfc] text-white px-5 py-1.5 rounded-full text-xs font-bold shadow-md">นักศึกษาชั้นปีที่ 4</div>
+                                        <div className={`space-y-0.5 ${darkMode ? 'text-slate-300' : 'text-slate-500'}`}>
+                                            <p className="text-sm font-medium">สาขาวิทยาการคอมพิวเตอร์</p>
+                                            <p className="text-sm font-medium">คณะนวัตกรรมเทคโนโลยีดิจิทัล</p>
+                                            <p className="text-sm font-medium">มหาวิทยาลัยรังสิต</p>
+                                        </div>
+                                        <p className={`text-[10px] tracking-widest font-black opacity-40 uppercase ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>ID: 6504552</p>
+
+                                        {/* Contact Icons */}
+                                        <div className="flex space-x-3 mt-4">
+                                            <a href="https://www.instagram.com/sphnqr?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-500 text-white rounded-full hover:scale-110 hover:-rotate-12 transition-all shadow-lg hover:shadow-pink-500/30">
+                                                <Instagram size={18} />
+                                            </a>
+                                            <button
+                                                onClick={() => handleCopyEmail('finkopr2546@gmail.com', 'Onphairin')}
+                                                className="relative p-2.5 bg-gradient-to-tr from-blue-400 to-cyan-400 text-white rounded-full hover:scale-110 hover:rotate-12 transition-all shadow-lg hover:shadow-blue-400/30 group"
+                                            >
+                                                {copiedId === 'Onphairin' ? <Check size={18} /> : <Mail size={18} />}
+                                                {copiedId === 'Onphairin' && (
+                                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] px-2 py-1 rounded-md whitespace-nowrap">
+                                                        คัดลอกแล้ว!
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
+                        </div>
+
+                        {/* Mobile Title View */}
+                        <div className="mt-16 text-center md:hidden">
+                            <div className="bg-[#2563eb] text-white px-6 py-1 rounded-full inline-block font-bold text-xl mb-2">
+                                3
+                            </div>
+                            <h2 className={`text-2xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>ทีมผู้พัฒนา</h2>
                         </div>
                     </div>
                 </div>

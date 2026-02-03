@@ -1062,7 +1062,7 @@ const PendingQuizzesModal = ({
     getSubmissionsService
 }) => {
     return (
-        <div className="p-8 h-full flex flex-col w-full max-w-4xl">
+        <div className="p-8 h-full flex flex-col w-full max-w-6xl">
             <h2 className={`text-2xl font-bold mb-6 flex items-center ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
                 <ClipboardCheck className="mr-3 text-[#FF917B]" /> ตรวจข้อสอบ (Pending Grading)
             </h2>
