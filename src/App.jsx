@@ -8,7 +8,7 @@ import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as s
 import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead, subscribeToNotifications } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
-import { getChats, seedChats, sendMessage } from './services/chatService';
+// import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import { uploadFile } from './services/uploadService';
 import LoginPage from './components/LoginPage';
@@ -24,7 +24,6 @@ import { usePosts } from './hooks/usePosts';
 
 
 import {
-  TrendingUp,
   BookOpen,
   Calendar,
   CheckSquare,
@@ -32,7 +31,6 @@ import {
   User,
   LogOut,
   PieChart,
-  Video,
   FileText,
   Upload,
   Users,
@@ -43,7 +41,6 @@ import {
   ChevronLeft,
   Menu,
   X,
-  MessageSquare,
   Settings,
   Mic,
   MicOff,
@@ -55,8 +52,6 @@ import {
   AlertTriangle,
   Lock,
   Info,
-  Send,
-  Image as ImageIcon,
   Paperclip,
   ArrowRight,
   Clock,
@@ -201,15 +196,12 @@ export default function SchoolyScootLMS() {
   // Auth Effect - Handled by useAuthUser
 
 
-  // --- Data States ---
-  // Chat State
-  const [chatInput, setChatInput] = useState('');
-  const chatEndRef = useRef(null);
-  const fileInputRef = useRef(null);
-
   // Custom Hooks Usage replaced local state/effects
   // courses -> useCourses
   // selectedCourse logic remains here 
+
+  // UI State Refs
+  const fileInputRef = useRef(null);
 
   // State for creating course
   const [editingCourse, setEditingCourse] = useState(null); // State for editing in settings
@@ -651,29 +643,7 @@ export default function SchoolyScootLMS() {
   // Calculate unread status from the main notifications state
   const hasUnread = notifications.some(n => !n.read);
 
-  const [chats, setChats] = useState([]);
-  const [activeChatId, setActiveChatId] = useState(null);
   const [submissionsLoading, setSubmissionsLoading] = useState(false); // New state
-
-  // Fetch Chats (Notifications are handled by the new real-time listener above)
-  useEffect(() => {
-    const fetchChatData = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-
-          const chatData = await getChats(user.uid);
-          setChats(chatData);
-        } catch (error) {
-          console.error("Error loading chat data:", error);
-        }
-      }
-    };
-
-    fetchChatData();
-  }, [auth.currentUser, isLoggedIn]);
-
-
 
   // Smart Navigation Handler
   const handleNotificationClick = async (notif) => {
@@ -774,44 +744,6 @@ export default function SchoolyScootLMS() {
       // We can just open assignments tab if we can guess course.
       // For now, just show detail modal is fine for legacy.
     }
-  };
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [chats, activeChatId]);
-
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !activeChatId) return;
-
-    // Send to Firestore
-    try {
-      const currentChat = chats.find(c => c.id === activeChatId);
-      if (currentChat && currentChat.firestoreId) {
-        const senderName = userRole === 'student' ? profile.firstName : 'ครู' + profile.firstName;
-        await sendMessage(currentChat.firestoreId, chatInput, 'me'); // 'me' or userId
-      }
-    } catch (err) {
-      console.error("Failed to send message", err);
-    }
-
-    // Optimistic Update (Optional, or wait for realtime listener - simpler to wait for now or just append)
-    setChats(prev => prev.map(chat => {
-      if (chat.id === activeChatId) {
-        return {
-          ...chat,
-          messages: [...(chat.messages || []), { id: Date.now(), sender: 'me', text: chatInput, time: 'Now' }],
-          lastMessage: chatInput,
-          time: 'Now'
-        };
-      }
-      return chat;
-    }));
-
-    setChatInput('');
   };
 
   const handleFileUpload = (e) => {
@@ -1648,143 +1580,6 @@ export default function SchoolyScootLMS() {
   // renderExams removed
 
 
-  const renderMessages = () => {
-    const activeChat = chats.find(c => c.id === activeChatId);
-
-    return (
-      <div className={`space-y-6 h-[calc(100vh-140px)] flex flex-col ${darkMode ? 'text-slate-100' : ''}`}>
-        <h1 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-          <MessageSquare className="mr-3 text-[#BEE1FF]" /> ข้อความ
-        </h1>
-        <div className={`flex-1 rounded-3xl shadow-sm border flex overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-          {/* Chat List */}
-          <div className={`w-full md:w-1/3 border-r overflow-y-auto ${activeChatId ? 'hidden md:block' : 'block'} ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
-            <div className={`p-4 border-b ${darkMode ? 'border-slate-800 bg-slate-900/50' : 'bg-slate-50 border-slate-100'}`}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                <input
-                  type="text"
-                  placeholder="ค้นหาแชท..."
-                  className={`w-full pl-9 pr-4 py-2 rounded-xl border transition-colors text-sm focus:outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-100 focus:border-indigo-500' : 'bg-white border-slate-200 focus:border-[#BEE1FF]'}`}
-                />
-              </div>
-            </div>
-            {chats.map(chat => (
-              <div
-                key={chat.id}
-                onClick={() => setActiveChatId(chat.id)}
-                className={`p-4 cursor-pointer border-b flex gap-3 transition-colors ${activeChatId === chat.id
-                  ? (darkMode ? 'bg-indigo-900/20 border-indigo-900/50' : 'bg-[#F0F9FF] border-slate-50')
-                  : (darkMode ? 'hover:bg-slate-800 border-slate-800' : 'hover:bg-slate-50 border-slate-50')
-                  }`}
-              >
-                <div className={`w-12 h-12 rounded-full ${chat.avatar} flex-shrink-0 flex items-center justify-center font-bold text-lg ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                  {chat.name.charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className={`font-bold truncate ${activeChatId === chat.id ? (darkMode ? 'text-[#96C68E]' : 'text-[#96C68E]') : (darkMode ? 'text-slate-200' : 'text-slate-800')}`}>{chat.name}</h4>
-                    <span className="text-xs text-slate-500 whitespace-nowrap ml-2">{chat.time}</span>
-                  </div>
-                  <p className={`text-sm truncate ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{chat.lastMessage}</p>
-                </div>
-                {chat.unread > 0 && (
-                  <div className="w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold self-center">
-                    {chat.unread}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Chat Detail */}
-          <div className={`flex-1 flex flex-col ${!activeChatId ? 'hidden md:flex' : 'flex'}`}>
-            {activeChat ? (
-              <>
-                {/* Chat Header */}
-                <div className={`p-4 border-b flex items-center justify-between z-10 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setActiveChatId(null)} className={`md:hidden p-2 -ml-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      <ChevronRight className="rotate-180" />
-                    </button>
-                    <div className={`w-10 h-10 rounded-full ${activeChat.avatar} flex items-center justify-center font-bold ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-                      {activeChat.name.charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className={`font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{activeChat.name}</h4>
-                      <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{activeChat.role}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 text-slate-400">
-                    <button className={`p-2 rounded-full transition-colors ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}><Video size={20} /></button>
-                    <button className={`p-2 rounded-full transition-colors ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}><Info size={20} /></button>
-                  </div>
-                </div>
-
-                {/* Messages Area */}
-                <div className={`flex-1 overflow-y-auto p-4 space-y-4 ${darkMode ? 'bg-slate-950' : 'bg-[#F8FAFC]'}`}>
-                  {activeChat.messages.map(msg => {
-                    const isMe = msg.sender === 'me';
-                    return (
-                      <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[70%] ${isMe ? 'order-2' : 'order-1'}`}>
-                          {msg.sender !== 'me' && msg.name && <p className={`text-xs mb-1 ml-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{msg.name}</p>}
-                          <div className={`p-3 rounded-2xl text-sm ${isMe
-                            ? (darkMode ? 'bg-indigo-600 text-white rounded-br-none shadow-indigo-900/20 shadow-lg' : 'bg-[#BEE1FF] text-slate-800 rounded-br-none')
-                            : (darkMode ? 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700' : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-sm')
-                            }`}>
-                            {msg.text}
-                          </div>
-                          <p className={`text-[10px] mt-1 ${isMe ? 'text-right mr-1' : 'ml-1'} ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                            {msg.time}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={chatEndRef} />
-                </div>
-
-                {/* Input Area */}
-                <div className={`p-4 border-t ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                  <form onSubmit={handleSendMessage} className="flex gap-2">
-                    <button type="button" className="p-3 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors">
-                      <Plus size={20} />
-                    </button>
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="พิมพ์ข้อความ..."
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 transition-colors focus:outline-none focus:border-[#96C68E]"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!chatInput.trim()}
-                      className={`p-3 rounded-xl transition-all ${chatInput.trim()
-                        ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-sm'
-                        : 'bg-slate-100 text-slate-300'
-                        }`}
-                    >
-                      <Send size={20} />
-                    </button>
-                  </form>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-50 text-slate-400 text-center">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <MessageSquare size={32} className="opacity-50" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-600 mb-2">ยังไม่ได้เลือกแชท</h3>
-                <p className="max-w-xs">เลือกรายชื่อเพื่อนหรือคุณครูจากเมนูด้านซ้ายเพื่อเริ่มการสนทนาได้เลย!</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
 
 
@@ -1837,6 +1632,7 @@ export default function SchoolyScootLMS() {
         profile={profile}
         setSelectedCourse={setSelectedCourse}
       />
+
       {/* Main Content */}
       <main className={`flex-1 flex flex-col h-screen overflow-hidden relative ${darkMode ? 'bg-slate-950 text-slate-100' : ''}`}>
         <header className={`md:hidden ${darkMode ? 'bg-slate-900 border-slate-800 shadow-lg' : 'bg-white shadow-sm border-slate-100'} p-4 flex items-center justify-between z-10 border-b`}>
@@ -1862,8 +1658,7 @@ export default function SchoolyScootLMS() {
                 {activeTab === 'dashboard' ? 'ภาพรวม' :
                   activeTab === 'courses' ? 'ห้องเรียน' :
                     activeTab === 'assignments' ? (userRole === 'student' ? 'การบ้าน' : 'ตรวจงาน') :
-                      activeTab === 'schedule' ? 'ตารางเรียน' :
-                        activeTab === 'messages' ? 'ข้อความ' : 'ตั้งค่า'}
+                      activeTab === 'schedule' ? 'ตารางเรียน' : 'ตั้งค่า'}
               </h2>
               <div className="flex items-center gap-4">
                 <button
@@ -1990,7 +1785,6 @@ export default function SchoolyScootLMS() {
                     courses={courses}
                   />
                 )}
-                {activeTab === 'messages' && renderMessages()}
                 {activeTab === 'calendar' && <CalendarPage courses={courses} userRole={userRole} darkMode={darkMode} />}
                 {activeTab === 'analytics' && <AnalyticsView setView={setActiveTab} courses={courses} assignments={assignments} userRole={userRole} userId={auth.currentUser?.uid} darkMode={darkMode} />}
                 {activeTab === 'settings' && (
