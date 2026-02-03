@@ -75,4 +75,20 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 10000
     );
 };
 
+export const NotificationStack = ({ activeNotifications, removeNotification }) => {
+    return (
+        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end pointer-events-none">
+            {activeNotifications.map((noti) => (
+                <ToastNotification
+                    key={noti.id}
+                    message={noti.message}
+                    type={noti.type}
+                    duration={10000} // 10 seconds
+                    onClose={() => removeNotification(noti.id)}
+                />
+            ))}
+        </div>
+    );
+};
+
 export default ToastNotification;

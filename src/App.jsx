@@ -71,7 +71,7 @@ import {
   Trash2,
 } from 'lucide-react';
 
-import { MascotCircle, MascotSquare, MascotTriangle, Cute1 } from './components/Mascots';
+import { MascotCircle, MascotSquare, MascotTriangle, Cute1, LoadingOverlay } from './components/Mascots';
 
 import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './utils/helpers.jsx';
 
@@ -86,7 +86,7 @@ import AssignmentsView, { AssignmentDetailModal, CreateAssignmentModal, GradingM
 import ScheduleView from './components/ScheduleView';
 import SettingsView, { EditProfileModal } from './components/SettingsView';
 import PostItem from './components/PostItem';
-import ToastNotification from './components/ToastNotification';
+import ToastNotification, { NotificationStack } from './components/ToastNotification';
 import QuizModals from './components/QuizModals';
 import CourseDetailView, { CourseModals } from './components/CourseDetailView';
 import notiSoundUrl from './assets/notisound.mp3';
@@ -1455,9 +1455,6 @@ export default function SchoolyScootLMS() {
             }}
           />
 
-
-
-
           {/* VIDEO CALL MODAL */}
           {activeModal === 'video' && (
             <div className="h-[80vh] w-full max-w-6xl bg-slate-900 rounded-[2rem] overflow-hidden relative shadow-2xl">
@@ -1469,8 +1466,6 @@ export default function SchoolyScootLMS() {
               />
             </div>
           )}
-
-
 
           <CourseModals
             {...{
@@ -1484,8 +1479,6 @@ export default function SchoolyScootLMS() {
               handleJoinCourse
             }}
           />
-
-
 
           <NotificationModals
             {...{
@@ -1513,9 +1506,6 @@ export default function SchoolyScootLMS() {
             }}
           />
 
-
-
-
           <EditProfileModal
             {...{
               activeModal,
@@ -1526,8 +1516,6 @@ export default function SchoolyScootLMS() {
               handleProfileImageUpload
             }}
           />
-
-
 
           <CreateAssignmentModal
             {...{
@@ -1542,9 +1530,6 @@ export default function SchoolyScootLMS() {
               createNotification
             }}
           />
-
-
-
 
           <GradingModal
             {...{
@@ -1572,16 +1557,6 @@ export default function SchoolyScootLMS() {
       </div >
     );
   };
-
-  // --- PAGE CONTENT RENDERERS ---
-
-
-
-  // renderExams removed
-
-
-
-
 
   // IF NOT LOGGED IN, SHOW LOGIN PAGE
   // --- ส่วนตัดสินใจว่าจะแสดงหน้าไหนก่อนเข้าสู่ระบบ ---
@@ -1612,7 +1587,6 @@ export default function SchoolyScootLMS() {
   return (
     <div className={`flex h-screen bg-[#F8FAFC] font-sans ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`}>
       {renderModal()}
-      {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {/* VIDEO CONFERENCE MODAL (Jitsi) */}
       {activeModal === 'videoConference' && (
         <VideoConference
@@ -1793,27 +1767,12 @@ export default function SchoolyScootLMS() {
 
       </main>
 
-      {/* Notification Stack Container */}
-      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end pointer-events-none">
-        {activeNotifications.map((noti) => (
-          <ToastNotification
-            key={noti.id}
-            message={noti.message}
-            type={noti.type}
-            duration={10000} // 10 seconds
-            onClose={() => removeNotification(noti.id)}
-          />
-        ))}
-      </div>
+      <NotificationStack
+        activeNotifications={activeNotifications}
+        removeNotification={removeNotification}
+      />
 
-      {isLoading && (
-        <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96C68E] mb-4"></div>
-            <p className="text-lg font-bold text-slate-700">กำลังโหลดข้อมูล...</p>
-          </div>
-        </div>
-      )}
+      <LoadingOverlay isLoading={isLoading} />
     </div>
   );
 }

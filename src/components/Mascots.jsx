@@ -35,7 +35,7 @@ export const MascotTriangle = ({ className = "w-16 h-16" }) => (
 
 export const MascotStar = ({ className = "w-16 h-16" }) => (
   <svg viewBox="0 0 100 100" className={className}>
-    <polygon points="50,5 61,35 95,35 68,55 79,90 50,70 21,90 32,55 5,35 39,35" fill="#FFE787" stroke="#e0c868" strokeWidth="3" strokeLinejoin="round"/>
+    <polygon points="50,5 61,35 95,35 68,55 79,90 50,70 21,90 32,55 5,35 39,35" fill="#FFE787" stroke="#e0c868" strokeWidth="3" strokeLinejoin="round" />
     <circle cx="42" cy="50" r="5" fill="white" />
     <circle cx="42" cy="50" r="2" fill="black" />
     <circle cx="58" cy="50" r="5" fill="white" />
@@ -52,3 +52,16 @@ export const Cute1 = ({ className = "w-16 h-16" }) => (
     <path d="M48,58 Q50,61 52,58" stroke="black" fill="none" strokeWidth="1.5" />
   </svg>
 );
+
+export const LoadingOverlay = ({ isLoading }) => {
+  if (!isLoading) return null;
+
+  return (
+    <div className="fixed inset-0 z-[10000] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+      <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#96C68E] mb-4"></div>
+        <p className="text-lg font-bold text-slate-700">กำลังโหลดข้อมูล...</p>
+      </div>
+    </div>
+  );
+};
