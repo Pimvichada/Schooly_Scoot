@@ -81,13 +81,13 @@ import { MascotCircle, MascotSquare, MascotTriangle, Cute1 } from './components/
 import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './utils/helpers.jsx';
 
 import Sidebar from './components/Sidebar';
-import NotificationItem from './components/NotificationItem';
+import NotificationItem, { NotificationModals } from './components/NotificationItem';
 import VideoConference from './components/VideoConference';
 import RegisterPage from './components/RegisterPage';
 import CalendarPage from './components/CalendarPage';
 import DashboardView from './components/DashboardView';
 import CoursesView from './components/CoursesView';
-import AssignmentsView from './components/AssignmentsView';
+import AssignmentsView, { AssignmentDetailModal } from './components/AssignmentsView';
 import ScheduleView from './components/ScheduleView';
 import SettingsView from './components/SettingsView';
 import PostItem from './components/PostItem';
@@ -1554,230 +1554,33 @@ export default function SchoolyScootLMS() {
           />
 
 
-          {/* ALL NOTIFICATIONS LIST MODAL */}
-          {activeModal === 'notificationsList' && (
-            <div className="p-6 h-[80vh] flex flex-col">
-              <div className="flex items-center gap-4 mb-6">
-                <h2 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
-                  <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
-                </h2>
-                <button
-                  onClick={markAllRead}
-                  className={`flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full transition-all shadow-sm ${darkMode ? 'text-[#96C68E] hover:text-white bg-slate-800 hover:bg-[#96C68E] border-[#96C68E]' : 'text-[#96C68E] hover:text-white bg-white hover:bg-[#96C68E] border-[#96C68E]'} hover:shadow-md active:scale-95`}
-                >
-                  <CheckCircle size={12} />
-                  อ่านทั้งหมด
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar ">
-                {notifications.map((notif) => (
-                  <NotificationItem
-                    key={notif.firestoreId}
-                    notif={notif}
-                    displayTime={notif.date ? new Date(notif.date).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
-                    isSelected={selectedNotification?.firestoreId === notif.firestoreId}
-                    onClick={() => handleNotificationClick(notif)}
-                    darkMode={darkMode}
-                  />
 
-                ))}
-              </div>
-            </div>
-          )}
+          <NotificationModals
+            {...{
+              activeModal,
+              setActiveModal,
+              darkMode,
+              markAllRead,
+              notifications,
+              selectedNotification,
+              handleNotificationClick
+            }}
+          />
 
-          {/* NOTIFICATION DETAIL MODAL */}
-          {activeModal === 'notificationDetail' && selectedNotification && (
-            <div className="p-6">
-              <div className="flex items-center gap-4 mb-4">
-                <button onClick={() => setActiveModal('notificationsList')} className={`p-2 rounded-full ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
-                  <ChevronLeft size={24} className={`${darkMode ? 'text-slate-300' : 'text-slate-700'}`} />
-                </button>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center 
-                   ${selectedNotification.type === 'homework' ? 'bg-[#FFE787]' : selectedNotification.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
-                  {selectedNotification.type === 'homework' ? <FileText size={24} className="text-slate-700" /> :
-                    selectedNotification.type === 'grade' ? <CheckSquare size={24} className="text-white" /> : <User size={24} className="text-slate-700" />}
-                </div>
-                <div>
-                  <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>รายละเอียดการแจ้งเตือน</h3>
-                  <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{selectedNotification.time}</p>
-                </div>
-              </div>
-              <div className={`p-4 rounded-xl border mb-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                <h4 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedNotification.message}</h4>
-                <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {selectedNotification.detail || "ไม่มีรายละเอียดเพิ่มเติม"}
-                </p>
-              </div>
+          <AssignmentDetailModal
+            {...{
+              activeModal,
+              currentAssignmentData,
+              darkMode,
+              openBase64InNewTab,
+              handleFileUpload,
+              uploadFile,
+              removeFile,
+              handleConfirmSubmit,
+              setAssignments
+            }}
+          />
 
-            </div>
-          )}
-          {activeModal === 'assignmentDetail' && currentAssignmentData && (
-            <div className="p-8">
-              <div className="flex items-start gap-4 mb-6">
-                <div className="bg-[#FFE787] p-3 rounded-2xl">
-                  <FileText size={32} className="text-slate-700" />
-                </div>
-                <div className="flex-1">
-                  <h2 className={`text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{currentAssignmentData.title}</h2>
-                  <p className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{currentAssignmentData.course} • ครบกำหนด {currentAssignmentData.dueDate ? new Date(currentAssignmentData.dueDate).toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ไม่มีกำหนด'}</p>
-                </div>
-                <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold whitespace-nowrap">
-                  {(currentAssignmentData.score !== null && currentAssignmentData.score !== undefined && currentAssignmentData.score !== '')
-                    ? `${currentAssignmentData.score} / ${currentAssignmentData.maxScore || 10}`
-                    : `${currentAssignmentData.maxScore || 10} คะแนน`}
-                </div>
-              </div>
-
-              <div className={`p-4 rounded-2xl border mb-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-                <h3 className={`font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>คำชี้แจง</h3>
-                <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{currentAssignmentData.description}</p>
-
-                {/* Display attached files from teacher */}
-                {currentAssignmentData.files && currentAssignmentData.files.length > 0 && (
-                  <div className={`mt-4 border-t pt-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    <h4 className={`text-sm font-bold mb-2 flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                      <Paperclip size={16} /> ไฟล์แนบ ({currentAssignmentData.files.length})
-                    </h4>
-                    <div className="grid grid-cols-1 gap-2">
-                      {currentAssignmentData.files.map((file, idx) => (
-                        <div key={idx} className={`flex items-center gap-3 border p-3 rounded-xl justify-between group ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            <FileText className="text-[#BEE1FF] flex-shrink-0" size={20} />
-                            <div className="min-w-0">
-                              <p className={`text-sm font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</p>
-                              <p className="text-xs text-slate-400">{(file.size ? (file.size / 1024).toFixed(1) : 0)} KB</p>
-                            </div>
-                          </div>
-                          {file.content && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                openBase64InNewTab(file.content, file.type || 'application/pdf'); // Default to PDF if unknown
-                              }}
-                              className="text-xs font-bold text-[#96C68E] bg-[#F0FDF4] px-3 py-1.5 rounded-lg hover:bg-[#96C68E] hover:text-white transition-all whitespace-nowrap"
-                            >
-                              เปิดดูไฟล์
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* Fallback for old single file data */}
-                {currentAssignmentData.fileName && !currentAssignmentData.files && (
-                  <div className={`mt-4 border-t pt-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                    <div className={`flex items-center gap-3 border p-3 rounded-xl ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`}>
-                      <FileText className="text-[#BEE1FF]" size={20} />
-                      <p className={`text-sm font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{currentAssignmentData.fileName}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-
-              <div className={`border-t pt-6 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                <h3 className={`font-bold mb-4 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>งานของคุณ</h3>
-
-                {/* 1. กรณีส่งงานเรียบร้อยแล้ว */}
-                {currentAssignmentData.status === 'submitted' ? (
-                  <div className="space-y-3 animate-in fade-in">
-                    <div className="bg-[#F0FDF4] border border-[#96C68E] p-4 rounded-2xl flex items-center gap-3">
-                      <CheckCircle className="text-[#96C68E]" />
-                      <span className="text-slate-700 font-bold">ส่งงานเรียบร้อยแล้ว</span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {currentAssignmentData.submittedFiles?.map((file, idx) => (
-                        <div key={idx} className={`flex items-center justify-between border p-3 rounded-xl group hover:border-[#96C68E] transition-colors ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                          <div className="flex items-center gap-3">
-                            <FileText size={18} className="text-[#96C68E]" />
-                            <span className={`text-sm font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</span>
-                          </div>
-                          <button
-                            onClick={() => {
-                              if (file instanceof File) {
-                                window.open(URL.createObjectURL(file), '_blank');
-                              } else if (file.content) {
-                                openBase64InNewTab(file.content, file.type || 'application/pdf');
-                              } else {
-                                alert('ไม่สามารถเปิดไฟล์ได้');
-                              }
-                            }}
-                            className="text-xs font-bold text-[#96C68E] bg-[#F0FDF4] px-3 py-1.5 rounded-lg hover:bg-[#96C68E] hover:text-white transition-all"
-                          >
-                            เปิดดูไฟล์
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="w-full flex justify-end">
-                      <button
-                        onClick={() => {
-                          setAssignments(prev =>
-                            prev.map(a =>
-                              a.id === currentAssignmentData.id
-                                ? { ...a, status: 'pending', submittedFiles: [] }
-                                : a
-                            )
-                          );
-                        }}
-                        className="text-sm text-red-400 hover:underline mt-2"
-                      >
-                        ยกเลิกการส่งเพื่อแก้ไข
-                      </button>
-                    </div>
-
-
-                  </div>
-                ) : (
-                  /* 2. กรณีรอส่งงาน (UI สำหรับอัปโหลด) */
-                  <>
-                    <div className="relative">
-                      <input
-                        type="file"
-                        multiple
-                        onChange={handleFileUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      />
-                      <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all mb-4 ${uploadFile.length > 0 ? (darkMode ? 'border-[#96C68E] bg-green-900/10' : 'border-[#96C68E] bg-[#F0FDF4]') : (darkMode ? 'border-slate-600 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-50')
-                        }`}>
-                        <Upload size={32} className="mx-auto text-slate-400 mb-2" />
-                        <p className="text-slate-500 font-bold">คลิกเพื่ออัพโหลดไฟล์งาน</p>
-                        <p className="text-xs text-slate-400 mt-1">สามารถเลือกได้หลายไฟล์ (PDF, JPG, PNG)</p>
-                      </div>
-                    </div>
-
-                    {uploadFile.length > 0 && (
-                      <div className="space-y-2 mb-4">
-                        {uploadFile.map((file, index) => (
-                          <div key={index} className={`flex items-center justify-between border p-3 rounded-xl animate-in slide-in-from-bottom-2 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                            <div className="flex items-center gap-3">
-                              <FileText size={18} className="text-[#96C68E]" />
-                              <span className={`text-sm font-medium truncate max-w-[200px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{file.name}</span>
-                            </div>
-                            <button onClick={() => removeFile(index)} className="text-red-400 hover:text-red-600">
-                              <Trash size={16} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <button
-                      onClick={() => handleConfirmSubmit(currentAssignmentData.id)}
-                      disabled={uploadFile.length === 0}
-                      className={`w-full py-3 rounded-xl font-bold text-lg shadow-sm flex items-center justify-center transition-all ${uploadFile.length > 0 ? 'bg-[#96C68E] text-white hover:scale-[1.02]' : (darkMode ? 'bg-slate-700 text-slate-500' : 'bg-slate-200 text-slate-400')
-                        }`}
-                    >
-                      <CheckCircle className="mr-2" /> ส่งการบ้าน {uploadFile.length > 0 && `(${uploadFile.length} ไฟล์)`}
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
 
 
           {/* EDIT PROFILE MODAL */}

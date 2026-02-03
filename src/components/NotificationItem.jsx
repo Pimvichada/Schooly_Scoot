@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, CheckSquare, User, Bell } from 'lucide-react';
+import { FileText, CheckSquare, User, Bell, CheckCircle, ChevronLeft } from 'lucide-react';
 
 const NOTIF_CONFIG = {
   homework: {
@@ -68,3 +68,75 @@ export default function NotificationItem({ notif, onClick, displayTime, compact 
     </div>
   );
 }
+
+export const NotificationModals = ({
+  activeModal,
+  setActiveModal,
+  darkMode,
+  markAllRead,
+  notifications,
+  selectedNotification,
+  handleNotificationClick
+}) => {
+  if (activeModal !== 'notificationsList' && activeModal !== 'notificationDetail') return null;
+
+  return (
+    <>
+      {/* ALL NOTIFICATIONS LIST MODAL */}
+      {activeModal === 'notificationsList' && (
+        <div className="p-6 h-[80vh] flex flex-col">
+          <div className="flex items-center gap-4 mb-6">
+            <h2 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+              <Bell className="mr-3 text-[#FF917B]" /> การแจ้งเตือนทั้งหมด
+            </h2>
+            <button
+              onClick={markAllRead}
+              className={`flex items-center gap-1 text-[10px] font-bold border px-2 py-0.5 rounded-full transition-all shadow-sm ${darkMode ? 'text-[#96C68E] hover:text-white bg-slate-800 hover:bg-[#96C68E] border-[#96C68E]' : 'text-[#96C68E] hover:text-white bg-white hover:bg-[#96C68E] border-[#96C68E]'} hover:shadow-md active:scale-95`}
+            >
+              <CheckCircle size={12} />
+              อ่านทั้งหมด
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar ">
+            {notifications.map((notif) => (
+              <NotificationItem
+                key={notif.firestoreId}
+                notif={notif}
+                displayTime={notif.date ? new Date(notif.date).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                isSelected={selectedNotification?.firestoreId === notif.firestoreId}
+                onClick={() => handleNotificationClick(notif)}
+                darkMode={darkMode}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* NOTIFICATION DETAIL MODAL */}
+      {activeModal === 'notificationDetail' && selectedNotification && (
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <button onClick={() => setActiveModal('notificationsList')} className={`p-2 rounded-full ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
+              <ChevronLeft size={24} className={`${darkMode ? 'text-slate-300' : 'text-slate-700'}`} />
+            </button>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center 
+               ${selectedNotification.type === 'homework' ? 'bg-[#FFE787]' : selectedNotification.type === 'grade' ? 'bg-[#96C68E]' : 'bg-[#BEE1FF]'}`}>
+              {selectedNotification.type === 'homework' ? <FileText size={24} className="text-slate-700" /> :
+                selectedNotification.type === 'grade' ? <CheckSquare size={24} className="text-white" /> : <User size={24} className="text-slate-700" />}
+            </div>
+            <div>
+              <h3 className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>รายละเอียดการแจ้งเตือน</h3>
+              <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{selectedNotification.time}</p>
+            </div>
+          </div>
+          <div className={`p-4 rounded-xl border mb-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+            <h4 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedNotification.message}</h4>
+            <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+              {selectedNotification.detail || "ไม่มีรายละเอียดเพิ่มเติม"}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
