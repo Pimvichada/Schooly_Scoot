@@ -1790,6 +1790,7 @@ export default function SchoolyScootLMS() {
       <NotificationStack
         activeNotifications={activeNotifications}
         removeNotification={removeNotification}
+        onNotificationClick={handleNotificationClick}
       />
 
       <LoadingOverlay isLoading={isLoading} />

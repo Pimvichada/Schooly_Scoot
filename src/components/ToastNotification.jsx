@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { X, Bell } from 'lucide-react';
 
-const ToastNotification = ({ message, type = 'system', onClose, duration = 10000 }) => {
+const ToastNotification = ({ notif, onClose, onClick, duration = 10000 }) => {
+    const { message, type = 'system' } = notif;
     const [isVisible, setIsVisible] = useState(false);
     const [shouldRender, setShouldRender] = useState(true);
 
@@ -31,9 +32,22 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 10000
 
     if (!message || !shouldRender) return null;
 
+    const handleContainerClick = (e) => {
+        // Don't trigger if clicking the close button
+        if (e.target.closest('button')) return;
+
+        if (onClick) {
+            onClick(notif);
+            // Close the toast after click
+            setIsVisible(false);
+            setTimeout(onClose, 300);
+        }
+    };
+
     return (
         <div
-            className={`transition-all duration-300 transform mb-3
+            onClick={handleContainerClick}
+            className={`transition-all duration-300 transform mb-3 cursor-pointer hover:scale-[1.02] active:scale-95
         ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
       `}
         >
@@ -65,7 +79,11 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 10000
                 </div>
 
                 <button
-                    onClick={() => { setIsVisible(false); setTimeout(onClose, 300); }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsVisible(false);
+                        setTimeout(onClose, 300);
+                    }}
                     className="absolute top-2 right-2 text-slate-300 hover:text-slate-500 transition-colors p-1"
                 >
                     <X size={14} />
@@ -75,15 +93,15 @@ const ToastNotification = ({ message, type = 'system', onClose, duration = 10000
     );
 };
 
-export const NotificationStack = ({ activeNotifications, removeNotification }) => {
+export const NotificationStack = ({ activeNotifications, removeNotification, onNotificationClick }) => {
     return (
         <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end pointer-events-none">
             {activeNotifications.map((noti) => (
                 <ToastNotification
                     key={noti.id}
-                    message={noti.message}
-                    type={noti.type}
+                    notif={noti}
                     duration={10000} // 10 seconds
+                    onClick={onNotificationClick}
                     onClose={() => removeNotification(noti.id)}
                 />
             ))}
