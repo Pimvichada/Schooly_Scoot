@@ -182,7 +182,7 @@ const DashboardView = ({
                                                 onClick={() => {
                                                     setSelectedCourse(slot.course);
                                                     setCourseTab('meeting');
-                                                    setActiveModal('videoConference');
+                                                    setActiveModal('video');
                                                 }}
                                                 className="bg-[#96C68E] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center hover:bg-[#85b57d] shadow-sm animate-pulse"
                                             >

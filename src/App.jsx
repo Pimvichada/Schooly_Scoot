@@ -115,6 +115,7 @@ export default function SchoolyScootLMS() {
     courses, setCourses, handleToggleHideCourse, refreshCourses
   } = useCourses(isLoggedIn, userRole, uid, hiddenCourseIds, setHiddenCourseIds);
 
+
   const {
     notifications, activeNotifications,
     addNotification, removeNotification, markAsRead, markAllRead
@@ -153,6 +154,14 @@ export default function SchoolyScootLMS() {
 
   // Modal State needs to be defined BEFORE useQuiz because useQuiz uses it (pass setter or value)
   const [activeModal, setActiveModal] = useState(null);
+
+  const [isMeetingJoined, setIsMeetingJoined] = useState(false);
+  // Auto-join meeting state when modal opens
+  useEffect(() => {
+    if (activeModal === 'video') {
+      setIsMeetingJoined(true);
+    }
+  }, [activeModal]);
 
   const {
     activeQuiz, setActiveQuiz,
@@ -236,12 +245,21 @@ export default function SchoolyScootLMS() {
 
         // Sync Meeting State
         if (courseData.meeting) {
-          setMeetingConfig(prev => ({
-            ...prev,
-            ...courseData.meeting
-          }));
+          setMeetingConfig(prev => {
+            // Only update if data actually changed to prevent re-renders (crucial for Jitsi)
+            if (prev.roomName === courseData.meeting.roomName && prev.isActive === courseData.meeting.isActive && prev.topic === courseData.meeting.topic) {
+              return prev;
+            }
+            return {
+              ...prev,
+              ...courseData.meeting
+            };
+          });
         } else {
-          setMeetingConfig(prev => ({ ...prev, isActive: false }));
+          setMeetingConfig(prev => {
+            if (prev.isActive === false) return prev;
+            return { ...prev, isActive: false };
+          });
         }
 
         // Update selected course data continuously
@@ -659,7 +677,7 @@ export default function SchoolyScootLMS() {
 
         if (notif.targetType === 'meeting') {
           setCourseTab('meeting');
-          setActiveModal('videoConference');
+          setActiveModal('video');
         } else if (notif.targetType === 'assignment' || notif.type === 'homework') {
           setCourseTab('work');
           if (notif.targetId) {
@@ -1455,17 +1473,6 @@ export default function SchoolyScootLMS() {
             }}
           />
 
-          {/* VIDEO CALL MODAL */}
-          {activeModal === 'video' && (
-            <div className="h-[80vh] w-full max-w-6xl bg-slate-900 rounded-[2rem] overflow-hidden relative shadow-2xl">
-              <VideoConference
-                roomName={`SchoolyScoot-${selectedCourse?.firestoreId || 'demo'}`}
-                userName={userRole === 'teacher' ? (profile.firstName ? `Cru ${profile.firstName}` : 'Teacher') : (profile.firstName || 'Student')}
-                isTeacher={userRole === 'teacher'}
-                onLeave={closeModal}
-              />
-            </div>
-          )}
 
           <CourseModals
             {...{
@@ -1587,15 +1594,21 @@ export default function SchoolyScootLMS() {
   return (
     <div className={`flex h-screen bg-[#F8FAFC] font-sans ${darkMode ? 'dark bg-slate-950 text-slate-100' : ''}`}>
       {renderModal()}
-      {/* VIDEO CONFERENCE MODAL (Jitsi) */}
-      {activeModal === 'videoConference' && (
+
+      {/* VIDEO CALL MODAL (Persistent with PiP) */}
+      {isMeetingJoined && (
         <VideoConference
           meetingConfig={meetingConfig}
           profile={profile}
-          onClose={() => setActiveModal(null)}
+          isMinimized={activeModal !== 'video'}
+          onMinimize={() => setActiveModal(null)}
+          onRestore={() => setActiveModal('video')}
+          onLeave={() => {
+            setIsMeetingJoined(false);
+            setActiveModal(null);
+          }}
         />
       )}
-
       <Sidebar
         darkMode={darkMode}
         isMobileMenuOpen={isMobileMenuOpen}

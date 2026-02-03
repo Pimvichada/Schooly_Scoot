@@ -26,7 +26,7 @@ export const useMeeting = () => {
 
         // 1. Update Local State
         setMeetingConfig(meetingData);
-        setActiveModal('videoConference');
+        setActiveModal('video');
 
         // 2. Sync to Firestore
         try {

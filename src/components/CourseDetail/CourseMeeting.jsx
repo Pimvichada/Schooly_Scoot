@@ -30,7 +30,7 @@ const CourseMeeting = ({
 
                         <div className="flex flex-col gap-3 max-w-xs mx-auto">
                             <button
-                                onClick={() => setActiveModal('videoConference')}
+                                onClick={() => setActiveModal('video')}
                                 className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold hover:bg-[#85b57d] shadow-sm flex items-center justify-center"
                             >
                                 <Video size={20} className="mr-2" /> กลับเข้าห้องเรียน
@@ -70,7 +70,7 @@ const CourseMeeting = ({
                                 onChange={(e) => setMeetingConfig({ ...meetingConfig, topic: e.target.value })}
                             />
                             <button
-                                onClick={handleStartMeeting}
+                                onClick={() => handleStartMeeting(selectedCourse, setActiveModal)}
                                 className="w-full py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg transition-all"
                             >
                                 เริ่มการสอนทันที 🚀
@@ -90,7 +90,7 @@ const CourseMeeting = ({
                             <p className={`mb-8 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>คุณครูกำลังรอคุณอยู่ เข้าห้องเรียนเพื่อเริ่มเรียนได้เลย</p>
 
                             <button
-                                onClick={() => setActiveModal('videoConference')}
+                                onClick={() => setActiveModal('video')}
                                 className="px-10 py-4 bg-[#96C68E] text-white rounded-2xl font-bold text-lg hover:bg-[#85b57d] shadow-lg transition-all"
                             >
                                 เข้าห้องเรียน
