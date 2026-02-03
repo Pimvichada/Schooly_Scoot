@@ -154,6 +154,7 @@ export default function SchoolyScootLMS() {
 
   // Modal State needs to be defined BEFORE useQuiz because useQuiz uses it (pass setter or value)
   const [activeModal, setActiveModal] = useState(null);
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   const [isMeetingJoined, setIsMeetingJoined] = useState(false);
   // Auto-join meeting state when modal opens
@@ -687,6 +688,10 @@ export default function SchoolyScootLMS() {
               else { setSelectedAssignment(assign); setActiveModal('assignmentDetail'); }
             }
           }
+        } else if (notif.targetType === 'post') {
+          setCourseTab('home');
+          setSelectedPostId(notif.targetId);
+          setActiveModal(null);
         } else if (notif.targetType === 'quiz') { // NEW: Student -> Take Quiz
           setCourseTab('quizzes');
           if (notif.targetId) {
@@ -1646,6 +1651,8 @@ export default function SchoolyScootLMS() {
                 setSelectedCourse={setSelectedCourse}
                 courseTab={courseTab}
                 setCourseTab={setCourseTab}
+                selectedPostId={selectedPostId}
+                setSelectedPostId={setSelectedPostId}
                 profile={profile}
                 newPostContent={newPostContent}
                 setNewPostContent={setNewPostContent}

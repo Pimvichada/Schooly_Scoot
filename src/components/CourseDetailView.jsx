@@ -66,7 +66,9 @@ const CourseDetailView = ({
     setEditingScheduleIndex,
     handleUpdateCourse,
     handleDeleteCourse,
-    validateScheduleConflict
+    validateScheduleConflict,
+    selectedPostId,
+    setSelectedPostId
 }) => {
     const renderSubTabContent = () => {
         switch (courseTab) {
@@ -89,6 +91,8 @@ const CourseDetailView = ({
                         handleDeletePost={handleDeletePost}
                         handleEditPost={handleEditPost}
                         setCourseTab={setCourseTab}
+                        selectedPostId={selectedPostId}
+                        setSelectedPostId={setSelectedPostId}
                     />
                 );
             case 'work':

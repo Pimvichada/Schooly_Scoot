@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Info, Star, Copy, FileText, X, ImageIcon, Paperclip, Send, MessageSquare, Upload, MoreVertical, User } from 'lucide-react';
 import PostItem from '../PostItem';
 
@@ -18,8 +18,30 @@ const CourseFeed = ({
     auth,
     handleDeletePost,
     handleEditPost,
-    setCourseTab
+    setCourseTab,
+    selectedPostId,
+    setSelectedPostId
 }) => {
+
+    // Scroll to post effect
+    useEffect(() => {
+        if (selectedPostId && posts.length > 0 && !loading) {
+            // Need a slight delay to ensure rendering
+            setTimeout(() => {
+                const element = document.getElementById(`post-${selectedPostId}`);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Add temporal highlight
+                    element.classList.add('ring-2', 'ring-[#FF917B]', 'ring-offset-4', 'rounded-2xl', 'transition-all');
+                    setTimeout(() => {
+                        element.classList.remove('ring-2', 'ring-[#FF917B]', 'ring-offset-4');
+                        if (setSelectedPostId) setSelectedPostId(null);
+                    }, 3000);
+                }
+            }, 500);
+        }
+    }, [selectedPostId, posts, loading, setSelectedPostId]);
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Left Sidebar - Class Info & Upcoming Work */}
@@ -177,18 +199,19 @@ const CourseFeed = ({
                     ) : posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).length > 0 ? (
                         <div className="space-y-6">
                             {posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).map((post) => (
-                                <PostItem
-                                    key={post.id}
-                                    post={post}
-                                    currentUser={{
-                                        uid: auth.currentUser?.uid,
-                                        displayName: `${profile.firstName} ${profile.lastName}`,
-                                        photoURL: profile.photoURL
-                                    }}
-                                    onDelete={handleDeletePost}
-                                    onEdit={handleEditPost}
-                                    darkMode={darkMode}
-                                />
+                                <div id={`post-${post.id}`} key={post.id} className="transition-all duration-500">
+                                    <PostItem
+                                        post={post}
+                                        currentUser={{
+                                            uid: auth.currentUser?.uid,
+                                            displayName: `${profile.firstName} ${profile.lastName}`,
+                                            photoURL: profile.photoURL
+                                        }}
+                                        onDelete={handleDeletePost}
+                                        onEdit={handleEditPost}
+                                        darkMode={darkMode}
+                                    />
+                                </div>
                             ))}
                         </div>
                     ) : (
