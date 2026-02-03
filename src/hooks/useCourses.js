@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCoursesForUser } from '../services/courseService';
 import { toggleHiddenCourse } from '../services/authService';
-// Note: getCourseIcon might be in utils or courseService depending on file structure. 
-// Based on previous view_file of App.jsx, getCourseIcon is imported from './utils/helpers.jsx'.
-// But in line 6 of App.jsx, it imports from courseService? No, line 78 imports from helpers.
 import { getCourseIcon as getIconFromUtils } from '../utils/helpers.jsx';
 import { auth } from '../../firebase'; // Need auth for uid if not passed, but better to pass uid
 

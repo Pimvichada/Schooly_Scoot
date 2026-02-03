@@ -11,7 +11,7 @@ import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments
 import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
 import { uploadFile } from './services/uploadService';
-import LandingPage from './components/LandingPage';
+import LoginPage from './components/LoginPage';
 import AnalyticsView from './components/AnalyticsView';
 import { useWelcomeMessage } from './hooks/useWelcomeMessage';
 import { useAuthUser } from './hooks/useAuthUser';
@@ -77,7 +77,7 @@ import {
 } from 'lucide-react';
 
 import { MascotCircle, MascotSquare, MascotTriangle, Cute1 } from './components/Mascots';
-import LoginPage from './components/LoginPage';
+
 import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './utils/helpers.jsx';
 import StatCard from './components/StatCard';
 import Sidebar from './components/Sidebar';
@@ -826,8 +826,7 @@ export default function SchoolyScootLMS() {
 
   const handleLogin = (role) => {
     // This function is now mainly a placeholder or can be used for UI updates if needed
-    // actual login happens in LoginPage component via firebase auth
-    // The useEffect above handles the state update when auth state changes
+    // The useEffect in useAuthUser handles the state update when auth state changes
   };
 
   const handleLogout = async () => {
@@ -2688,7 +2687,7 @@ export default function SchoolyScootLMS() {
       );
     } else {
       // Default to Landing Page (which contains Login)
-      return <LandingPage
+      return <LoginPage
         onNavigateToRegister={() => setCurrentView('register')}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
