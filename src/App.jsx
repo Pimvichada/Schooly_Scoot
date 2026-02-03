@@ -79,7 +79,7 @@ import {
 import { MascotCircle, MascotSquare, MascotTriangle, Cute1 } from './components/Mascots';
 
 import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './utils/helpers.jsx';
-import StatCard from './components/StatCard';
+
 import Sidebar from './components/Sidebar';
 import NotificationItem from './components/NotificationItem';
 import VideoConference from './components/VideoConference';
