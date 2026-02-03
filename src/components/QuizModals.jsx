@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     X, Plus, Calendar, Trash, ImageIcon, Save, Trophy, BarChart3,
     CheckCircle2, TrendingUp, Users, Clock, ArrowRight, AlertCircle,
@@ -891,6 +891,20 @@ const TakeQuizModal = ({
     activeQuiz, darkMode, quizRemainingSeconds, quizResult, MascotStar,
     quizAnswers, setQuizAnswers, submitQuiz
 }) => {
+    // Pre-calculate shuffled options for matching questions to keep them stable during the quiz
+    const shuffledMatchingOptions = useMemo(() => {
+        if (!activeQuiz || !activeQuiz.items) return {};
+
+        const shuffledMap = {};
+        activeQuiz.items.forEach((item, idx) => {
+            if (item.type === 'matching' && item.pairs) {
+                // Shuffle only once and store
+                shuffledMap[idx] = [...item.pairs].sort(() => Math.random() - 0.5);
+            }
+        });
+        return shuffledMap;
+    }, [activeQuiz.firestoreId || activeQuiz.id]); // Re-shuffle only if it's a different quiz
+
     return (
         <div className="p-8 h-[80vh] flex flex-col">
             <div className={`mb-6 pb-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
@@ -1013,7 +1027,7 @@ const TakeQuizModal = ({
                                                             }}
                                                         >
                                                             <option value="">เลือกคำตอบ...</option>
-                                                            {[...item.pairs].sort(() => Math.random() - 0.5).map((p, optionIdx) => (
+                                                            {(shuffledMatchingOptions[idx] || []).map((p, optionIdx) => (
                                                                 <option key={optionIdx} value={p.right}>{p.right}</option>
                                                             ))}
                                                         </select>
