@@ -234,10 +234,28 @@ export const AssignmentDetailModal = ({
                 {/* 1. กรณีส่งงานเรียบร้อยแล้ว */}
                 {currentAssignmentData.status === 'submitted' ? (
                     <div className="space-y-3 animate-in fade-in">
-                        <div className="bg-[#F0FDF4] border border-[#96C68E] p-4 rounded-2xl flex items-center gap-3">
-                            <CheckCircle className="text-[#96C68E]" />
-                            <span className="text-slate-700 font-bold">ส่งงานเรียบร้อยแล้ว</span>
+                        <div className="bg-[#F0FDF4] border border-[#96C68E] p-4 rounded-2xl">
+                            <div className="flex items-center gap-3">
+                                <CheckCircle className="text-[#96C68E]" />
+                                <span className="text-slate-700 font-bold">ส่งงานเรียบร้อยแล้ว</span>
+                            </div>
+                            <div className="text-xs text-slate-500 mt-2 ml-10" >
+                                {currentAssignmentData.submittedAt ? (() => {
+                                    const submitted = new Date(currentAssignmentData.submittedAt);
+                                    const due = new Date(currentAssignmentData.dueDate);
+                                    const isLate = submitted > due;
+                                    const timeStr = submitted.toLocaleString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                                    if (isLate) {
+                                        const diffTime = submitted - due;
+                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                        return `ช้า ${diffDays} วัน (${timeStr})`;
+                                    } else {
+                                        return timeStr;
+                                    }
+                                })() : ''}
+                            </div>
                         </div>
+                        
 
                         <div className="space-y-2">
                             {currentAssignmentData.submittedFiles?.map((file, idx) => (
