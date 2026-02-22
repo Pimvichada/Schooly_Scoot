@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle, Moon, Sun, Instagram, Check } from 'lucide-react';
+import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle, Moon, Sun, Instagram, Check, ChevronLeft } from 'lucide-react';
 import { loginUser, resetPassword, setAuthPersistence, registerUser, authenticateWithGoogle, completeGoogleRegistration } from '../services/authService';
 import logo_Schooly from '../assets/logo_Schooly.png';
 import Lalitwadee from '../assets/member/m1.jpg';
@@ -15,7 +15,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     };
 
     // Auth State
-    const [isFlipped, setIsFlipped] = useState(false); // Controls the flip
+    const [authMode, setAuthMode] = useState('login'); // 'login', 'register', 'forgot', 'sent'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [selectedRole, setSelectedRole] = useState('student');
@@ -68,18 +68,23 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
         }
     };
 
-    const handleForgotPassword = async () => {
+    const handleForgotPasswordSubmit = async (e) => {
+        if (e) e.preventDefault();
+        setError('');
         if (!email) {
             setError('กรุณากรอกอีเมลเพื่อรีเซ็ตรหัสผ่าน');
             return;
         }
+        setLoading(true);
         try {
             await resetPassword(email);
-            alert('ส่งลิงก์รีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว');
+            setAuthMode('sent');
             setError('');
         } catch (err) {
             console.error(err);
-            setError('ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้');
+            setError('ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้ หรืออีเมลไม่ถูกต้อง');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -186,6 +191,19 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                 .shape-4 { animation: float 7s ease-in-out infinite 1s; }
                 .shape-5 { animation: drift 12s ease-in-out infinite reverse; }
                 
+                @keyframes shake {
+                  0%, 100% { transform: translateX(0); }
+                  25% { transform: translateX(-5px); }
+                  75% { transform: translateX(5px); }
+                }
+                .animate-shake { animation: shake 0.5s ease-in-out; }
+                
+                @keyframes bounce-slow {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(-10px); }
+                }
+                .animation-bounce-slow { animation: bounce-slow 3s ease-in-out infinite; }
+                
                 .login-btn { 
                     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
                 }
@@ -244,8 +262,8 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
             <div ref={loginSectionRef} className="min-h-screen w-full flex flex-col items-center justify-center relative z-10 px-4 font-kanit py-20 pb-32 overflow-hidden">
 
                 {/* Background Blobs (Pastel) */}
-                <div className="absolute top-20 right-20 w-64 h-64 bg-[#ffef92] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob"></div>
-                <div className="absolute bottom-20 left-20 w-80 h-80 bg-[#add8f7] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000"></div>
+                <div className="absolute top-20 right-20 w-64 h-64 bg-[#ffef92] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob pointer-events-none"></div>
+                <div className="absolute bottom-20 left-20 w-80 h-80 bg-[#add8f7] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000 pointer-events-none"></div>
 
                 {/* Google Modal Overlay */}
                 {showGoogleModal && (
@@ -310,23 +328,25 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                 {/* TAB-BASED AUTH SECTION */}
                 <div className={`w-full max-w-md p-8  mb-50 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90 ${darkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-white/50'}`}>
                     {/* Tab Switcher */}
-                    <div className="flex justify-center mb-8 space-x-8">
-                        <button
-                            onClick={() => { setIsFlipped(false); setError(''); }}
-                            className={`text-xl font-black pb-2 transition-all duration-300 ${!isFlipped ? 'border-b-4 border-[#96C68E] text-[#96C68E] scale-105' : 'border-b-4 border-transparent text-gray-300 hover:text-[#96C68E]/50'}`}
-                        >
-                            เข้าสู่ระบบ
-                        </button>
-                        <button
-                            onClick={() => { setIsFlipped(true); setError(''); }}
-                            className={`text-xl font-black pb-2 transition-all duration-300 ${isFlipped ? 'border-b-4 border-[#FF917B] text-[#FF917B] scale-105' : 'border-b-4 border-transparent text-gray-300 hover:text-[#FF917B]/50'}`}
-                        >
-                            ลงทะเบียน
-                        </button>
-                    </div>
+                    {(authMode === 'login' || authMode === 'register') && (
+                        <div className="flex justify-center mb-8 space-x-8">
+                            <button
+                                onClick={() => { setAuthMode('login'); setError(''); }}
+                                className={`text-xl font-black pb-2 transition-all duration-300 ${authMode === 'login' ? 'border-b-4 border-[#96C68E] text-[#96C68E] scale-105' : 'border-b-4 border-transparent text-gray-300 hover:text-[#96C68E]/50'}`}
+                            >
+                                เข้าสู่ระบบ
+                            </button>
+                            <button
+                                onClick={() => { setAuthMode('register'); setError(''); }}
+                                className={`text-xl font-black pb-2 transition-all duration-300 ${authMode === 'register' ? 'border-b-4 border-[#FF917B] text-[#FF917B] scale-105' : 'border-b-4 border-transparent text-gray-300 hover:text-[#FF917B]/50'}`}
+                            >
+                                ลงทะเบียน
+                            </button>
+                        </div>
+                    )}
 
                     {/* LOGIN FORM */}
-                    {!isFlipped ? (
+                    {authMode === 'login' ? (
                         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl flex items-center text-xs font-bold"><AlertCircle size={16} className="mr-2 flex-shrink-0" />{error}</div>}
                             <form onSubmit={handleLoginSubmit} className="space-y-4">
@@ -360,14 +380,14 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                                         <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-5 h-5 rounded-lg border-2 border-slate-300 text-[#96C68E] focus:ring-[#96C68E] mr-2 accent-[#96C68E] transition-transform active:scale-90" />
                                         จดจำฉัน
                                     </label>
-                                    <button type="button" onClick={handleForgotPassword} className="text-sm text-gray-400 hover:text-[#FF917B] underline underline-offset-4 font-bold transition-colors">ลืมรหัสผ่าน?</button>
+                                    <button type="button" onClick={() => { setAuthMode('forgot'); setError(''); }} className="text-sm text-gray-400 hover:text-[#FF917B] underline underline-offset-4 font-bold transition-colors">ลืมรหัสผ่าน?</button>
                                 </div>
                                 <button type="submit" disabled={loading} className="w-full bg-[#96C68E] text-white py-4 rounded-3xl font-black text-lg hover:bg-[#85b57d] hover:-translate-y-1 transition-all shadow-[0_10px_20px_-10px_rgba(150,198,142,0.5)] active:scale-95 disabled:opacity-70 border-b-4 border-[#7aa874] active:border-b-0 active:translate-y-1">
                                     {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                                 </button>
                             </form>
                         </div>
-                    ) : (
+                    ) : authMode === 'register' ? (
                         /* REGISTER FORM */
                         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl flex items-center text-xs font-bold"><AlertCircle size={16} className="mr-2 flex-shrink-0" />{error}</div>}
@@ -440,19 +460,73 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                                 </button>
                             </form>
                         </div>
+                    ) : authMode === 'forgot' ? (
+                        /* FORGOT PASSWORD FORM */
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-[#ffef92] rounded-full mx-auto mb-4 flex items-center justify-center text-[#d1b000]">
+                                    <Lock size={32} />
+                                </div>
+                                <h2 className={`text-2xl font-black mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>ลืมรหัสผ่าน?</h2>
+                                <p className={darkMode ? 'text-slate-400' : 'text-slate-500 text-sm'}>ไม่ต้องกังวล! กรอกอีเมลของคุณเพื่อรับลิงก์รีเซ็ต</p>
+                            </div>
+                            {error && <div className={`${darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-500'} p-4 rounded-xl flex items-center text-xs font-bold shadow-sm animate-shake`}><AlertCircle size={16} className="mr-2 flex-shrink-0" />{error}</div>}
+                            <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                                <div>
+                                    <label className={`block text-sm font-bold mb-2 pl-2 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>อีเมลของคุณ</label>
+                                    <input
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="example@email.com"
+                                        className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#BEE1FF] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(190,225,255,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
+                                    />
+                                </div>
+                                <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white py-4 rounded-3xl font-black text-lg hover:bg-slate-800 hover:-translate-y-1 transition-all shadow-xl active:scale-95 disabled:opacity-70 mt-4">
+                                    {loading ? 'กำลังส่ง...' : 'ส่งลิงก์รีเซ็ตรหัสผ่าน'}
+                                </button>
+                                <button type="button" onClick={() => { setAuthMode('login'); setError(''); }} className="w-full text-slate-400 hover:text-slate-600 font-bold transition-colors flex items-center justify-center gap-2 py-2">
+                                    <ChevronLeft size={18} />
+                                    กลับไปยังหน้าเข้าสู่ระบบ
+                                </button>
+                            </form>
+                        </div>
+                    ) : (
+                        /* PASSWORD RESET SENT SUCCESS */
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-4">
+                            <div className="w-20 h-20 bg-[#96C68E] rounded-full mx-auto mb-6 flex items-center justify-center text-white shadow-lg animation-bounce-slow">
+                                <Check size={40} strokeWidth={3} />
+                            </div>
+                            <h2 className={`text-3xl font-black mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>ส่งเรียบร้อย!</h2>
+                            <div className={`space-y-3 px-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                <p className="font-medium">เราได้ส่งคำแนะนำในการรีเซ็ตรหัสผ่านไปให้คุณแล้วที่</p>
+                                <p className={`font-black text-lg truncate px-4 py-2 rounded-2xl border transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-[#96C68E]' : 'bg-slate-50 border-slate-100 text-[#96C68E]'}`}>{email}</p>
+                                <p className="text-xs italic mt-4">*หากไม่พบ ลองเช็คในกล่องอีเมลขยะ (Spam) ดูนะ</p>
+                            </div>
+                            <button
+                                onClick={() => { setAuthMode('login'); setError(''); }}
+                                className="w-full bg-[#96C68E] text-white py-4 rounded-3xl font-black text-lg hover:bg-[#85b57d] hover:-translate-y-1 transition-all shadow-xl active:scale-95 mt-6 border-b-4 border-[#7aa874] active:border-b-0 active:translate-y-1"
+                            >
+                                เข้าสู่ระบบตอนนี้
+                            </button>
+                        </div>
                     )}
 
                     {/* Divider */}
-                    <div className="relative my-8">
-                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
-                        <div className="relative flex justify-center text-xs font-black"><span className="px-4 bg-white text-gray-300">OR</span></div>
-                    </div>
+                    {(authMode === 'login' || authMode === 'register') && (
+                        <>
+                            <div className="relative my-8">
+                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100"></div></div>
+                                <div className="relative flex justify-center text-xs font-black"><span className={`px-4 ${darkMode ? 'bg-slate-900 text-slate-700' : 'bg-white text-gray-300'}`}>OR</span></div>
+                            </div>
 
-                    {/* Google Login Button */}
-                    <button onClick={handleGoogleLogin} className={`w-full border-2 flex items-center justify-center space-x-3 py-3.5 rounded-3xl font-bold transition-all active:scale-95 group ${darkMode ? 'border-slate-700 hover:bg-slate-800 hover:border-[#FFE787]' : 'border-gray-100 hover:bg-[#FFE787]/20 hover:border-[#FFE787]'}`}>
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 group-hover:scale-110 transition-transform" alt="Google" />
-                        <span className={`${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-800'}`}>เข้าสู่ระบบด้วย Google</span>
-                    </button>
+                            {/* Google Login Button */}
+                            <button onClick={handleGoogleLogin} className={`w-full border-2 flex items-center justify-center space-x-3 py-3.5 rounded-3xl font-bold transition-all active:scale-95 group ${darkMode ? 'border-slate-700 hover:bg-slate-800 hover:border-[#FFE787]' : 'border-gray-100 hover:bg-[#FFE787]/20 hover:border-[#FFE787]'}`}>
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6 group-hover:scale-110 transition-transform" alt="Google" />
+                                <span className={`${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-800'}`}>เข้าสู่ระบบด้วย Google</span>
+                            </button>
+                        </>
+                    )}
                 </div>
 
 

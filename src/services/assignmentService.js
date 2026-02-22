@@ -95,13 +95,17 @@ export const getAssignments = async (courseName, uid, role) => {
                         const subs = subSnapshot.docs.map(doc => doc.data());
                         return {
                             ...assignment,
-                            status: 'submitted',
+                            status: subSnapshot.empty ? 'pending' : (pendingCount > 0 ? 'pending_review' : 'submitted'),
                             submissionCount: subSnapshot.size,
-                            submissions: subs // Return full details
+                            pendingCount: pendingCount,
+                            submissions: subs
                         };
                     }
                     return {
                         ...assignment,
+                        status: 'pending',
+                        submissionCount: 0,
+                        pendingCount: 0,
                         submissions: []
                     };
                 } catch (err) {

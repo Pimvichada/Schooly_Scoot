@@ -23,8 +23,14 @@ const AssignmentsView = ({
     const filteredAssignments = userAssignments.filter(assign => {
         if (assignmentFilter === 'all') return true;
         if (assignmentFilter === 'pending') {
+            if (userRole === 'teacher') {
+                return (assign.pendingCount > 0) || (assign.status === 'pending_review');
+            }
             return assign.status === 'pending' || assign.status === 'late';
         } else { // submitted
+            if (userRole === 'teacher') {
+                return (assign.submissionCount > 0 && assign.pendingCount === 0);
+            }
             return assign.status === 'submitted';
         }
     });
@@ -55,7 +61,11 @@ const AssignmentsView = ({
                             : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
                             }`}
                     >
-                        {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({userAssignments.filter(a => a.status !== 'submitted').length})
+                        {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({
+                            userRole === 'teacher'
+                                ? userAssignments.filter(a => a.pendingCount > 0 || a.status === 'pending_review').length
+                                : userAssignments.filter(a => a.status !== 'submitted').length
+                        })
                     </button>
                     <button
                         onClick={() => setAssignmentFilter('submitted')}
@@ -64,7 +74,11 @@ const AssignmentsView = ({
                             : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
                             }`}
                     >
-                        {userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว'} ({userAssignments.filter(a => a.status === 'submitted').length})
+                        {userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว'} ({
+                            userRole === 'teacher'
+                                ? userAssignments.filter(a => a.submissionCount > 0 && (a.pendingCount === 0 && a.status !== 'pending_review')).length
+                                : userAssignments.filter(a => a.status === 'submitted').length
+                        })
                     </button>
                 </div>
             </div>
@@ -76,10 +90,14 @@ const AssignmentsView = ({
                             <div key={assign.id} className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${assign.status === 'pending' ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
-                                            assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') : (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
+                                        <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${(assign.status === 'pending' || assign.status === 'pending_review') ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
+                                                assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') :
+                                                    (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
                                             }`}>
-                                            {assign.status === 'pending' ? 'รอส่ง' : assign.status === 'submitted' ? 'ส่งแล้ว' : 'เลยกำหนด'}
+                                            {assign.status === 'pending' ? (userRole === 'teacher' ? 'รอส่ง' : 'รอส่ง') :
+                                                assign.status === 'pending_review' ? 'รอตรวจ' :
+                                                    assign.status === 'submitted' ? (userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว') :
+                                                        'เลยกำหนด'}
                                         </span>
                                         <span className="text-xs text-slate-500">{assign.course}</span>
                                     </div>
@@ -255,7 +273,7 @@ export const AssignmentDetailModal = ({
                                 })() : ''}
                             </div>
                         </div>
-                        
+
 
                         <div className="space-y-2">
                             {currentAssignmentData.submittedFiles?.map((file, idx) => (
@@ -756,21 +774,31 @@ export const GradingModal = ({
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="py-3 text-center flex items-center justify-center gap-2">
-                                            {/* Unique ID for input using student ID */}
-                                            <input
-                                                type="text"
-                                                placeholder="-"
-                                                value={editingScores[student.firestoreId || student.id] || ""}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    setEditingScores(prev => ({
-                                                        ...prev,
-                                                        [student.firestoreId || student.id]: val
-                                                    }));
-                                                }}
-                                                className={`w-16 p-2 border rounded-lg text-center font-bold focus:border-[#96C68E] outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
-                                            />
+                                        <td className="py-3 text-center">
+                                            <div className="flex flex-col items-center gap-1">
+                                                <input
+                                                    type="text"
+                                                    placeholder="-"
+                                                    value={editingScores[student.firestoreId || student.id] || ""}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        // Allow only numbers and decimals
+                                                        if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
+
+                                                        setEditingScores(prev => ({
+                                                            ...prev,
+                                                            [student.firestoreId || student.id]: val
+                                                        }));
+                                                    }}
+                                                    className={`w-16 p-2 border rounded-lg text-center font-bold focus:border-[#96C68E] outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'} ${parseFloat(editingScores[student.firestoreId || student.id]) > parseFloat(selectedAssignment.maxScore || 10) ? 'border-red-500' : ''
+                                                        }`}
+                                                />
+                                                {parseFloat(editingScores[student.firestoreId || student.id]) > parseFloat(selectedAssignment.maxScore || 10) && (
+                                                    <span className="text-[10px] text-red-500 font-bold whitespace-nowrap animate-in fade-in duration-200">
+                                                        กรอกคะแนนได้ไม่เกิน {selectedAssignment.maxScore || 10}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 )) : (
@@ -818,6 +846,21 @@ export const GradingModal = ({
                         onClick={async () => {
                             try {
                                 const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
+                                const maxScore = parseFloat(selectedAssignment.maxScore || 10);
+
+                                // Pre-validate all scores before saving
+                                for (const student of submissions) {
+                                    const subId = student.firestoreId || student.id;
+                                    const val = editingScores[subId];
+                                    if (val !== "" && val !== null && val !== undefined) {
+                                        const numericVal = parseFloat(val);
+                                        if (isNaN(numericVal) || numericVal > maxScore || numericVal < 0) {
+                                            alert(`สามารถกรอกคะแนนได้ตามที่กำหนดไว้เท่านั้น`);
+                                            return;
+                                        }
+                                    }
+                                }
+
                                 const savePromises = submissions.map(async (student) => {
                                     const subId = student.firestoreId || student.id;
                                     const newScore = editingScores[subId];
