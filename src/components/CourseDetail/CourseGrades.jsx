@@ -27,7 +27,7 @@ const CourseGrades = ({
                         <tr>
                             <th className="p-4 font-bold">รายการสอบ</th>
                             <th className="p-4 font-bold">คะแนน</th>
-                            <th className="p-4 font-bold">วันที่สอบ</th>
+                            <th className="p-4 font-bold">วันที่เปิดสอบ</th>
                             <th className="p-4 font-bold text-right">ผลลัพธ์</th>
                         </tr>
                     </thead>
@@ -52,8 +52,8 @@ const CourseGrades = ({
                                             )
                                         )}
                                     </td>
-                                    <td className={`p-4 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                                        {submission ? new Date(submission.submittedAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                    <td className="p-4 text-sm text-red-500">
+                                        {quiz.status === 'inactive' && quiz.activatedAt ? new Date(quiz.activatedAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : (quiz.scheduledAt ? new Date(quiz.scheduledAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : (quiz.createdAt ? new Date(quiz.createdAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'))}
                                     </td>
                                     <td className="p-4 text-right">
                                         {userRole === 'teacher' ? (
@@ -95,7 +95,8 @@ const CourseGrades = ({
                         <tr>
                             <th className="p-4 font-bold">ชื่องาน</th>
                             <th className="p-4 font-bold">คะแนน</th>
-                            <th className="p-4 font-bold">วันที่ส่ง</th>
+                            <th className="p-4 font-bold">วันที่สั่งงาน</th>
+                            <th className="p-4 font-bold">วันที่กำหนดส่ง</th>
                             <th className="p-4 font-bold text-right">ผลลัพธ์</th>
                         </tr>
                     </thead>
@@ -113,7 +114,10 @@ const CourseGrades = ({
                                     )}
                                 </td>
                                 <td className={`p-4 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
-                                    {assign.status === 'submitted' && assign.submittedAt ? new Date(assign.submittedAt).toLocaleDateString('th-TH') : '-'}
+                                    {assign.createdAt ? new Date(assign.createdAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                </td>
+                                <td className={`p-4 text-sm ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                                    {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
                                 </td>
                                 <td className="p-4 text-right">
                                     {userRole === 'teacher' ? (
@@ -136,7 +140,7 @@ const CourseGrades = ({
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan="4" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีการบ้าน</td>
+                                <td colSpan="5" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีการบ้าน</td>
                             </tr>
                         )}
                     </tbody>
