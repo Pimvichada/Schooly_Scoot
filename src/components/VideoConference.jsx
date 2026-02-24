@@ -70,8 +70,8 @@ const VideoConference = ({ meetingConfig, profile, isMinimized, onMinimize, onRe
     return (
         <div
             className={`fixed z-[100] bg-slate-900 shadow-2xl overflow-hidden transition-shadow duration-300 ease-in-out origin-bottom-right
-                right-[2.5vw] bottom-[2.5vh] w-[95vw] h-[95vh] rounded-[2.5rem] border-[6px] border-white
-                ${isMinimized ? 'cursor-grab active:cursor-grabbing hover:border-[#FF917B]' : ''}`}
+                right-[2.5vw] bottom-[2.5vh] w-[95vw] h-[95vh] rounded-[2.5rem] ring-4 ring-white
+                ${isMinimized ? 'cursor-grab active:cursor-grabbing hover:ring-[#FF917B]' : ''}`}
             onClick={handleClick}
             onMouseDown={handleMouseDown}
             style={{
@@ -86,7 +86,7 @@ const VideoConference = ({ meetingConfig, profile, isMinimized, onMinimize, onRe
             }}
         >
             {/* 1. Header (Absolute Overlay) - Fades out when minimized */}
-            <div className={`absolute top-0 left-0 right-0 z-20 bg-[#BEE1FF]/95 backdrop-blur-sm p-5 flex justify-between items-center border-b-2 border-[#96C68E]/20 transition-opacity duration-300 ${isMinimized ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <div className={`absolute top-0 left-0 right-0 z-[300] bg-[#BEE1FF]/95 backdrop-blur-sm p-3 flex justify-between items-center border-b border-[#96C68E]/20 transition-opacity duration-300 ${isMinimized ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                 <div className="flex items-center gap-4">
                     <div className="bg-[#FF917B] p-3 rounded-2xl shadow-sm rotate-3">
                         <Video size={24} className="text-white" />
@@ -129,8 +129,11 @@ const VideoConference = ({ meetingConfig, profile, isMinimized, onMinimize, onRe
                 </div>
             </div>
 
-            {/* 3. Jitsi Iframe (Absolute Fullscreen) - NEVER MOVES, NEVER RESIZES */}
-            <div className="absolute inset-0 z-10 bg-[#F8FAFC]">
+            {/* Iframe Wrapper with higher z-index */}
+            <div className="absolute inset-0 z-[200]">
+
+                {/* 3. Jitsi Iframe (Absolute Fullscreen) - NEVER MOVES, NEVER RESIZES */}
+                <div className="absolute top-20 left-0 right-0 bottom-0 bg-[#F8FAFC]">
                 {/* Pointer events disabled when minimized so clicks go to container */}
                 <iframe
                     src={jitsiUrl}
@@ -142,9 +145,14 @@ const VideoConference = ({ meetingConfig, profile, isMinimized, onMinimize, onRe
                 <div className="absolute inset-0 bg-[#FFE787]/30 flex flex-col items-center justify-center z-[-1]">
                     <span className="text-[#4A4A4A] font-bold text-lg animate-pulse">Loading...</span>
                 </div>
+
             </div>
         </div >
+        </div>
     );
+    
 };
+
+
 
 export default VideoConference;
