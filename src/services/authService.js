@@ -10,6 +10,9 @@ import {
     setPersistence,
     browserLocalPersistence,
     browserSessionPersistence,
+    fetchSignInMethodsForEmail,
+    confirmPasswordReset,
+    verifyPasswordResetCode,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
@@ -234,6 +237,43 @@ export const updateUserProfile = async (uid, updateData) => {
 export const resetPassword = async (email) => {
     try {
         await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Check sign in methods for email
+ * @param {string} email 
+ */
+export const checkSignInMethods = async (email) => {
+    try {
+        return await fetchSignInMethodsForEmail(auth, email);
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Verify reset code
+ * @param {string} code 
+ */
+export const verifyResetCode = async (code) => {
+    try {
+        return await verifyPasswordResetCode(auth, code);
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Confirm password change
+ * @param {string} code 
+ * @param {string} newPassword 
+ */
+export const confirmPasswordChange = async (code, newPassword) => {
+    try {
+        await confirmPasswordReset(auth, code, newPassword);
     } catch (error) {
         throw error;
     }

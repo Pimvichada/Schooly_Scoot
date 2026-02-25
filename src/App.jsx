@@ -78,6 +78,7 @@ import { timeToMinutes, isOverlap, getCourseIcon, WELCOME_MESSAGES } from './uti
 import Sidebar, { MobileHeader, TopHeader } from './components/Sidebar';
 import NotificationItem, { NotificationModals } from './components/NotificationItem';
 import VideoConference from './components/VideoConference';
+import ResetPasswordPage from './components/ResetPasswordPage';
 import RegisterPage from './components/RegisterPage';
 import CalendarPage from './components/CalendarPage';
 import DashboardView from './components/DashboardView';
@@ -136,6 +137,14 @@ export default function SchoolyScootLMS() {
   // const [hiddenCourseIds, setHiddenCourseIds] = useState([]); // Handled by useAuthUser
   const [currentView, setCurrentView] = useState('landing');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'resetPassword') {
+      setIsResetMode(true);
+    }
+  }, []);
 
   // Meeting State - Handled by useMeeting
   // const [meetingConfig, setMeetingConfig] = useState({...});
@@ -1573,6 +1582,18 @@ export default function SchoolyScootLMS() {
   // IF NOT LOGGED IN, SHOW LOGIN PAGE
   // --- ส่วนตัดสินใจว่าจะแสดงหน้าไหนก่อนเข้าสู่ระบบ ---
   if (!isLoggedIn) {
+    if (isResetMode) {
+      return (
+        <ResetPasswordPage
+          darkMode={darkMode}
+          onBackToLogin={() => {
+            setIsResetMode(false);
+            setCurrentView('landing');
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }}
+        />
+      );
+    }
 
     if (currentView === 'register') {
       return (

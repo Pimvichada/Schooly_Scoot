@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { User, Lock, Mail, ArrowRight, Eye, EyeOff, AlertCircle, Moon, Sun, Instagram, Check, ChevronLeft } from 'lucide-react';
-import { loginUser, resetPassword, setAuthPersistence, registerUser, authenticateWithGoogle, completeGoogleRegistration } from '../services/authService';
+import { loginUser, resetPassword, setAuthPersistence, registerUser, authenticateWithGoogle, completeGoogleRegistration, checkSignInMethods } from '../services/authService';
 import logo_Schooly from '../assets/logo_Schooly.png';
 import Lalitwadee from '../assets/member/m1.jpg';
 import Pim from '../assets/member/m2.jpg';
@@ -33,6 +33,19 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     const [showGoogleModal, setShowGoogleModal] = useState(false);
     const [googleUser, setGoogleUser] = useState(null);
     const [googleFullName, setGoogleFullName] = useState('');
+
+    // Timer State
+    const [resendTimer, setResendTimer] = useState(0);
+
+    useEffect(() => {
+        let interval;
+        if (authMode === 'sent' && resendTimer > 0) {
+            interval = setInterval(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [authMode, resendTimer]);
 
     const handleScrollToLogin = () => {
         loginSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,12 +90,36 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
         }
         setLoading(true);
         try {
+            // Check sign-in methods
+            const methods = await checkSignInMethods(email);
+            if (methods && methods.includes('google.com')) {
+                setError('อีเมลนี้เชื่อมต่อกับ Google กรุณาล็อกอินผ่านปุ่ม Google แทนการรีเซ็ตรหัสผ่าน');
+                setLoading(false);
+                return;
+            }
+
             await resetPassword(email);
             setAuthMode('sent');
+            setResendTimer(60); // 60 seconds cooldown
             setError('');
         } catch (err) {
             console.error(err);
-            setError('ไม่สามารถส่งอีเมลรีเซ็ตรหัสผ่านได้ หรืออีเมลไม่ถูกต้อง');
+            setError('ไม่พบผู้ใช้งานนี้ในระบบ หรืออาจกรอกอีเมลไม่ถูกต้อง');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleResendEmail = async () => {
+        if (resendTimer > 0) return;
+        setLoading(true);
+        setError('');
+        try {
+            await resetPassword(email);
+            setResendTimer(60);
+        } catch (err) {
+            console.error(err);
+            setError('ไม่สามารถส่งอีเมลได้ กรุณาลองใหม่');
         } finally {
             setLoading(false);
         }
@@ -461,6 +498,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                             </form>
                         </div>
                     ) : authMode === 'forgot' ? (
+
                         /* FORGOT PASSWORD FORM */
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             <div className="text-center">
@@ -493,22 +531,44 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                         </div>
                     ) : (
                         /* PASSWORD RESET SENT SUCCESS */
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-4">
-                            <div className="w-20 h-20 bg-[#96C68E] rounded-full mx-auto mb-6 flex items-center justify-center text-white shadow-lg animation-bounce-slow">
-                                <Check size={40} strokeWidth={3} />
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="text-center">
+                                <div className="w-16 h-16 bg-[#ffef92] rounded-full mx-auto mb-4 flex items-center justify-center text-[#d1b000]">
+                                    <Mail size={32} />
+                                </div>
+                                <h2 className={`text-2xl font-black mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>ส่งเรียบร้อย!</h2>
+                                <p className={darkMode ? 'text-slate-400' : 'text-slate-500 text-sm'}>เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปให้คุณแล้ว</p>
                             </div>
-                            <h2 className={`text-3xl font-black mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>ส่งเรียบร้อย!</h2>
-                            <div className={`space-y-3 px-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                <p className="font-medium">เราได้ส่งคำแนะนำในการรีเซ็ตรหัสผ่านไปให้คุณแล้วที่</p>
-                                <p className={`font-black text-lg truncate px-4 py-2 rounded-2xl border transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-[#96C68E]' : 'bg-slate-50 border-slate-100 text-[#96C68E]'}`}>{email}</p>
-                                <p className="text-xs italic mt-4">*หากไม่พบ ลองเช็คในกล่องอีเมลขยะ (Spam) ดูนะ</p>
+
+                            {error && <div className={`${darkMode ? 'bg-red-900/30 text-red-400' : 'bg-red-50 text-red-500'} p-4 rounded-xl flex items-center text-xs font-bold shadow-sm animate-shake`}><AlertCircle size={16} className="mr-2 flex-shrink-0" />{error}</div>}
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className={`block text-sm font-bold mb-2 pl-2 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>อีเมลของคุณ</label>
+                                    <div className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent font-bold ${darkMode ? 'bg-slate-800 text-slate-100' : 'bg-[#f4f7f5] text-slate-700'}`}>
+                                        {email}
+                                    </div>
+                                </div>
+
+                                <div className="text-center text-sm font-medium mt-2">
+                                    <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
+                                        ลิงก์จะใช้ได้ภายใน 1 ชั่วโมง หากลิงก์หมดอายุหรือไม่ได้รับอีเมล กรุณากดส่งใหม่
+                                    </span>
+                                </div>
+
+                                <button
+                                    onClick={handleResendEmail}
+                                    disabled={resendTimer > 0 || loading}
+                                    className={`w-full py-4 rounded-3xl font-black text-lg transition-all mt-4 ${resendTimer > 0 ? 'bg-slate-300 text-slate-500 cursor-not-allowed border-none' : 'bg-slate-900 text-white hover:bg-slate-800 hover:-translate-y-1 active:scale-95 shadow-xl border-b-4 border-slate-700 active:border-b-0 active:translate-y-1'}`}
+                                >
+                                    {loading ? 'กำลังส่ง...' : resendTimer > 0 ? `ส่งอีเมลอีกครั้งใน (${resendTimer}s)` : 'ส่งลิงก์รีเซ็ตรหัสผ่านใหม่'}
+                                </button>
+
+                                <button type="button" onClick={() => { setAuthMode('login'); setError(''); setResendTimer(0); }} className="w-full text-slate-400 hover:text-slate-600 font-bold transition-colors flex items-center justify-center gap-2 py-2">
+                                    <ChevronLeft size={18} />
+                                    กลับไปยังหน้าเข้าสู่ระบบ
+                                </button>
                             </div>
-                            <button
-                                onClick={() => { setAuthMode('login'); setError(''); }}
-                                className="w-full bg-[#96C68E] text-white py-4 rounded-3xl font-black text-lg hover:bg-[#85b57d] hover:-translate-y-1 transition-all shadow-xl active:scale-95 mt-6 border-b-4 border-[#7aa874] active:border-b-0 active:translate-y-1"
-                            >
-                                เข้าสู่ระบบตอนนี้
-                            </button>
                         </div>
                     )}
 
