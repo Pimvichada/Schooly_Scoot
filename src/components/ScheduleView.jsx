@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
+import { getNormalizedSchedule } from '../utils/helpers.jsx';
 
 const ScheduleView = ({ darkMode, userRole, courses }) => {
     return (
@@ -10,18 +11,20 @@ const ScheduleView = ({ darkMode, userRole, courses }) => {
 
             <div className={`${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} rounded-3xl p-6 shadow-sm border`}>
                 {/* Dynamic Weekly View */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    {['จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์'].map((day, i) => {
-                        const dayOfWeek = i + 1; // 1=Mon, 5=Fri
-                        const dailyItems = courses.flatMap(c =>
-                            (c.schedule || []).filter(s => s.dayOfWeek === dayOfWeek).map(s => ({
-                                ...s,
-                                courseName: c.name,
-                                courseCode: c.code,
-                                teacher: c.teacher,
-                                color: c.color
-                            }))
-                        ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                    {['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'].map((day, i) => {
+                        const dayOfWeek = i; // 0=Sun, 1=Mon...
+                        const dailyItems = (courses || []).flatMap(c => {
+                            return getNormalizedSchedule(c)
+                                .filter(s => s._normalizedDay == dayOfWeek)
+                                .map(s => ({
+                                    ...s,
+                                    courseName: c.name || "Unknown Course",
+                                    courseCode: c.code || "",
+                                    teacher: c.teacher || "",
+                                    color: c.color || "bg-slate-100"
+                                }));
+                        }).sort((a, b) => (String(a.startTime || "00:00")).localeCompare(String(b.startTime || "00:00")));
 
                         return (
                             <div key={day} className="space-y-3">

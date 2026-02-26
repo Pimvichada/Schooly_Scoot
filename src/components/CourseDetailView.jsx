@@ -225,9 +225,17 @@ export const CourseModals = ({
     setJoinCode,
     handleJoinCourse
 }) => {
+    const [attemptedSubmit, setAttemptedSubmit] = React.useState(false);
+
+    React.useEffect(() => {
+        if (newCourseData?.scheduleItems?.length > 0) {
+            setAttemptedSubmit(false);
+        }
+    }, [newCourseData?.scheduleItems]);
+
     if (activeModal !== 'create' && activeModal !== 'join') return null;
 
-    const dayMap = { '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์' };
+    const dayMap = { '0': 'อาทิตย์', '1': 'จันทร์', '2': 'อังคาร', '3': 'พุธ', '4': 'พฤหัส', '5': 'ศุกร์', '6': 'เสาร์' };
 
     return (
         <>
@@ -235,7 +243,15 @@ export const CourseModals = ({
             {activeModal === 'create' && (
                 <div className="p-8">
                     <h2 className="text-3xl font-bold text-slate-800 mb-6 text-center">สร้างห้องเรียนใหม่</h2>
-                    <form className="space-y-6" onSubmit={handleCreateCourse}>
+                    <form className="space-y-6" onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) {
+                            setAttemptedSubmit(true);
+                            alert('ไม่สามารถสร้างห้องเรียนได้: กรุณาเพิ่มวันในตารางเรียนอย่างน้อย 1 วัน โดยการกดปุ่ม + (บวก)');
+                            return;
+                        }
+                        handleCreateCourse(e);
+                    }}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-slate-600 mb-2">ชื่อวิชา</label>
@@ -292,8 +308,8 @@ export const CourseModals = ({
 
                         {/* Schedule Builder */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-600 mb-2">ตารางเรียน</label>
-                            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+                            <label className="block text-sm font-bold text-slate-600 mb-2">ตารางเรียน <span className="text-red-500">*จำเป็นต้องเพิ่ม*</span></label>
+                            <div className={`bg-slate-50 p-6 rounded-2xl border ${attemptedSubmit && (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'} space-y-4`}>
                                 <div className="flex flex-wrap gap-4 items-end">
                                     <div className="flex-1 min-w-[120px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">วัน</label>
@@ -303,6 +319,8 @@ export const CourseModals = ({
                                             <option value="3">พุธ</option>
                                             <option value="4">พฤหัส</option>
                                             <option value="5">ศุกร์</option>
+                                            <option value="6">เสาร์</option>
+                                            <option value="0">อาทิตย์</option>
                                         </select>
                                     </div>
                                     <div className="flex-1 min-w-[120px]">
@@ -396,6 +414,17 @@ export const CourseModals = ({
                                 ))}
                             </div>
                         </div>
+
+                        {attemptedSubmit && (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) && (
+                            <div className="text-red-600 bg-red-50 p-4 rounded-xl flex items-center gap-3 font-bold border border-red-200 shadow-sm animate-pulse">
+                                <span className="text-2xl">⚠️</span>
+                                <div>
+                                    <h4 className="text-red-700">ไม่อนุญาตให้สร้างห้องเรียน!</h4>
+                                    <p className="text-sm text-red-600">กรุณาเลื่อนขึ้นไป <b>เลือกวัน เวลา</b> และกดปุ่ม <b className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded mx-1 pb-1">+ (บวก)</b> เพื่อตั้งตารางเรียนอย่างน้อย 1 วัน</p>
+                                </div>
+                            </div>
+                        )}
+
                         <button type="submit" className="w-full py-4 bg-[#96C68E] text-white rounded-xl font-bold text-xl mt-6 hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">สร้างห้องเรียน</button>
                     </form>
                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, MapPin, BookOpen } from 'lucide-react';
+import { getNormalizedSchedule } from '../utils/helpers.jsx';
 
 const HOLIDAYS = [
     // 2027 (Example future proofing or current year 2026/2027)
@@ -85,7 +86,9 @@ export default function CalendarPage({ courses = [], userRole = 'student', darkM
                         const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
 
                         const dayOfWeek = currentDayDate.getDay();
-                        const hasClass = courses.some(c => (c.schedule || []).some(s => s.dayOfWeek === dayOfWeek));
+                        const hasClass = (courses || []).some(c =>
+                            getNormalizedSchedule(c).some(s => s._normalizedDay == dayOfWeek)
+                        );
 
                         return (
                             <div

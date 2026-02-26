@@ -82,6 +82,7 @@ import ResetPasswordPage from './components/ResetPasswordPage';
 import RegisterPage from './components/RegisterPage';
 import CalendarPage from './components/CalendarPage';
 import DashboardView from './components/DashboardView';
+import { getNormalizedSchedule } from './utils/helpers.jsx';
 import CoursesView from './components/CoursesView';
 import AssignmentsView, { AssignmentDetailModal, CreateAssignmentModal, GradingModal } from './components/AssignmentsView';
 import ScheduleView from './components/ScheduleView';
@@ -314,7 +315,7 @@ export default function SchoolyScootLMS() {
     const loadAssignments = async () => {
       if (authLoading) return; // Wait for auth to be ready
 
-      await seedAssignments(); // Run once (safe check inside service)
+      // await seedAssignments(); // Run once (safe check inside service) - Commented out to avoid permission errors
       const uid = auth.currentUser ? auth.currentUser.uid : null;
       const fetched = await getAssignments(null, uid, userRole);
       setAssignments(fetched);
@@ -1245,6 +1246,11 @@ export default function SchoolyScootLMS() {
     e.preventDefault();
     if (!newCourseData.name || !newCourseData.code) {
       alert('กรุณากรอกชื่อวิชาและรหัสวิชา');
+      return;
+    }
+
+    if (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) {
+      alert('กรุณาเพิ่มวันในตารางเรียนอย่างน้อย 1 วัน โดยการกดปุ่ม + (บวก)');
       return;
     }
 

@@ -9,6 +9,7 @@ import {
     Bell,
     ClipboardCheck
 } from 'lucide-react';
+import { getNormalizedSchedule } from '../utils/helpers.jsx';
 import NotificationItem from './NotificationItem';
 import { Cute1, MascotTriangle } from './Mascots';
 
@@ -139,11 +140,11 @@ const DashboardView = ({
                             const now = new Date();
                             const currentHm = now.getHours() * 60 + now.getMinutes();
 
-                            const todaySchedule = courses.flatMap(c =>
-                                (c.schedule || [])
-                                    .filter(s => s.dayOfWeek === today)
+                            const todaySchedule = courses.flatMap(c => {
+                                return getNormalizedSchedule(c)
+                                    .filter(s => s._normalizedDay == today)
                                     .map(s => ({ ...s, subject: c.name, course: c }))
-                            ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                            }).sort((a, b) => (String(a.startTime || "00:00")).localeCompare(String(b.startTime || "00:00")));
 
                             if (todaySchedule.length === 0) {
                                 return (

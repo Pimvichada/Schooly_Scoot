@@ -71,3 +71,80 @@ export const getCourseIcon = (type) => {
         default: return <MascotStar className="w-12 h-12" />;
     }
 };
+
+export const getNormalizedSchedule = (course) => {
+    if (!course) return [];
+
+    // 1. Gather all potential schedule sources
+    const sources = [
+        course.schedule,
+        course.scheduleItems,
+        course.items,
+        course.days,
+        course.class_schedule,
+        course.courseSchedule,
+        course.timetable
+    ];
+
+    let items = [];
+    sources.forEach(raw => {
+        if (!raw) return;
+
+        // Handle Object-based structures (e.g., { "0": [...], "monday": [...] })
+        if (typeof raw === 'object' && !Array.isArray(raw)) {
+            Object.keys(raw).forEach(key => {
+                const val = raw[key];
+                if (Array.isArray(val)) {
+                    val.forEach(v => { if (v && typeof v === 'object') items.push({ ...v, _dayKey: key }); });
+                } else if (val && typeof val === 'object') {
+                    items.push({ ...val, _dayKey: key });
+                }
+            });
+        } else if (Array.isArray(raw)) {
+            items = [...items, ...raw];
+        }
+    });
+
+    const thaiDays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+    const engDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+    // 2. Normalize and Filter
+    return items.map(s => {
+        if (!s || typeof s !== 'object') return null;
+
+        // Find day field
+        let d = s.dayOfWeek !== undefined ? s.dayOfWeek :
+            s.day !== undefined ? s.day :
+                s.dayNum !== undefined ? s.dayNum :
+                    s.dayID !== undefined ? s.dayID :
+                        s.day_of_week !== undefined ? s.day_of_week :
+                            s.weekday !== undefined ? s.weekday :
+                                s._dayKey;
+
+        if (d === undefined || d === null) return null;
+
+        // Parse to 0-6
+        let val = parseInt(d);
+        if (isNaN(val)) {
+            const strD = d.toString().trim().toLowerCase();
+            const tIdx = thaiDays.findIndex(td => strD.includes(td.toLowerCase()) || td.toLowerCase().includes(strD));
+            if (tIdx !== -1) val = tIdx;
+            else {
+                const eIdx = engDays.findIndex(ed => strD.includes(ed) || ed.includes(strD));
+                if (eIdx !== -1) val = eIdx;
+            }
+        }
+
+        // Handle common 1-7 offsets (Assume 7 is sunday if 1 is monday, or catch other shifts)
+        if (val === 7) val = 0;
+
+        return {
+            ...s,
+            _normalizedDay: val,
+            startTime: s.startTime || s.start || "00:00",
+            endTime: s.endTime || s.end || "00:00",
+            room: s.room || s.location || "N/A"
+        };
+    }).filter(s => s !== null && s._normalizedDay !== null && !isNaN(s._normalizedDay));
+};
+
