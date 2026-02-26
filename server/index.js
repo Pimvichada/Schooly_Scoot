@@ -8,16 +8,22 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Firebase Admin
-// You MUST provide serviceAccountKey.json or set GOOGLE_APPLICATION_CREDENTIALS
+// You can provide serviceAccountKey.json or set FIREBASE_SERVICE_ACCOUNT environment variable
 try {
-  const serviceAccount = require('./serviceAccountKey.json');
+  let serviceAccount;
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    serviceAccount = require('./serviceAccountKey.json');
+  }
+
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
   });
   console.log("Firebase Admin Initialized");
 } catch (error) {
   console.error("Error initializing Firebase Admin:", error.message);
-  console.error("Please ensure 'serviceAccountKey.json' is present in the server directory.");
+  console.error("Please ensure 'serviceAccountKey.json' is present or 'FIREBASE_SERVICE_ACCOUNT' env var is set.");
 }
 
 // Mock Database for Tokens (In production, use MongoDB/MySQL)
