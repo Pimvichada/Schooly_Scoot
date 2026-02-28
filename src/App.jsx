@@ -157,8 +157,25 @@ export default function SchoolyScootLMS() {
   const [courseTab, setCourseTab] = useState('home');
 
   // App Settings & UI State
-  const [fontSize, setFontSize] = useState(100);
-  const [darkMode, setDarkMode] = useState(false);
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('schooly_font_size');
+    return saved !== null ? parseInt(saved) : 100;
+  });
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('schooly_dark_mode');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+
+  // Persist Font Size
+  useEffect(() => {
+    localStorage.setItem('schooly_font_size', fontSize.toString());
+  }, [fontSize]);
+
+  // Persist Dark Mode
+  useEffect(() => {
+    localStorage.setItem('schooly_dark_mode', JSON.stringify(darkMode));
+  }, [darkMode]);
+
   const [scheduleForm, setScheduleForm] = useState({ day: '1', start: '', end: '', room: '' });
   const [editingScheduleIndex, setEditingScheduleIndex] = useState(null);
 

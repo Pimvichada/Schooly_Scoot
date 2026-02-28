@@ -32,9 +32,13 @@ const EditPostModal = ({ post, onClose, onSave }) => {
                     <textarea
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
+                        maxLength={500}
                         className="w-full h-40 bg-slate-50 border-none rounded-2xl p-4 text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none"
                         placeholder="เขียนเนื้อหาใหม่..."
                     />
+                    <div className={`text-right text-xs font-bold mt-2 ${content.length >= 500 ? 'text-red-500' : 'text-slate-400'}`}>
+                        {content.length}/500
+                    </div>
                 </div>
 
                 <div className="p-6 bg-slate-50 flex gap-3 justify-end">

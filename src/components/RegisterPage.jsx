@@ -12,6 +12,7 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [nameLimitError, setNameLimitError] = useState('');
 
   // State for Google Registration Modal
   const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -19,7 +20,8 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
   const [googleFullName, setGoogleFullName] = useState('');
 
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
   });
@@ -43,7 +45,21 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    setFormData(prev => {
+      if (name === 'firstName' || name === 'lastName') {
+        if (value.length >= 20) {
+          setNameLimitError('จำกัดชื่อและนามสกุลสูงสุดช่องละ 20 ตัวอักษร');
+        } else {
+          // Only clear if the OTHER field isn't also at limit
+          const otherFieldName = name === 'firstName' ? 'lastName' : 'firstName';
+          if (prev[otherFieldName].length < 20) {
+            setNameLimitError('');
+          }
+        }
+      }
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -51,12 +67,38 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
     setError('');
     setLoading(true);
 
+    const validatePassword = (pass) => {
+      const hasUpper = /[A-Z]/.test(pass);
+      const hasLower = /[a-z]/.test(pass);
+      const hasNumber = /[0-9]/.test(pass);
+      const hasMinLen = pass.length >= 6;
+
+      if (!hasMinLen) return 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+      if (!hasUpper || !hasLower || !hasNumber) return 'รหัสผ่านต้องประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข';
+      return null;
+    };
+
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      setError('กรุณากรอกข้อมูลให้ครบถ้วน');
+      setLoading(false);
+      return;
+    }
+
+    const passError = validatePassword(formData.password);
+    if (passError) {
+      setError(passError);
+      setLoading(false);
+      return;
+    }
+
     try {
+      const combinedFullName = `${formData.firstName} ${formData.lastName}`.trim();
       await registerUser(formData.email, formData.password, {
         ...formData,
+        fullName: combinedFullName,
         role: selectedRole
       });
-      if (onRegister) onRegister({ ...formData, role: selectedRole });
+      if (onRegister) onRegister({ ...formData, fullName: combinedFullName, role: selectedRole });
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/email-already-in-use') {
@@ -167,14 +209,34 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
               <h3 className="text-xl font-bold text-slate-800 mb-4 text-center">ยืนยันข้อมูล</h3>
               <p className="text-sm text-slate-500 text-center mb-6">กรุณาตรวจสอบชื่อและเลือกสถานะของคุณ</p>
               <div className="space-y-4">
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input
-                    value={googleFullName}
-                    onChange={(e) => setGoogleFullName(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-[#96C68E]"
-                    placeholder="ชื่อ-นามสกุล"
-                  />
+                <div className="flex gap-4">
+                  <div className="relative flex-1">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input
+                      value={googleFullName.split(' ')[0] || ''}
+                      onChange={(e) => {
+                        const first = e.target.value.slice(0, 20);
+                        const last = googleFullName.split(' ')[1] || '';
+                        setGoogleFullName(`${first} ${last}`);
+                      }}
+                      maxLength={20}
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-[#96C68E]"
+                      placeholder="ชื่อ"
+                    />
+                  </div>
+                  <div className="relative flex-1">
+                    <input
+                      value={googleFullName.split(' ')[1] || ''}
+                      onChange={(e) => {
+                        const last = e.target.value.slice(0, 20);
+                        const first = googleFullName.split(' ')[0] || '';
+                        setGoogleFullName(`${first} ${last}`);
+                      }}
+                      maxLength={20}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:border-[#96C68E]"
+                      placeholder="นามสกุล"
+                    />
+                  </div>
                 </div>
                 <div className="flex bg-slate-100 p-1 rounded-xl">
                   <button type="button" onClick={() => setSelectedRole('student')} className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${selectedRole === 'student' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400'}`}>นักเรียน</button>
@@ -201,20 +263,51 @@ export default function RegisterPage({ onRegister, onBackToLogin }) {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="relative group">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={18} />
-            <input name="fullName" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all" placeholder="ชื่อ-นามสกุล" />
+          <div className="flex gap-4">
+            <div className="relative group flex-1">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={18} />
+              <input
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+                maxLength={20}
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all"
+                placeholder="ชื่อ"
+              />
+            </div>
+            <div className="relative group flex-1">
+              <input
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+                maxLength={20}
+                className="w-full px-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all"
+                placeholder="นามสกุล"
+              />
+            </div>
           </div>
+          {nameLimitError && (
+            <div className="text-red-500 text-xs mt-1 ml-1 flex items-center animate-in fade-in slide-in-from-top-1 duration-200">
+              <AlertCircle size={12} className="mr-1" />
+              {nameLimitError}
+            </div>
+          )}
           <div className="relative group">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={18} />
-            <input type="email" name="email" onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all" placeholder="อีเมล" />
+            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all" placeholder="อีเมล" />
           </div>
           <div className="relative group">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#96C68E] transition-colors" size={18} />
-            <input type={showPassword ? "text" : "password"} name="password" onChange={handleChange} required className="w-full pl-12 pr-12 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all" placeholder="รหัสผ่าน" />
+            <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} required className="w-full pl-12 pr-12 py-4 rounded-2xl border border-slate-200 outline-none focus:border-[#96C68E] bg-white/50 focus:bg-white transition-all" placeholder="ตั้งรหัสผ่าน 6 ตัวขึ้นไป" />
             <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
+            <div className="text-slate-400 text-[10px] mt-2 ml-4 flex items-center animate-in fade-in duration-200">
+              <AlertCircle size={10} className="mr-1" />
+              ในการใส่รหัสต้องมีตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข
+            </div>
           </div>
 
           <button type="submit" disabled={loading} className={`w-full text-white py-4 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all ${selectedRole === 'student' ? 'bg-[#96C68E] hover:bg-[#85b57d]' : 'bg-[#FF917B] hover:bg-[#ff8672]'} disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center`}>

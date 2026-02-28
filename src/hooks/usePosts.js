@@ -34,6 +34,10 @@ export const usePosts = (uid, profile, selectedCourse) => {
     const handleCreatePost = async (e) => {
         if (e) e.preventDefault();
         if (!newPostContent.trim() && newPostFiles.length === 0) return;
+        if (newPostContent.length > 500) {
+            alert("ข้อความประกาศต้องไม่เกิน 500 ตัวอักษร");
+            return;
+        }
         if (!selectedCourse?.firestoreId || !uid) return;
 
         try {

@@ -27,7 +27,8 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     const [rememberMe, setRememberMe] = useState(false);
 
     // Register Form State
-    const [regFormData, setRegFormData] = useState({ fullName: '', email: '', password: '' });
+    const [regFormData, setRegFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
+    const [regNameLimitError, setRegNameLimitError] = useState('');
 
     // Google Modal State
     const [showGoogleModal, setShowGoogleModal] = useState(false);
@@ -127,16 +128,56 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
 
     // --- REGISTER LOGIC ---
     const handleRegChange = (e) => {
-        setRegFormData({ ...regFormData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        setRegFormData(prev => {
+            if (name === 'firstName' || name === 'lastName') {
+                if (value.length >= 20) {
+                    setRegNameLimitError('จำกัดชื่อและนามสกุลสูงสุดช่องละ 20 ตัวอักษร');
+                } else {
+                    const otherFieldName = name === 'firstName' ? 'lastName' : 'firstName';
+                    if (prev[otherFieldName].length < 20) {
+                        setRegNameLimitError('');
+                    }
+                }
+            }
+            return { ...prev, [name]: value };
+        });
     };
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
+        const validatePassword = (pass) => {
+            const hasUpper = /[A-Z]/.test(pass);
+            const hasLower = /[a-z]/.test(pass);
+            const hasNumber = /[0-9]/.test(pass);
+            const hasMinLen = pass.length >= 6;
+
+            if (!hasMinLen) return 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร';
+            if (!hasUpper || !hasLower || !hasNumber) return 'รหัสผ่านต้องประกอบด้วยตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข';
+            return null;
+        };
+
+        if (!regFormData.firstName || !regFormData.lastName || !regFormData.email || !regFormData.password) {
+            setError('กรุณากรอกข้อมูลให้ครบถ้วน');
+            setLoading(false);
+            return;
+        }
+
+        const passError = validatePassword(regFormData.password);
+        if (passError) {
+            setError(passError);
+            setLoading(false);
+            return;
+        }
+
         try {
+            const combinedFullName = `${regFormData.firstName} ${regFormData.lastName}`.trim();
             await registerUser(regFormData.email, regFormData.password, {
                 ...regFormData,
+                fullName: combinedFullName,
                 role: selectedRole
             });
             // Success will trigger auth change
@@ -318,12 +359,33 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                             <div className="space-y-6 relative z-10">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2 pl-2">ชื่อของคุณ</label>
-                                    <input
-                                        value={googleFullName}
-                                        onChange={(e) => setGoogleFullName(e.target.value)}
-                                        className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-black font-medium"
-                                        placeholder="ระบุชื่อเรียกในระบบ"
-                                    />
+                                    <div className="flex gap-4">
+                                        <input
+                                            value={googleFullName.split(' ')[0] || ''}
+                                            onChange={(e) => {
+                                                const first = e.target.value.slice(0, 20);
+                                                const last = googleFullName.split(' ')[1] || '';
+                                                setGoogleFullName(`${first} ${last}`);
+                                            }}
+                                            maxLength={20}
+                                            className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-black font-medium"
+                                            placeholder="ชื่อ"
+                                        />
+                                        <input
+                                            value={googleFullName.split(' ')[1] || ''}
+                                            onChange={(e) => {
+                                                const last = e.target.value.slice(0, 20);
+                                                const first = googleFullName.split(' ')[0] || '';
+                                                setGoogleFullName(`${first} ${last}`);
+                                            }}
+                                            maxLength={20}
+                                            className="w-full px-6 py-4 rounded-2xl bg-gray-50 border-none outline-none focus:ring-2 focus:ring-black font-medium"
+                                            placeholder="นามสกุล"
+                                        />
+                                    </div>
+                                    {(googleFullName.split(' ')[0]?.length >= 20 || googleFullName.split(' ')[1]?.length >= 20) && (
+                                        <p className="text-red-500 text-[10px] mt-1 ml-2 font-bold animate-in fade-in">จำกัดชื่อและนามสกุลสูงสุดช่องละ 20 ตัวอักษร</p>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-3 pl-2">คุณต้องการใช้ในฐานะอะไร?</label>
@@ -411,6 +473,10 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
                                     </div>
+                                    <div className="text-slate-400 text-[10px] mt-2 ml-4 flex items-center animate-in fade-in duration-200">
+                                        <AlertCircle size={10} className="mr-1" />
+                                        ในการใส่รหัสต้องมีตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข
+                                    </div>
                                 </div>
                                 <div className="flex justify-between items-center px-2">
                                     <label className="flex items-center text-gray-500 text-sm cursor-pointer select-none hover:text-[#96C68E] font-bold transition-colors">
@@ -431,19 +497,41 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                             <form onSubmit={handleRegisterSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2 pl-2">ชื่อ-นามสกุล</label>
-                                    <input
-                                        name="fullName"
-                                        onChange={handleRegChange}
-                                        placeholder="สมชาย สกู๊ต"
-                                        className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
-                                    />
+                                    <div className="flex gap-3">
+                                        <input
+                                            name="firstName"
+                                            value={regFormData.firstName}
+                                            onChange={handleRegChange}
+                                            required
+                                            maxLength={20}
+                                            placeholder="ชื่อ"
+                                            className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
+                                        />
+                                        <input
+                                            name="lastName"
+                                            value={regFormData.lastName}
+                                            onChange={handleRegChange}
+                                            required
+                                            maxLength={20}
+                                            placeholder="นามสกุล"
+                                            className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
+                                        />
+                                    </div>
+                                    {regNameLimitError && (
+                                        <div className="text-red-500 text-[10px] mt-1 ml-4 font-bold flex items-center animate-in fade-in duration-200">
+                                            <AlertCircle size={10} className="mr-1" />
+                                            {regNameLimitError}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2 pl-2">อีเมล</label>
                                     <input
                                         type="email"
                                         name="email"
+                                        value={regFormData.email}
                                         onChange={handleRegChange}
+                                        required
                                         placeholder="yourname@email.com"
                                         className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                     />
@@ -454,13 +542,19 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                                         <input
                                             type={showPassword ? "text" : "password"}
                                             name="password"
+                                            value={regFormData.password}
                                             onChange={handleRegChange}
-                                            placeholder="ตั้งรหัสผ่าน 8 ตัวขึ้นไป"
+                                            required
+                                            placeholder="ตั้งรหัสผ่าน 6 ตัวขึ้นไป"
                                             className={`w-full px-6 py-4 rounded-3xl border-2 border-transparent focus:border-[#FF917B] outline-none transition-all font-bold placeholder:text-slate-300 focus:shadow-[0_0_0_4px_rgba(255,145,123,0.3)] ${darkMode ? 'bg-slate-800 text-slate-100 focus:bg-slate-700' : 'bg-[#f4f7f5] text-slate-700 focus:bg-white'}`}
                                         />
                                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#FF917B] transition-colors">
                                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
+                                    </div>
+                                    <div className="text-slate-400 text-[10px] mt-2 ml-4 flex items-center animate-in fade-in duration-200">
+                                        <AlertCircle size={10} className="mr-1" />
+                                        ในการใส่รหัสต้องมีตัวพิมพ์ใหญ่ ตัวพิมพ์เล็ก และตัวเลข
                                     </div>
                                 </div>
                                 <div>

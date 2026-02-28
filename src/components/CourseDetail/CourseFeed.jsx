@@ -110,9 +110,13 @@ const CourseFeed = ({
                             <textarea
                                 value={newPostContent}
                                 onChange={(e) => setNewPostContent(e.target.value)}
+                                maxLength={500}
                                 placeholder={`ประกาศบางอย่างให้กับชั้นเรียน ${selectedCourse.name}`}
                                 className={`w-full h-24 p-4 rounded-2xl border-none focus:ring-0 resize-none text-lg transition-all ${darkMode ? 'bg-slate-800 text-slate-100 placeholder-slate-500' : 'bg-slate-50 text-slate-700 placeholder-slate-400'}`}
                             />
+                            <div className={`text-right text-[10px] font-bold mt-1 ${newPostContent.length >= 500 ? 'text-red-500' : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
+                                {newPostContent.length}/500
+                            </div>
                         </div>
                     </div>
 
