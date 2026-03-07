@@ -109,8 +109,67 @@ const CreateExamModal = ({
     handleSaveExam,
     darkMode
 }) => {
+    const [showConfirm, setShowConfirm] = React.useState(false);
+
+    const onSaveClick = () => {
+        if (!newExam.title || newExam.items.some(i => !i.q)) {
+            alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
+        }
+
+        if (newExam.id) {
+            handleSaveExam(null); // Updating an existing quiz bypasses confirm
+        } else {
+            setShowConfirm(true); // Open the custom confirmation module instead of browser alert
+        }
+    };
+
     return (
-        <div className="p-8 h-full flex flex-col">
+        <div className="p-8 h-full flex flex-col relative">
+            {showConfirm && (
+                <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 rounded-[2rem] backdrop-blur-sm m-4">
+                    <div className={`p-8 rounded-3xl w-full max-w-sm shadow-2xl transform transition-all scale-100 opacity-100 flex flex-col gap-6 ${darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-100'}`}>
+                        <div className="flex items-center">
+                            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-4">
+                                <FileText size={24} />
+                            </div>
+                            <h3 className={`text-xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>ตั้งค่าการเผยแพร่</h3>
+                        </div>
+                        <p className={`text-sm leading-relaxed font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                            ต้องการเผยแพร่แบบทดสอบทันทีเลยหรือไม่?
+                            <br /><br />
+                            <span className="flex items-start mb-2"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5 shrink-0" /> เผยแพร่เลย: นักเรียนจะเห็นและได้รับการแจ้งเตือนทันที</span>
+                            <span className="flex items-start"><Clock className="w-4 h-4 mr-2 text-orange-500 mt-0.5 shrink-0" /> ยังไม่เปิดใช้งาน: เก็บไว้ก่อน ค่อยเปิดใช้งานและแจ้งเตือนภายหลัง</span>
+                        </p>
+                        <div className="flex flex-col gap-3 mt-2">
+                            <button
+                                onClick={() => {
+                                    setShowConfirm(false);
+                                    handleSaveExam(true); // available
+                                }}
+                                className="w-full py-3.5 rounded-2xl bg-[#96C68E] hover:bg-[#85b57d] text-white font-bold transition-all shadow-md active:scale-95 text-base"
+                            >
+                                เผยแพร่เลย
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowConfirm(false);
+                                    handleSaveExam(false); // closed
+                                }}
+                                className={`w-full py-3.5 rounded-2xl font-bold transition-all active:scale-95 text-base ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                            >
+                                ยังไม่เปิดใช้งาน
+                            </button>
+                            <button
+                                onClick={() => setShowConfirm(false)}
+                                className={`w-full py-2 font-bold text-sm opacity-60 hover:opacity-100 ${darkMode ? 'text-slate-300 hover:text-white' : 'text-slate-500 hover:text-slate-800'}`}
+                            >
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <h2 className={`text-2xl font-bold mb-6 flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                 <Plus className="mr-3 text-[#FF917B]" /> สร้างแบบทดสอบใหม่
             </h2>
@@ -449,7 +508,7 @@ const CreateExamModal = ({
                 </div>
             </div>
             <div className={`mt-4 pt-4 border-t flex justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                <button onClick={handleSaveExam} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
+                <button onClick={onSaveClick} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
                     <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
                 </button>
             </div>

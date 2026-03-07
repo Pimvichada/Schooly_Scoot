@@ -972,10 +972,15 @@ export default function SchoolyScootLMS() {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveExam = async () => {
+  const handleSaveExam = async (publishNowParam = null) => {
     if (!newExam.title || newExam.items.some(i => !i.q)) {
       alert('กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
+    }
+
+    let publishNow = true;
+    if (!newExam.id) {
+      publishNow = publishNowParam !== null ? publishNowParam : true;
     }
 
     try {
@@ -985,7 +990,7 @@ export default function SchoolyScootLMS() {
         questions: newExam.items.length,
         time: newExam.time,
         scheduledAt: newExam.scheduledAt || null, // Persist schedule
-        status: newExam.status || 'available', // Preserve status if editing, default available
+        status: newExam.id ? (newExam.status || 'available') : (publishNow ? 'available' : 'closed'),
         score: null,
         items: newExam.items.map(item => ({
           ...item,
@@ -1005,11 +1010,11 @@ export default function SchoolyScootLMS() {
       } else {
         // CREATE NEW
         const createdQuiz = await createQuiz(examData);
-        setQuizzes([...quizzes, createdQuiz]);
+        setQuizzes([...quizzes, { ...createdQuiz, status: examData.status }]);
         alert('สร้างแบบทดสอบเรียบร้อย');
 
         // Notify Students
-        if (selectedCourse?.studentIds) {
+        if (publishNow && selectedCourse?.studentIds) {
           const recipients = selectedCourse.studentIds.filter(id => id !== auth.currentUser.uid);
 
           await Promise.all(recipients.map(async (studentId) => {
@@ -1058,11 +1063,35 @@ export default function SchoolyScootLMS() {
       setQuizzes(prev => prev.map(q =>
         q.firestoreId === quiz.firestoreId ? { ...q, status: newStatus } : q
       ));
+
+      if (newStatus === 'available' && selectedCourse?.studentIds) {
+        const recipients = selectedCourse.studentIds.filter(id => id !== auth.currentUser.uid);
+
+        await Promise.all(recipients.map(async (studentId) => {
+          const isScheduled = !!quiz.scheduledAt;
+          const message = isScheduled
+            ? `แบบทดสอบ "${quiz.title}" เปิดให้เข้าทำได้ตามกำหนดเวลาแล้ว`
+            : `แบบทดสอบ "${quiz.title}" เปิดให้เข้าทำได้แล้ว`;
+
+          return createNotification(
+            studentId,
+            `เปิดใช้งานแบบทดสอบแล้ว: ${quiz.title}`,
+            'quiz',
+            message,
+            { courseId: selectedCourse.firestoreId, targetType: 'quiz', targetId: quiz.firestoreId }
+          );
+        }));
+        alert(`เปิดใช้งานแบบทดสอบ ${quiz.title} และแจ้งเตือนนักเรียนเรียบร้อยแล้ว`);
+      } else if (newStatus === 'closed') {
+        alert(`ปิดใช้งานแบบทดสอบ ${quiz.title} เรียบร้อยแล้ว`);
+      }
+
     } catch (error) {
       console.error("Failed to toggle status", error);
       alert('ไม่สามารถเปลี่ยนสถานะได้');
     }
   };
+
 
   const handleEditQuiz = (quiz) => {
     setNewExam({
