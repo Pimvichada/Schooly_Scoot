@@ -166,6 +166,7 @@ export default function SchoolyScootLMS() {
   }, [courses, selectedCourse]);
 
   const [courseTab, setCourseTab] = useState('home');
+  const [teacherProfile, setTeacherProfile] = useState(null);
 
   // App Settings & UI State
   const [fontSize, setFontSize] = useState(() => {
@@ -602,6 +603,29 @@ export default function SchoolyScootLMS() {
     };
     fetchMembers();
   }, [selectedCourse]);
+
+  // Fetch Teacher Profile when course selected
+  useEffect(() => {
+    const fetchTeacher = async () => {
+      if (selectedCourse?.ownerId) {
+        // If current user is the teacher, use own profile
+        if (userRole === 'teacher' && selectedCourse.ownerId === auth.currentUser?.uid) {
+          setTeacherProfile(profile);
+        } else {
+          try {
+            const data = await getUserDetails(selectedCourse.ownerId);
+            setTeacherProfile(data);
+          } catch (err) {
+            console.error("Error fetching teacher profile:", err);
+            setTeacherProfile(null);
+          }
+        }
+      } else {
+        setTeacherProfile(null);
+      }
+    };
+    fetchTeacher();
+  }, [selectedCourse?.firestoreId, selectedCourse?.ownerId, userRole, profile]);
 
 
 
@@ -1892,6 +1916,7 @@ export default function SchoolyScootLMS() {
                 selectedPostId={selectedPostId}
                 setSelectedPostId={setSelectedPostId}
                 profile={profile}
+                teacherProfile={teacherProfile}
                 newPostContent={newPostContent}
                 setNewPostContent={setNewPostContent}
                 newPostFiles={newPostFiles}

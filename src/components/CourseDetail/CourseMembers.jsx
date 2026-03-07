@@ -9,7 +9,8 @@ const CourseMembers = ({
     handleReject,
     selectedCourse,
     members,
-    handleLeaveCourse
+    handleLeaveCourse,
+    teacherProfile
 }) => {
     return (
         <div className={`rounded-3xl p-6 shadow-sm border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
@@ -58,7 +59,13 @@ const CourseMembers = ({
             {/* ครูผู้สอน */}
             <h3 className={`font-bold mb-4 text-lg border-b pb-2 ${darkMode ? 'text-orange-400 border-slate-800' : 'text-[#FF917B] border-slate-100'}`}>ครูผู้สอน</h3>
             <div className="flex items-center gap-4 mb-8">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${darkMode ? 'bg-orange-900/40 text-orange-400' : 'bg-[#FF917B] text-white'}`}>T</div>
+                {teacherProfile?.photoURL ? (
+                    <img src={teacherProfile.photoURL} alt={selectedCourse.teacher} className="w-10 h-10 rounded-full object-cover border-2 border-[#FF917B]/20" />
+                ) : (
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${darkMode ? 'bg-orange-900/40 text-orange-400' : 'bg-[#FF917B] text-white'}`}>
+                        {selectedCourse.teacher?.charAt(0) || 'T'}
+                    </div>
+                )}
                 <span className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedCourse.teacher}</span>
             </div>
 

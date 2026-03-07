@@ -68,7 +68,8 @@ const CourseDetailView = ({
     handleDeleteCourse,
     validateScheduleConflict,
     selectedPostId,
-    setSelectedPostId
+    setSelectedPostId,
+    teacherProfile
 }) => {
     const renderSubTabContent = () => {
         switch (courseTab) {
@@ -142,6 +143,7 @@ const CourseDetailView = ({
                         selectedCourse={selectedCourse}
                         members={members}
                         handleLeaveCourse={handleLeaveCourse}
+                        teacherProfile={teacherProfile}
                     />
                 );
             case 'grades':
@@ -198,6 +200,7 @@ const CourseDetailView = ({
                 selectedCourse={selectedCourse}
                 setSelectedCourse={setSelectedCourse}
                 darkMode={darkMode}
+                teacherProfile={teacherProfile}
             />
 
             <CourseTabs
