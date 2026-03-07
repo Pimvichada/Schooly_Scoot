@@ -85,7 +85,7 @@ const CourseClasswork = ({
                             <button
                                 onClick={async (e) => {
                                     e.stopPropagation();
-                                    if (window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่?')) {
+                                    if (await window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่?')) {
                                         try {
                                             await deleteAssignment(data.firestoreId || data.id);
                                             setAssignments(prev => prev.filter(c => c.id !== data.id));

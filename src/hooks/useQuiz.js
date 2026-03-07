@@ -99,7 +99,7 @@ export const useQuiz = (uid, profile, selectedCourse, activeModal, setActiveModa
     const handleSubmitQuiz = async (force = false) => {
         if (!uid || !activeQuiz) return;
 
-        if (!force && !confirm('ยืนยันที่จะส่งข้อสอบ?')) return;
+        if (!force && !await confirm('ยืนยันที่จะส่งข้อสอบ?')) return;
 
         let score = 0;
         let earnedPoints = 0;

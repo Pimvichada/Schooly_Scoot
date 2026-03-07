@@ -37,7 +37,7 @@ const CourseMeeting = ({
                             </button>
                             <button
                                 onClick={async () => {
-                                    if (confirm('ต้องการจบการสอนหรือไม่? นักเรียนทุกคนจะถูกตัดออกจากห้องเรียน')) {
+                                    if (await confirm('ต้องการจบการสอนหรือไม่? นักเรียนทุกคนจะถูกตัดออกจากห้องเรียน')) {
                                         try {
                                             setMeetingConfig({ ...meetingConfig, isActive: false });
                                             await updateCourse(selectedCourse.firestoreId, { meeting: { isActive: false } });

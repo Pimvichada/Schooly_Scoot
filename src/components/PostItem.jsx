@@ -250,8 +250,8 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
                                 {/* ปุ่มลบ */}
                                 <div className={`h-[1px] my-1 mx-2 ${darkMode ? 'bg-slate-700' : 'bg-slate-100'}`} />
                                 <button
-                                    onClick={() => {
-                                        if (window.confirm('ยืนยันการลบโพสต์?')) {
+                                    onClick={async () => {
+                                        if (await window.confirm('ยืนยันการลบโพสต์?')) {
                                             onDelete(post.id);
                                         }
                                         setShowOptions(false);

@@ -91,8 +91,8 @@ const AssignmentsView = ({
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${(assign.status === 'pending' || assign.status === 'pending_review') ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
-                                                assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') :
-                                                    (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
+                                            assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') :
+                                                (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
                                             }`}>
                                             {assign.status === 'pending' ? (userRole === 'teacher' ? 'รอส่ง' : 'รอส่ง') :
                                                 assign.status === 'pending_review' ? 'รอตรวจ' :
@@ -132,7 +132,7 @@ const AssignmentsView = ({
                                         <button
                                             onClick={async (e) => {
                                                 e.stopPropagation();
-                                                if (window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+                                                if (await window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
                                                     try {
                                                         await deleteAssignment(assign.firestoreId || assign.id);
                                                         // Remove from local state
