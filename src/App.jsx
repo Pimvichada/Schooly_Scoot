@@ -759,6 +759,19 @@ export default function SchoolyScootLMS() {
         }
       }
 
+      // Sync the fetched submissions back to the main `assignments` state so it updates real-time
+      setAssignments(prev => prev.map(a => {
+        if (a.firestoreId === targetId || a.id === targetId) {
+          return {
+            ...a,
+            submissions: subs,
+            submissionCount: subs.length,
+            pendingCount: subs.filter(s => !s.score).length
+          };
+        }
+        return a;
+      }));
+
       setActiveModal('grading');
     } catch (e) {
       console.error("Error opening grading modal:", e);

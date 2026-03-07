@@ -19,17 +19,46 @@ const AssignmentsView = ({
         courses.some(c => c.name === assign.course)
     );
 
+    // Helper function to check if an assignment is "All Submitted and Graded"
+    const isAllCompleted = (assign) => {
+        const targetCourse = courses.find(c => c.name === assign.course);
+        if (!targetCourse) return false;
+
+        // Ensure we only look at students, not the owner/teacher
+        const allStudentIds = targetCourse.studentIds || [];
+        const actualStudentIds = allStudentIds.filter(id => id !== targetCourse.ownerId);
+
+        if (actualStudentIds.length === 0) return false;
+
+        // Check who has actually submitted (use Set to prevent duplicate submissions counting as multiple students)
+        const submittedStudentIds = assign.submissions
+            ? [...new Set(assign.submissions.map(s => s.userId))]
+            : [];
+
+        // Check for missing submissions
+        const missingIds = actualStudentIds.filter(id => !submittedStudentIds.includes(id));
+
+        // Conditions for "ส่งครบ" (Completed):
+        // 1. Must have at least 1 submission
+        // 2. Must not have any missing students
+        // 3. Must be completely graded (no pending reviews)
+        return assign.submissionCount > 0 &&
+            missingIds.length === 0 &&
+            assign.pendingCount === 0;
+    };
+
     // 2. Filter by Status Tab (for the list display)
     const filteredAssignments = userAssignments.filter(assign => {
         if (assignmentFilter === 'all') return true;
         if (assignmentFilter === 'pending') {
             if (userRole === 'teacher') {
-                return (assign.pendingCount > 0) || (assign.status === 'pending_review');
+                // If not completely "ส่งครบ" (all submitted & graded), then it's still pending
+                return !isAllCompleted(assign);
             }
             return assign.status === 'pending' || assign.status === 'late';
         } else { // submitted
             if (userRole === 'teacher') {
-                return (assign.submissionCount > 0 && assign.pendingCount === 0);
+                return isAllCompleted(assign);
             }
             return assign.status === 'submitted';
         }
@@ -63,7 +92,7 @@ const AssignmentsView = ({
                     >
                         {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({
                             userRole === 'teacher'
-                                ? userAssignments.filter(a => a.pendingCount > 0 || a.status === 'pending_review').length
+                                ? userAssignments.filter(a => !isAllCompleted(a)).length
                                 : userAssignments.filter(a => a.status !== 'submitted').length
                         })
                     </button>
@@ -74,9 +103,9 @@ const AssignmentsView = ({
                             : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
                             }`}
                     >
-                        {userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว'} ({
+                        {userRole === 'teacher' ? 'ส่งครบ' : 'ส่งแล้ว'} ({
                             userRole === 'teacher'
-                                ? userAssignments.filter(a => a.submissionCount > 0 && (a.pendingCount === 0 && a.status !== 'pending_review')).length
+                                ? userAssignments.filter(a => isAllCompleted(a)).length
                                 : userAssignments.filter(a => a.status === 'submitted').length
                         })
                     </button>
@@ -96,7 +125,7 @@ const AssignmentsView = ({
                                             }`}>
                                             {assign.status === 'pending' ? (userRole === 'teacher' ? 'รอส่ง' : 'รอส่ง') :
                                                 assign.status === 'pending_review' ? 'รอตรวจ' :
-                                                    assign.status === 'submitted' ? (userRole === 'teacher' ? 'เสร็จสิ้น' : 'ส่งแล้ว') :
+                                                    assign.status === 'submitted' ? (userRole === 'teacher' ? 'ส่งครบ' : 'ส่งแล้ว') :
                                                         'เลยกำหนด'}
                                         </span>
                                         <span className="text-xs text-slate-500">{assign.course}</span>
@@ -891,17 +920,23 @@ export const GradingModal = ({
                                     return { ...s, score: editingScores[subId] };
                                 }));
 
-                                // Update Main Assignments State with new Pending Count
+                                // Update Main Assignments State with new Pending Count and submissions
                                 setAssignments(prev => prev.map(a => {
                                     const currentAssignId = a.firestoreId || a.id;
                                     if (currentAssignId === targetId) {
                                         let newPendingCount = 0;
-                                        submissions.forEach(s => {
+                                        const newSubmissions = submissions.map(s => {
                                             const subId = s.firestoreId || s.id;
                                             const val = editingScores[subId];
                                             if (!val) newPendingCount++;
+                                            return { ...s, score: val };
                                         });
-                                        return { ...a, pendingSubmissionCount: newPendingCount };
+
+                                        return {
+                                            ...a,
+                                            pendingCount: newPendingCount,
+                                            submissions: newSubmissions
+                                        };
                                     }
                                     return a;
                                 }));
