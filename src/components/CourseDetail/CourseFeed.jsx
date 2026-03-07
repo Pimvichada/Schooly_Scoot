@@ -18,6 +18,7 @@ const CourseFeed = ({
     auth,
     handleDeletePost,
     handleEditPost,
+    userRole,
     setCourseTab,
     selectedPostId,
     setSelectedPostId
@@ -200,16 +201,17 @@ const CourseFeed = ({
                             </div>
                             <p className={`mt-4 font-medium animate-pulse text-sm ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>กำลังดึงข้อมูลประกาศ...</p>
                         </div>
-                    ) : posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).length > 0 ? (
+                    ) : posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid || userRole === 'teacher').length > 0 ? (
                         <div className="space-y-6">
-                            {posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid).map((post) => (
+                            {posts.filter(p => !p.isHidden || p.author?.uid === auth.currentUser?.uid || userRole === 'teacher').map((post) => (
                                 <div id={`post-${post.id}`} key={post.id} className="transition-all duration-500">
                                     <PostItem
                                         post={post}
                                         currentUser={{
                                             uid: auth.currentUser?.uid,
                                             displayName: `${profile.firstName} ${profile.lastName}`,
-                                            photoURL: profile.photoURL
+                                            photoURL: profile.photoURL,
+                                            role: userRole
                                         }}
                                         onDelete={handleDeletePost}
                                         onEdit={handleEditPost}
