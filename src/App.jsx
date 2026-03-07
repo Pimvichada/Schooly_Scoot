@@ -1003,12 +1003,49 @@ export default function SchoolyScootLMS() {
         ownerId: auth.currentUser.uid
       };
 
-      if (newExam.id) {
+            if (newExam.id) {
         // UPDATE EXISTING
         await updateQuiz(newExam.id, examData);
         setQuizzes(prev => prev.map(q => q.firestoreId === newExam.id ? { ...q, ...examData, firestoreId: newExam.id } : q));
-        alert('แก้ไขแบบทดสอบเรียบร้อย');
+
+        // Create copies in additional courses if checked during edit
+        const extraCourses = newExam.additionalCourses || [];
+        if (extraCourses.length > 0) {
+          await Promise.all(extraCourses.map(async (courseObj) => {
+            const courseDataObj = {
+              ...examData,
+              course: courseObj.name
+            };
+
+            const createdQuiz = await createQuiz(courseDataObj);
+
+            // Notify Students in the newly created course copy
+            if (courseDataObj.status === 'available' && courseObj.studentIds && courseObj.studentIds.length > 0) {
+              const recipients = courseObj.studentIds.filter(id => id !== auth.currentUser.uid);
+
+              await Promise.all(recipients.map(async (studentId) => {
+                const isScheduled = !!courseDataObj.scheduledAt;
+                const message = isScheduled
+                  ? `มีแบบทดสอบใหม่กำหนดสอบวันที่ ${new Date(courseDataObj.scheduledAt).toLocaleString('th-TH', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                  })}`
+                  : `มีแบบทดสอบใหม่ "${courseDataObj.title}" ทำเเบบทดสอบเเล้ว`;
+
+                return createNotification(
+                  studentId,
+                  `แบบทดสอบใหม่: ${courseDataObj.title}`,
+                  'quiz',
+                  message,
+                  { courseId: courseObj.firestoreId, targetType: 'quiz', targetId: createdQuiz.firestoreId }
+                );
+              }));
+            }
+          }));
+        }
+
+        alert('แก้ไขแบบทดสอบเรียบร้อย' + (extraCourses.length > 0 ? ` (และเพิ่มไปยัง ${extraCourses.length} ห้องเรียนใหม่)` : ''));
       } else {
+
         // CREATE NEW for main course AND any additional chosen courses
         const targetCourses = [selectedCourse, ...(newExam.additionalCourses || [])].filter(Boolean);
 

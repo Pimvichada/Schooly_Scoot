@@ -87,8 +87,20 @@ export const usePosts = (uid, profile, selectedCourse) => {
     };
 
     const handleDeletePost = async (postId) => {
+        const postToNotify = posts.find(p => p.id === postId);
         try {
             await deletePost(postId);
+
+            // Notify owner if deleted by someone else (e.g. teacher)
+            if (postToNotify && postToNotify.author?.uid && postToNotify.author.uid !== uid) {
+                await createNotification(
+                    postToNotify.author.uid,
+                    `โพสต์ของคุณถูกลบแล้ว`,
+                    'system',
+                    `ประกาศของคุณในวิชา ${selectedCourse.name} ถูกลบโดยครูผู้สอน`,
+                    { courseId: selectedCourse.firestoreId, targetType: 'course', targetId: selectedCourse.firestoreId }
+                );
+            }
         } catch (error) {
             console.error("Failed to delete post", error);
             throw error;

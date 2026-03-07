@@ -78,6 +78,7 @@ const CourseDetailView = ({
                         darkMode={darkMode}
                         selectedCourse={selectedCourse}
                         profile={profile}
+                        userRole={userRole}
                         newPostContent={newPostContent}
                         setNewPostContent={setNewPostContent}
                         newPostFiles={newPostFiles}

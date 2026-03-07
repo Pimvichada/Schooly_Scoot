@@ -62,6 +62,8 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
     const [showOptions, setShowOptions] = useState(false);
     const menuRef = useRef(null);
     const isOwner = currentUser?.uid === post.author?.uid;
+    const isTeacher = currentUser?.role === 'teacher';
+    const canManage = isOwner || isTeacher;
     const [showComments, setShowComments] = useState(false);
     const [likes, setLikes] = useState(post.likes || []);
     const [isLiked, setIsLiked] = useState(false);
@@ -206,7 +208,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
                         </p>
                     </div>
                 </div>
-                {isOwner && (
+                {canManage && (
                     <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setShowOptions(!showOptions)}
@@ -220,12 +222,14 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
                             <div className={`absolute right-0 mt-2 w-48 rounded-2xl shadow-xl border py-2 z-50 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                                 <>
 
-                                    <button
-                                        onClick={() => { setIsEditModalOpen(true); setShowOptions(false); }}
-                                        className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${darkMode ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-50'}`}
-                                    >
-                                        <Edit2 size={16} /> แก้ไขโพสต์
-                                    </button>
+                                    {isOwner && (
+                                        <button
+                                            onClick={() => { setIsEditModalOpen(true); setShowOptions(false); }}
+                                            className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${darkMode ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                                        >
+                                            <Edit2 size={16} /> แก้ไขโพสต์
+                                        </button>
+                                    )}
                                 </>
 
 
@@ -377,7 +381,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
                     />
                 )}
             </div>
-        </div>
+        </div >
     );
 
 

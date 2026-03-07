@@ -237,13 +237,13 @@ const CreateExamModal = ({
                     </div>
 
                     {/* Dropdown for other courses (Placed next to time so it doesn't break row 1 height) */}
-                    {selectedCourse && !newExam.id && courses.filter(c => c.name !== selectedCourse.name).length > 0 && (
+                    {selectedCourse && courses.filter(c => c.name !== selectedCourse.name).length > 0 && (
                         <div className="flex flex-col">
                             <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                                 เพิ่มไปยังห้องอื่น (ไม่บังคับ)
                             </label>
                             <details className="group relative">
-                                <summary className={`list-none flex justify-between items-center cursor-pointer w-full p-3 rounded-xl border font-normal outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}`}>
+                                <summary className={`list-none flex justify-between items-center cursor-pointer w-full p-3 rounded-xl border font-normal outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}>
                                     <span className="truncate">
                                         {newExam.additionalCourses?.length > 0
                                             ? `เลือกเพิ่ม ${newExam.additionalCourses.length} ห้อง`
