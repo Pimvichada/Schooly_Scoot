@@ -227,7 +227,8 @@ export const CourseModals = ({
     courses,
     joinCode,
     setJoinCode,
-    handleJoinCourse
+    handleJoinCourse,
+    darkMode
 }) => {
     const [attemptedSubmit, setAttemptedSubmit] = React.useState(false);
 
@@ -246,7 +247,7 @@ export const CourseModals = ({
             {/* CREATE CLASS MODAL */}
             {activeModal === 'create' && (
                 <div className="p-8">
-                    <h2 className="text-3xl font-bold text-slate-800 mb-6 text-center">สร้างห้องเรียนใหม่</h2>
+                    <h2 className={`text-3xl font-bold mb-6 text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>สร้างห้องเรียนใหม่</h2>
                     <form className="space-y-6" onSubmit={(e) => {
                         e.preventDefault();
                         if (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) {
@@ -258,20 +259,20 @@ export const CourseModals = ({
                     }}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-bold text-slate-600 mb-2">ชื่อวิชา</label>
+                                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ชื่อวิชา</label>
                                 <input
                                     type="text"
-                                    className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors text-lg"
+                                    className={`w-full p-4 rounded-xl border outline-none transition-colors text-lg ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
                                     placeholder="เช่น วิทยาศาสตร์ ม.1"
                                     value={newCourseData.name}
                                     onChange={(e) => setNewCourseData({ ...newCourseData, name: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-600 mb-2">รหัสวิชา/CLASS ID</label>
+                                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>รหัสวิชา/CLASS ID</label>
                                 <input
                                     type="text"
-                                    className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors text-lg"
+                                    className={`w-full p-4 rounded-xl border outline-none transition-colors text-lg ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
                                     placeholder="SCI-101"
                                     value={newCourseData.code}
                                     onChange={(e) => setNewCourseData({ ...newCourseData, code: e.target.value })}
@@ -280,9 +281,9 @@ export const CourseModals = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-600 mb-2">คำอธิบายรายวิชา/Description</label>
+                            <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>คำอธิบายรายวิชา/Description</label>
                             <textarea
-                                className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors h-32"
+                                className={`w-full p-4 rounded-xl border outline-none transition-colors h-32 ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
                                 placeholder="รายละเอียดวิชา..."
                                 value={newCourseData.description}
                                 onChange={(e) => setNewCourseData({ ...newCourseData, description: e.target.value })}
@@ -291,19 +292,19 @@ export const CourseModals = ({
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="block text-sm font-bold text-slate-600 mb-2">วันที่เริ่มเรียน/Start Date</label>
+                                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>วันที่เริ่มเรียน/Start Date</label>
                                 <input
                                     type="date"
-                                    className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
+                                    className={`w-full p-4 rounded-xl border outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
                                     value={newCourseData.startDate}
                                     onChange={(e) => setNewCourseData({ ...newCourseData, startDate: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-bold text-slate-600 mb-2">วันที่สิ้นสุด/End Date</label>
+                                <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>วันที่สิ้นสุด/End Date</label>
                                 <input
                                     type="date"
-                                    className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors"
+                                    className={`w-full p-4 rounded-xl border outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
                                     value={newCourseData.endDate}
                                     onChange={(e) => setNewCourseData({ ...newCourseData, endDate: e.target.value })}
                                 />
@@ -312,12 +313,12 @@ export const CourseModals = ({
 
                         {/* Schedule Builder */}
                         <div>
-                            <label className="block text-sm font-bold text-slate-600 mb-2">ตารางเรียน <span className="text-red-500">*จำเป็นต้องเพิ่ม*</span></label>
-                            <div className={`bg-slate-50 p-6 rounded-2xl border ${attemptedSubmit && (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'} space-y-4`}>
+                            <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ตารางเรียน <span className="text-red-500">*จำเป็นต้องเพิ่ม*</span></label>
+                            <div className={`${darkMode ? 'bg-slate-800/50' : 'bg-slate-50'} p-6 rounded-2xl border ${attemptedSubmit && (!newCourseData.scheduleItems || newCourseData.scheduleItems.length === 0) ? 'border-red-400 ring-2 ring-red-100' : (darkMode ? 'border-slate-700' : 'border-slate-200')} space-y-4`}>
                                 <div className="flex flex-wrap gap-4 items-end">
                                     <div className="flex-1 min-w-[120px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">วัน</label>
-                                        <select id="daySelect" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]">
+                                        <select id="daySelect" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`}>
                                             <option value="1">จันทร์</option>
                                             <option value="2">อังคาร</option>
                                             <option value="3">พุธ</option>
@@ -329,16 +330,16 @@ export const CourseModals = ({
                                     </div>
                                     <div className="flex-1 min-w-[120px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">เวลาเริ่ม</label>
-                                        <input id="startTime" type="time" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]" />
+                                        <input id="startTime" type="time" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} />
                                     </div>
                                     <div className="flex-none self-center pb-3 text-slate-400">-</div>
                                     <div className="flex-1 min-w-[120px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">เวลาสิ้นสุด</label>
-                                        <input id="endTime" type="time" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]" />
+                                        <input id="endTime" type="time" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} />
                                     </div>
                                     <div className="flex-1 min-w-[100px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">ห้องเรียน</label>
-                                        <input id="room" type="text" placeholder="ระบุห้อง" className="w-full p-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-[#96C68E]" />
+                                        <input id="room" type="text" placeholder="ระบุห้อง" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} />
                                     </div>
                                     <button type="button" onClick={() => {
                                         const day = document.getElementById('daySelect').value;
@@ -386,11 +387,11 @@ export const CourseModals = ({
                                 {newCourseData.scheduleItems.length > 0 && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                                         {newCourseData.scheduleItems.map((item, idx) => (
-                                            <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                                            <div key={idx} className={`flex justify-between items-center p-3 rounded-xl border shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                                                 <div className="flex items-center gap-3">
                                                     <div className="bg-[#E0F2FE] text-[#0284C7] font-bold px-3 py-1 rounded-lg text-sm">{item.dayLabel}</div>
-                                                    <div className="text-sm text-slate-700 font-medium">{item.startTime} - {item.endTime}</div>
-                                                    <div className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">ห้อง {item.room}</div>
+                                                    <div className={`text-sm font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.startTime} - {item.endTime}</div>
+                                                    <div className={`text-xs px-2 py-1 rounded ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>ห้อง {item.room}</div>
                                                 </div>
                                                 <button type="button" onClick={() => {
                                                     const newItems = newCourseData.scheduleItems.filter((_, i) => i !== idx);
@@ -404,7 +405,7 @@ export const CourseModals = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-slate-600 mb-2">เลือกสีธีม</label>
+                            <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>เลือกสีธีม</label>
                             <div className="flex flex-wrap gap-4">
                                 {[
                                     'bg-[#96C68E]', 'bg-[#FF917B]', 'bg-[#BEE1FF]', 'bg-[#FFE787]',
@@ -437,18 +438,18 @@ export const CourseModals = ({
             {/* JOIN CLASS MODAL */}
             {activeModal === 'join' && (
                 <div className="p-6">
-                    <h2 className="text-2xl font-bold text-slate-800 mb-4">เข้าร่วมห้องเรียน</h2>
+                    <h2 className={`text-2xl font-bold mb-4 ${darkMode ? 'text-white' : 'text-slate-800'}`}>เข้าร่วมห้องเรียน</h2>
                     <form className="space-y-4" onSubmit={handleJoinCourse}>
                         <div>
-                            <label className="block text-sm font-bold text-slate-600 mb-1">รหัสเข้าห้องเรียน (Invite Code)</label>
+                            <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>รหัสเข้าห้องเรียน (Invite Code)</label>
                             <input
                                 type="text"
-                                className="w-full p-4 text-center text-2xl tracking-widest uppercase rounded-xl border border-slate-200 bg-slate-50 focus:border-[#96C68E] outline-none transition-colors font-mono"
+                                className={`w-full p-4 text-center text-2xl tracking-widest uppercase rounded-xl border outline-none transition-colors font-mono ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
                                 placeholder="ABC-123"
                                 value={joinCode}
                                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                             />
-                            <p className="text-xs text-slate-400 mt-2 text-center">ขอรหัส 6 หลักจากคุณครูผู้สอนเพื่อเข้าร่วม</p>
+                            <p className={`text-xs mt-2 text-center ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>ขอรหัส 6 หลักจากคุณครูผู้สอนเพื่อเข้าร่วม</p>
                         </div>
                         <button type="submit" className="w-full py-3 bg-[#96C68E] text-white rounded-xl font-bold text-lg mt-4 hover:bg-[#85b57d] shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">เข้าร่วม</button>
                     </form>

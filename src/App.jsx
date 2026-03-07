@@ -1742,7 +1742,8 @@ export default function SchoolyScootLMS() {
               courses,
               joinCode,
               setJoinCode,
-              handleJoinCourse
+              handleJoinCourse,
+              darkMode
             }}
           />
 
