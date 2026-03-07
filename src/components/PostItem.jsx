@@ -3,7 +3,7 @@ import { Heart, MessageSquare, MoreVertical, Edit2, Eye, EyeOff, Trash2, FileTex
 import { toggleLikePost, addComment, getComments, toggleHidePost, updatePost } from '../services/postService';
 import { createNotification } from '../services/notificationService';
 
-const EditPostModal = ({ post, onClose, onSave }) => {
+const EditPostModal = ({ post, onClose, onSave, darkMode }) => {
     const [content, setContent] = useState(post.content);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -22,9 +22,9 @@ const EditPostModal = ({ post, onClose, onSave }) => {
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
-                <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-                    <h3 className="font-bold text-slate-800">แก้ไขโพสต์</h3>
+            <div className={`${darkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'} rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200`}>
+                <div className={`p-6 border-b flex justify-between items-center ${darkMode ? 'border-slate-800' : 'border-slate-50'}`}>
+                    <h3 className={`font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>แก้ไขโพสต์</h3>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600 font-bold text-2xl">×</button>
                 </div>
 
@@ -33,16 +33,16 @@ const EditPostModal = ({ post, onClose, onSave }) => {
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         maxLength={500}
-                        className="w-full h-40 bg-slate-50 border-none rounded-2xl p-4 text-slate-700 outline-none focus:ring-2 focus:ring-blue-100 transition-all resize-none"
+                        className={`w-full h-40 border-none rounded-2xl p-4 outline-none focus:ring-2 transition-all resize-none ${darkMode ? 'bg-slate-800 text-slate-100 focus:ring-slate-700' : 'bg-slate-50 text-slate-700 focus:ring-blue-100'}`}
                         placeholder="เขียนเนื้อหาใหม่..."
                     />
-                    <div className={`text-right text-xs font-bold mt-2 ${content.length >= 500 ? 'text-red-500' : 'text-slate-400'}`}>
+                    <div className={`text-right text-xs font-bold mt-2 ${content.length >= 500 ? 'text-red-500' : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
                         {content.length}/500
                     </div>
                 </div>
 
-                <div className="p-6 bg-slate-50 flex gap-3 justify-end">
-                    <button onClick={onClose} className="px-6 py-2 text-slate-500 font-bold text-sm">ยกเลิก</button>
+                <div className={`p-6 flex gap-3 justify-end ${darkMode ? 'bg-slate-800/50' : 'bg-slate-50'}`}>
+                    <button onClick={onClose} className={`px-6 py-2 font-bold text-sm ${darkMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500'}`}>ยกเลิก</button>
                     <button
                         disabled={isSaving}
                         onClick={handleSubmit}
@@ -378,6 +378,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
                         post={post}
                         onClose={() => setIsEditModalOpen(false)}
                         onSave={(postId, newContent) => onEdit && onEdit(postId, newContent)}
+                        darkMode={darkMode}
                     />
                 )}
             </div>
