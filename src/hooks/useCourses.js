@@ -3,31 +3,42 @@ import { getCoursesForUser } from '../services/courseService';
 import { toggleHiddenCourse } from '../services/authService';
 import { getCourseIcon as getIconFromUtils } from '../utils/helpers.jsx';
 import { auth } from '../../firebase'; // Need auth for uid if not passed, but better to pass uid
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 export const useCourses = (isLoggedIn, userRole, uid, hiddenCourseIds, setHiddenCourseIds) => {
     const [courses, setCourses] = useState([]);
 
     useEffect(() => {
-        const fetchCourses = async () => {
-            if (!isLoggedIn || !uid) return;
+        if (!isLoggedIn || !uid) {
+            setCourses([]);
+            return;
+        }
 
-            try {
-                const fetchedCourses = await getCoursesForUser(userRole, uid);
-                if (fetchedCourses.length > 0) {
-                    // Map icon string back to component
-                    const coursesWithIcons = fetchedCourses.map(c => ({
-                        ...c,
-                        icon: getIconFromUtils(c.iconType)
-                    }));
-                    setCourses(coursesWithIcons);
-                } else {
-                    setCourses([]);
-                }
-            } catch (err) {
-                console.error("Failed to load courses", err);
-            }
-        };
-        fetchCourses();
+        const coursesCol = collection(db, 'courses');
+        let q;
+
+        if (userRole === 'teacher') {
+            q = query(coursesCol, where('ownerId', '==', uid));
+        } else {
+            q = query(coursesCol, where('studentIds', 'array-contains', uid));
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const courseList = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                firestoreId: doc.id
+            }));
+            const coursesWithIcons = courseList.map(c => ({
+                ...c,
+                icon: getIconFromUtils(c.iconType)
+            }));
+            setCourses(coursesWithIcons);
+        }, (error) => {
+            console.error("Error subscribing to courses:", error);
+        });
+
+        return unsubscribe;
     }, [isLoggedIn, userRole, uid]);
 
     const handleToggleHideCourse = async (course) => {

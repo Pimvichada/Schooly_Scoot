@@ -117,7 +117,6 @@ export default function SchoolyScootLMS() {
     courses, setCourses, handleToggleHideCourse, refreshCourses
   } = useCourses(isLoggedIn, userRole, uid, hiddenCourseIds, setHiddenCourseIds);
 
-
   const {
     notifications, activeNotifications,
     addNotification, removeNotification, markAsRead, markAllRead
@@ -154,6 +153,17 @@ export default function SchoolyScootLMS() {
   // const [currentTime, setCurrentTime] = useState(new Date());
   // States for course selection and tabs (needed by hooks)
   const [selectedCourse, setSelectedCourse] = useState(null);
+
+  // Update selectedCourse when courses update to keep pendingStudentIds current
+  useEffect(() => {
+    if (selectedCourse && courses.length > 0) {
+      const updatedCourse = courses.find(c => c.firestoreId === selectedCourse.firestoreId);
+      if (updatedCourse && updatedCourse !== selectedCourse) {
+        setSelectedCourse(updatedCourse);
+      }
+    }
+  }, [courses, selectedCourse]);
+
   const [courseTab, setCourseTab] = useState('home');
 
   // App Settings & UI State
@@ -555,7 +565,7 @@ export default function SchoolyScootLMS() {
           id: u.uid,
           name: u.fullName || 'Unknown',
           role: 'student',
-          avatar: u.photoURL || 'bg-yellow-200'
+          avatar: u.photoURL || null
         })));
       } else {
         setPendingMembers([]);
@@ -563,6 +573,30 @@ export default function SchoolyScootLMS() {
     };
     fetchPendingMembers();
   }, [selectedCourse, userRole]);
+
+  // Auto-show pending requests tab
+  useEffect(() => {
+    if (pendingMembers.length > 0 && userRole === 'teacher' && selectedCourse) {
+      setCourseTab('people');
+    }
+  }, [pendingMembers, userRole, selectedCourse]);
+
+  // Fetch Members (Approved Students)
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (selectedCourse && selectedCourse.studentIds && selectedCourse.studentIds.length > 0) {
+        const users = await getUsersByIds(selectedCourse.studentIds);
+        setMembers(users.map(u => ({
+          id: u.uid,
+          name: u.fullName || 'Unknown',
+          avatar: u.photoURL || null
+        })));
+      } else {
+        setMembers([]);
+      }
+    };
+    fetchMembers();
+  }, [selectedCourse]);
 
   // Handle Approve Request
   const handleApprove = async (studentId) => {

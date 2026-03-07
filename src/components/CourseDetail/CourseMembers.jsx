@@ -23,9 +23,13 @@ const CourseMembers = ({
                         {pendingMembers.map(m => (
                             <div key={m.id} className={`${darkMode ? 'bg-slate-800' : 'bg-white'} flex items-center justify-between p-3 rounded-xl shadow-sm`}>
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${m.avatar || (darkMode ? 'bg-slate-700 text-slate-300' : 'bg-yellow-200 text-slate-700')}`}>
-                                        {m.name.charAt(0)}
-                                    </div>
+                                    {m.avatar ? (
+                                        <img src={m.avatar} alt={m.name} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${darkMode ? 'bg-slate-700 text-slate-300' : 'bg-yellow-200 text-slate-700'}`}>
+                                            {m.name.charAt(0)}
+                                        </div>
+                                    )}
                                     <div>
                                         <p className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{m.name}</p>
                                         <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>ขอเข้าร่วม</p>
@@ -62,7 +66,13 @@ const CourseMembers = ({
             <div className="space-y-4">
                 {members.length > 0 ? members.map(m => (
                     <div key={m.id} className="flex items-center gap-4 group">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs transition-colors ${darkMode ? 'bg-slate-800 text-slate-500 group-hover:bg-indigo-900/30 group-hover:text-indigo-400' : 'bg-blue-50 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600'} ${m.avatar || ''}`}>Std</div>
+                        {m.avatar ? (
+                            <img src={m.avatar} alt={m.name} className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${darkMode ? 'bg-slate-800 text-slate-500 group-hover:bg-indigo-900/30 group-hover:text-indigo-400' : 'bg-blue-50 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
+                                {m.name.charAt(0)}
+                            </div>
+                        )}
                         <span className={`font-medium transition-colors ${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>{m.name}</span>
                     </div>
                 )) : (

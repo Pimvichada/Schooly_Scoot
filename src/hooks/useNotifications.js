@@ -61,7 +61,7 @@ export const useNotifications = (uid, notificationsEnabled) => {
             return;
         }
 
-        // Grace period: Collect all existing notifications for 2 seconds
+        // Grace period: Collect all existing notifications for 0.5 seconds
         const syncTimeout = setTimeout(() => {
             notificationSessionRef.current.handlingInitial = false;
 
@@ -84,7 +84,7 @@ export const useNotifications = (uid, notificationsEnabled) => {
                 // Sound usually played by addNotification, but if blocking etc needed:
                 // already handled inside addNotification
             }
-        }, 2000);
+        }, 500);
 
         const unsubscribe = subscribeToNotifications(uid, (allNotifications, changes) => {
             setNotifications(allNotifications);
@@ -99,6 +99,20 @@ export const useNotifications = (uid, notificationsEnabled) => {
                     session.firstUnread = unreadList[0];
                 }
                 allNotifications.forEach(n => session.seenIds.add(n.firestoreId));
+
+                // Show critical notifications immediately even during initial load
+                if (changes) {
+                    changes.forEach(change => {
+                        if (change.type === 'added') {
+                            const data = change.doc.data();
+                            const id = change.doc.id;
+                            if (!data.read && !session.seenIds.has(id) && data.targetType === 'join_request') {
+                                session.seenIds.add(id);
+                                addNotification({ ...data, firestoreId: id });
+                            }
+                        }
+                    });
+                }
             } else {
                 // Phase 2: Live Updates
                 if (changes) {
