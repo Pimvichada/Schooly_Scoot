@@ -93,6 +93,7 @@ import QuizModals from './components/QuizModals';
 import CourseDetailView, { CourseModals } from './components/CourseDetailView';
 import notiSoundUrl from './assets/notisound.mp3';
 import logo_no_text from './assets/logo_no_tex3.png';
+import SystemModal from './components/SystemModal';
 
 
 
@@ -191,9 +192,57 @@ export default function SchoolyScootLMS() {
 
   // Modal State needs to be defined BEFORE useQuiz because useQuiz uses it (pass setter or value)
   const [activeModal, setActiveModal] = useState(null);
+  const [systemAlert, setSystemAlert] = useState({ isOpen: false, type: 'success', title: '', message: '', showCancel: false, resolve: null });
   const [selectedPostId, setSelectedPostId] = useState(null);
+  // Custom Alert/Confirm Handlers
+  const showAlert = (message, title = null) => {
+    return new Promise((resolve) => {
+      const msgStr = String(message).toLowerCase();
+      let finalType = 'success';
+      const hasErrorWord = ['ผิดพลาด', 'ไม่สำเร็จ', 'error', 'failed', 'fail', 'ล้มเหลว', 'ไม่ได้', 'ชนกับ', 'สั้นเกินไป'].some(k => msgStr.includes(k));
+      const hasSuccessWord = ['สำเร็จ', 'เรียบร้อย', 'แล้ว'].some(k => msgStr.includes(k));
+      if (hasErrorWord) finalType = 'error';
+      if (hasSuccessWord) {
+        finalType = 'success';
+        if (msgStr.includes('ไม่สำเร็จ')) finalType = 'error';
+      }
+
+      setSystemAlert({
+        isOpen: true,
+        type: finalType,
+        title: title || (finalType === 'error' ? 'ไม่สำเร็จ' : 'สำเร็จ'),
+        message: String(message),
+        showCancel: false,
+        resolve: resolve
+      });
+    });
+  };
+
+  const showConfirm = (message, title = 'ยืนยัน') => {
+    return new Promise((resolve) => {
+      setSystemAlert({
+        isOpen: true,
+        type: 'confirm',
+        title: title,
+        message: String(message),
+        showCancel: true,
+        resolve: resolve
+      });
+    });
+  };
 
   const [isMeetingJoined, setIsMeetingJoined] = useState(false);
+  useEffect(() => {
+    window.alert = showAlert;
+    // Note: window.confirm is tricky because it's sync. We'll refactor call sites to use showConfirm or await window.confirm
+    // For now, we override window.confirm to return our promise-based confirm
+    window.confirm = showConfirm;
+
+    return () => {
+      // We don't really want to revert if the app is still running, 
+      // but standard practice is to keep it clean.
+    };
+  }, []);
   // Auto-join meeting state when modal opens
   useEffect(() => {
     if (activeModal === 'video') {
@@ -630,7 +679,8 @@ export default function SchoolyScootLMS() {
 
   // Handle Reject Request
   const handleReject = async (studentId) => {
-    if (!confirm('ต้องการปฏิเสธคำขอนี้ใช่หรือไม่?')) return;
+    if (!await confirm('ต้องการปฏิเสธคำขอนี้ใช่หรือไม่?')) return;
+
     try {
       await rejectJoinRequest(selectedCourse.firestoreId, studentId);
 
@@ -782,7 +832,7 @@ export default function SchoolyScootLMS() {
               }
             } catch (e) { console.error(e); }
           }
-         } else if (notif.targetType === 'quiz_result' || notif.targetType === 'quiz_submission') {
+        } else if (notif.targetType === 'quiz_result' || notif.targetType === 'quiz_submission') {
           setCourseTab('quizzes');
           if (notif.targetId) {
             try {
@@ -1003,7 +1053,7 @@ export default function SchoolyScootLMS() {
         ownerId: auth.currentUser.uid
       };
 
-            if (newExam.id) {
+      if (newExam.id) {
         // UPDATE EXISTING
         await updateQuiz(newExam.id, examData);
         setQuizzes(prev => prev.map(q => q.firestoreId === newExam.id ? { ...q, ...examData, firestoreId: newExam.id } : q));
@@ -1187,7 +1237,8 @@ export default function SchoolyScootLMS() {
   };
 
   const handleDeleteQuiz = async (quizId) => {
-    if (!confirm('คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?')) return;
+    if (!await confirm('คุณต้องการลบแบบทดสอบนี้ใช่หรือไม่?')) return;
+
     try {
       await deleteQuiz(quizId);
       setQuizzes(prev => prev.filter(q => q.firestoreId !== quizId));
@@ -1338,7 +1389,7 @@ export default function SchoolyScootLMS() {
   }, [courses, auth.currentUser]);
 
   const handleLeaveCourse = async () => {
-    if (!confirm('ยืนยันที่จะออกจากห้องเรียนนี้หรือไม่? ข้อมูลการส่งงานและคะแนนอาจสูญหาย')) return;
+    if (!await confirm('ยืนยันที่จะออกจากห้องเรียนนี้หรือไม่? ข้อมูลการส่งงานและคะแนนอาจสูญหาย')) return;
     try {
       if (!selectedCourse.firestoreId) {
         // Fallback for mock data courses
@@ -1366,7 +1417,7 @@ export default function SchoolyScootLMS() {
   }
 
   const handleDeleteCourse = async (courseToDelete) => {
-    if (!confirm(`คุณต้องการลบวิชา "${courseToDelete.name}" ใช่หรือไม่?`)) return;
+    if (!await confirm(`คุณต้องการลบวิชา "${courseToDelete.name}" ใช่หรือไม่?`)) return;
 
     try {
       await deleteCourse(courseToDelete.firestoreId);
@@ -1511,15 +1562,23 @@ export default function SchoolyScootLMS() {
 
       // Quiz Exist Confirmation
       if (activeModal === 'takeQuiz' && !quizResult) {
-        const confirmExit = window.confirm("คุณยืนยันที่จะออกใช่ไหม? \nหากออกตอนนี้ ระบบจะทำการส่งคำตอบเท่าที่ทำได้ทันที และคุณจะไม่สามารถกลับมาแก้ไขได้");
-        if (!confirmExit) return;
+        // Note: Special handling for closeModal which might not be async
+        const runClose = async () => {
+          const confirmExit = await window.confirm("คุณยืนยันที่จะออกใช่ไหม? \nหากออกตอนนี้ ระบบจะทำการส่งคำตอบเท่าที่ทำได้ทันที และคุณจะไม่สามารถกลับมาแก้ไขได้");
+          if (!confirmExit) return;
+          finalizeClose();
+        };
+        runClose();
+        return;
       }
+      finalizeClose();
+    };
 
+    const finalizeClose = () => {
       setActiveModal(null);
-      // setSelectedAssignment(null);
-      // setSelectedNotification(null);
       setUploadFile([]);
-      setSubmissions([]); // Clear submissions to prevent stale data
+      setSubmissions([]);
+      // Clear submissions to prevent stale data
       setActiveQuiz(null);
       setQuizAnswers({});
       setQuizResult(null);
@@ -1528,7 +1587,7 @@ export default function SchoolyScootLMS() {
     const submitQuiz = async () => {
       if (!auth.currentUser || !activeQuiz) return;
 
-      if (!confirm('ยืนยันที่จะส่งข้อสอบ?')) return;
+      if (!await confirm('ยืนยันที่จะส่งข้อสอบ?')) return;
 
       let score = 0;
       let earnedPoints = 0;
@@ -1960,6 +2019,23 @@ export default function SchoolyScootLMS() {
       />
 
       <LoadingOverlay isLoading={isLoading} />
+
+      <SystemModal
+        isOpen={systemAlert.isOpen}
+        onClose={() => {
+          if (systemAlert.resolve) systemAlert.resolve(false);
+          setSystemAlert(prev => ({ ...prev, isOpen: false }));
+        }}
+        onConfirm={() => {
+          if (systemAlert.resolve) systemAlert.resolve(true);
+          setSystemAlert(prev => ({ ...prev, isOpen: false }));
+        }}
+        type={systemAlert.type}
+        title={systemAlert.title}
+        message={systemAlert.message}
+        showCancel={systemAlert.showCancel}
+        darkMode={darkMode}
+      />
     </div>
   );
 }
