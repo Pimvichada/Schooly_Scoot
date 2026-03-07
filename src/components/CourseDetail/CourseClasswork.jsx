@@ -15,7 +15,7 @@ const CourseClasswork = ({
     setWorkView,
     setNewAssignment
 }) => {
-    const courseAssignments = assignments.filter(a => a.course === selectedCourse.name);
+    const courseAssignments = assignments.filter(a => a.course === selectedCourse.name).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     const pendingWork = courseAssignments.filter(a => a.status !== 'submitted');
     const submittedWork = courseAssignments.filter(a => a.status === 'submitted');
 

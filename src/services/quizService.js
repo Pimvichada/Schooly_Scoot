@@ -1,5 +1,5 @@
 import { db } from '../../firebase';
-import { collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, deleteDoc, updateDoc, getDoc, orderBy } from 'firebase/firestore';
 
 /**
  * Create a new quiz

@@ -85,8 +85,8 @@ const AssignmentsView = ({
 
             <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-3xl p-6 shadow-sm border`}>
                 <div className="space-y-4">
-                    {filteredAssignments.length > 0 ? (
-                        filteredAssignments.map((assign) => (
+                    {filteredAssignments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).length > 0 ? (
+                        filteredAssignments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((assign) => (
                             <div key={assign.id} className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">

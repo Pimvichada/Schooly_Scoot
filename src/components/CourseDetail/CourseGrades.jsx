@@ -32,7 +32,7 @@ const CourseGrades = ({
                         </tr>
                     </thead>
                     <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
-                        {quizzes.length > 0 ? quizzes.map((quiz) => {
+                        {quizzes.length > 0 ? quizzes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((quiz) => {
                             const submission = mySubmissions[quiz.firestoreId];
                             const isSubmitted = !!submission;
 
@@ -101,7 +101,7 @@ const CourseGrades = ({
                         </tr>
                     </thead>
                     <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
-                        {courseAssignments.length > 0 ? courseAssignments.map((assign) => (
+                        {courseAssignments.length > 0 ? courseAssignments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((assign) => (
                             <tr key={assign.id} className={`${darkMode ? 'hover:bg-slate-800/30' : 'hover:bg-slate-50/30'}`}>
                                 <td className="p-4">
                                     <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{assign.title}</div>

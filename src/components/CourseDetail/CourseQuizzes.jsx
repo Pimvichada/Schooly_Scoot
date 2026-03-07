@@ -49,7 +49,7 @@ const CourseQuizzes = ({
                             </tr>
                         </thead>
                         <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-100'}`}>
-                            {quizzes.length > 0 ? quizzes.map((quiz) => (
+                            {quizzes.length > 0 ? quizzes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((quiz) => (
                                 <tr key={quiz.firestoreId} className={darkMode ? 'hover:bg-slate-800/30 transition-colors' : 'hover:bg-slate-50 transition-colors'}>
                                     <td className="p-4">
                                         <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</div>
@@ -109,8 +109,11 @@ const CourseQuizzes = ({
                     {quizzes.filter(q => q.status !== 'closed').sort((a, b) => {
                         const isSubmittedA = !!mySubmissions[a.firestoreId];
                         const isSubmittedB = !!mySubmissions[b.firestoreId];
-                        if (isSubmittedA === isSubmittedB) return 0;
-                        return isSubmittedA ? 1 : -1;
+                        if (isSubmittedA !== isSubmittedB) {
+                            return isSubmittedA ? 1 : -1; // ที่ยังไม่ได้ส่งขึ้นก่อน
+                        }
+                        // ถ้า status เท่ากัน เรียงตาม createdAt desc (ใหม่ก่อน)
+                        return new Date(b.createdAt) - new Date(a.createdAt);
                     }).map((quiz) => {
                         const scheduledTime = quiz.scheduledAt ? new Date(quiz.scheduledAt) : null;
                         const isLocked = scheduledTime && scheduledTime > currentTime;

@@ -150,8 +150,9 @@ export const seedAssignments = async () => {
 export const createAssignment = async (assignmentData) => {
     try {
         const col = collection(db, 'assignments');
-        const docRef = await addDoc(col, assignmentData);
-        return { ...assignmentData, firestoreId: docRef.id };
+        const newAssignment = { ...assignmentData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(col, newAssignment);
+        return { ...newAssignment, firestoreId: docRef.id };
     } catch (error) {
         console.error("Error creating assignment:", error);
         throw error;
