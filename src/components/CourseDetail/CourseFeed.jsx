@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Info, Star, Copy, FileText, X, ImageIcon, Paperclip, Send, MessageSquare, Upload, MoreVertical, User } from 'lucide-react';
+import { Info, Star, Copy, FileText, X, ImageIcon, Paperclip, Send, MessageSquare, Upload, MoreVertical, User, Calendar, Clock, MapPin } from 'lucide-react';
 import PostItem from '../PostItem';
 
 const CourseFeed = ({
@@ -69,6 +69,7 @@ const CourseFeed = ({
                                     <p className={`text-sm leading-relaxed font-medium ${darkMode ? 'text-slate-300' : 'text-indigo-900'}`}>{selectedCourse.description}</p>
                                 </div>
                             )}
+
                             <p className={`text-xs font-bold uppercase mt-4 mb-2 tracking-wider flex items-center gap-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                                 รหัสเข้าเรียน <Star size={12} className="text-[#FFE787] fill-[#FFE787]" />
                             </p>
@@ -85,6 +86,41 @@ const CourseFeed = ({
                                     <Copy size={16} className={darkMode ? 'text-indigo-400' : 'text-[#FF917B]'} />
                                 </div>
                             </div>
+
+                            {((selectedCourse.schedule && selectedCourse.schedule.length > 0) || (selectedCourse.scheduleItems && selectedCourse.scheduleItems.length > 0)) && (
+                                <div className={`mt-5 pt-4 border-t border-dashed ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+                                    <h4 className={`text-[12px] font-bold tracking-wide mb-3 flex items-center gap-1.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                        <Calendar size={13} className={darkMode ? 'text-indigo-400' : 'text-[#FF917B]'} />
+                                        ตารางเรียน
+                                    </h4>
+                                    <div className="flex flex-col gap-2">
+                                        {(selectedCourse.schedule || selectedCourse.scheduleItems).map((item, idx) => {
+                                            const dayColors = [
+                                                { bg: 'bg-[#FFE5E5]', text: 'text-[#E53935]', darkBg: 'bg-red-900/30', darkText: 'text-red-400' }, // Sun - Red
+                                                { bg: 'bg-[#FFF9C4]', text: 'text-[#FBC02D]', darkBg: 'bg-yellow-900/30', darkText: 'text-yellow-400' }, // Mon - Yellow
+                                                { bg: 'bg-[#FCE4EC]', text: 'text-[#D81B60]', darkBg: 'bg-pink-900/30', darkText: 'text-pink-400' }, // Tue - Pink
+                                                { bg: 'bg-[#E8F5E9]', text: 'text-[#43A047]', darkBg: 'bg-green-900/30', darkText: 'text-green-400' }, // Wed - Green
+                                                { bg: 'bg-[#FFF3E0]', text: 'text-[#F57C00]', darkBg: 'bg-orange-900/30', darkText: 'text-orange-400' }, // Thu - Orange
+                                                { bg: 'bg-[#E3F2FD]', text: 'text-[#1E88E5]', darkBg: 'bg-blue-900/30', darkText: 'text-blue-400' }, // Fri - Blue
+                                                { bg: 'bg-[#F3E5F5]', text: 'text-[#8E24AA]', darkBg: 'bg-purple-900/30', darkText: 'text-purple-400' }  // Sat - Purple
+                                            ];
+                                            const color = item.dayOfWeek !== undefined ? dayColors[item.dayOfWeek] : { bg: 'bg-slate-100', text: 'text-slate-600', darkBg: 'bg-slate-800', darkText: 'text-slate-400' };
+                                            return (
+                                                <div key={idx} className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50/50 border-slate-100/80'}`}>
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[13px] shadow-sm ${darkMode ? `${color.darkBg} ${color.darkText}` : `${color.bg} ${color.text}`}`}>
+                                                            {item.dayLabel || ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'][item.dayOfWeek]}
+                                                        </div>
+                                                        <span className={`text-[13px] font-bold tracking-tight ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                                            {item.startTime} - {item.endTime} น.
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
