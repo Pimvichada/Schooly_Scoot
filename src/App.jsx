@@ -459,6 +459,7 @@ export default function SchoolyScootLMS() {
     title: '',
     course: '', // will be set dynamically
     time: 30,
+    additionalCourses: [],
     items: [{
       id: 'init_1',
       type: 'choice',
@@ -1008,32 +1009,51 @@ export default function SchoolyScootLMS() {
         setQuizzes(prev => prev.map(q => q.firestoreId === newExam.id ? { ...q, ...examData, firestoreId: newExam.id } : q));
         alert('แก้ไขแบบทดสอบเรียบร้อย');
       } else {
-        // CREATE NEW
-        const createdQuiz = await createQuiz(examData);
-        setQuizzes([...quizzes, { ...createdQuiz, status: examData.status }]);
-        alert('สร้างแบบทดสอบเรียบร้อย');
+        // CREATE NEW for main course AND any additional chosen courses
+        const targetCourses = [selectedCourse, ...(newExam.additionalCourses || [])].filter(Boolean);
 
-        // Notify Students
-        if (publishNow && selectedCourse?.studentIds) {
-          const recipients = selectedCourse.studentIds.filter(id => id !== auth.currentUser.uid);
-
-          await Promise.all(recipients.map(async (studentId) => {
-            const isScheduled = !!examData.scheduledAt;
-            const message = isScheduled
-              ? `มีแบบทดสอบใหม่กำหนดสอบวันที่ ${new Date(examData.scheduledAt).toLocaleString('th-TH', {
-                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-              })}`
-              : `มีแบบทดสอบใหม่ "${examData.title}" ทำเเบบทดสอบเเล้ว`;
-
-            return createNotification(
-              studentId,
-              `แบบทดสอบใหม่: ${examData.title}`,
-              'quiz',
-              message,
-              { courseId: selectedCourse.firestoreId, targetType: 'quiz', targetId: createdQuiz.firestoreId }
-            );
-          }));
+        // Fallback if selectedCourse is missing (should not happen usually)
+        if (targetCourses.length === 0 && newExam.course) {
+          targetCourses.push({ name: newExam.course, firestoreId: 'standalone' });
         }
+
+        await Promise.all(targetCourses.map(async (courseObj) => {
+          const courseDataObj = {
+            ...examData,
+            course: courseObj.name
+          };
+
+          const createdQuiz = await createQuiz(courseDataObj);
+
+          // Update local state ONLY if it's the currently viewed course
+          if (selectedCourse && courseObj.firestoreId === selectedCourse.firestoreId) {
+            setQuizzes(prev => [...prev, { ...createdQuiz, status: courseDataObj.status }]);
+          }
+
+          // Notify Students
+          if (publishNow && courseObj.studentIds && courseObj.studentIds.length > 0) {
+            const recipients = courseObj.studentIds.filter(id => id !== auth.currentUser.uid);
+
+            await Promise.all(recipients.map(async (studentId) => {
+              const isScheduled = !!courseDataObj.scheduledAt;
+              const message = isScheduled
+                ? `มีแบบทดสอบใหม่กำหนดสอบวันที่ ${new Date(courseDataObj.scheduledAt).toLocaleString('th-TH', {
+                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                })}`
+                : `มีแบบทดสอบใหม่ "${courseDataObj.title}" ทำเเบบทดสอบเเล้ว`;
+
+              return createNotification(
+                studentId,
+                `แบบทดสอบใหม่: ${courseDataObj.title}`,
+                'quiz',
+                message,
+                { courseId: courseObj.firestoreId, targetType: 'quiz', targetId: createdQuiz.firestoreId }
+              );
+            }));
+          }
+        }));
+
+        alert('สร้างแบบทดสอบเรียบร้อยแล้ว' + (targetCourses.length > 1 ? ` (ลงใน ${targetCourses.length} ห้องเรียน)` : ''));
       }
 
       setActiveModal(null);
@@ -1043,6 +1063,7 @@ export default function SchoolyScootLMS() {
         title: '',
         course: '',
         time: 30,
+        additionalCourses: [],
         items: [{ q: '', options: ['', '', '', ''], optionImages: [null, null, null, null], correct: 0 }],
         scheduledAt: ''
       });
@@ -1099,6 +1120,7 @@ export default function SchoolyScootLMS() {
       title: quiz.title,
       course: quiz.course,
       time: parseInt(quiz.time) || 30,
+      additionalCourses: [],
       scheduledAt: quiz.scheduledAt || '',
       status: quiz.status,
       items: quiz.items.map(i => ({

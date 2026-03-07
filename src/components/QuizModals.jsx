@@ -236,6 +236,50 @@ const CreateExamModal = ({
                         </div>
                     </div>
 
+                    {/* Dropdown for other courses (Placed next to time so it doesn't break row 1 height) */}
+                    {selectedCourse && !newExam.id && courses.filter(c => c.name !== selectedCourse.name).length > 0 && (
+                        <div className="flex flex-col">
+                            <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                                เพิ่มไปยังห้องอื่น (ไม่บังคับ)
+                            </label>
+                            <details className="group relative">
+                                <summary className={`list-none flex justify-between items-center cursor-pointer w-full p-3 rounded-xl border font-normal outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}`}>
+                                    <span className="truncate">
+                                        {newExam.additionalCourses?.length > 0
+                                            ? `เลือกเพิ่ม ${newExam.additionalCourses.length} ห้อง`
+                                            : 'เลือกห้องเรียนอื่นๆ'}
+                                    </span>
+                                    <span className={`transition-transform duration-200 group-open:-rotate-180`}>▼</span>
+                                </summary>
+                                <div className={`absolute z-10 w-full mt-2 p-3 rounded-xl border shadow-xl flex flex-col gap-2 max-h-48 overflow-y-auto custom-scrollbar ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                    {courses.filter(c => c.name !== selectedCourse.name).map(c => (
+                                        <label key={c.id || c.firestoreId} className={`flex items-center gap-2 cursor-pointer p-2 rounded-lg transition-all ${newExam.additionalCourses?.some(ac => ac.firestoreId === c.firestoreId)
+                                            ? (darkMode ? 'bg-blue-900/30' : 'bg-blue-50')
+                                            : (darkMode ? 'hover:bg-slate-700' : 'hover:bg-slate-50')
+                                            }`}>
+                                            <input
+                                                type="checkbox"
+                                                className="w-4 h-4 accent-[#96C68E] cursor-pointer"
+                                                checked={newExam.additionalCourses?.some(ac => ac.firestoreId === c.firestoreId) || false}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    const current = newExam.additionalCourses || [];
+                                                    if (checked) {
+                                                        setNewExam({ ...newExam, additionalCourses: [...current, c] });
+                                                    } else {
+                                                        setNewExam({ ...newExam, additionalCourses: current.filter(ac => ac.firestoreId !== c.firestoreId) });
+                                                    }
+                                                }}
+                                            />
+                                            <span className={`text-sm font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{c.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </details>
+                        </div>
+                    )}
+
+
                     {/* Schedule Exam */}
                     <div className={`col-span-full p-4 rounded-xl border ${darkMode ? 'bg-orange-950/20 border-orange-900/30' : 'bg-orange-50 border-orange-100'}`}>
                         <label className="flex items-center gap-3 cursor-pointer mb-2">
@@ -506,13 +550,13 @@ const CreateExamModal = ({
                         + เพิ่มข้อสอบ
                     </button>
                 </div>
-            </div>
+            </div >
             <div className={`mt-4 pt-4 border-t flex justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                 <button onClick={onSaveClick} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
                     <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 
