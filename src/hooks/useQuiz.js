@@ -154,7 +154,7 @@ export const useQuiz = (uid, profile, selectedCourse, activeModal, setActiveModa
         };
 
         try {
-            const result = await submitQuizService(activeQuiz.firestoreId, user.uid, submissionData);
+            const result = await submitQuizService(activeQuiz.firestoreId, uid, submissionData);
             setQuizResult(result);
 
             // Update local status of mySubmissions
@@ -164,13 +164,13 @@ export const useQuiz = (uid, profile, selectedCourse, activeModal, setActiveModa
             }));
 
             // Notify Teacher
-            if (selectedCourse?.ownerId && selectedCourse.ownerId !== user.uid) {
+            if (selectedCourse?.ownerId && selectedCourse.ownerId !== uid) {
                 await createNotification(
                     selectedCourse.ownerId,
                     `มีการส่งข้อสอบ: ${activeQuiz.title}`,
-                    'quiz',
+                    'homework',
                     `${profile.firstName} ${profile.lastName || ''} ได้ส่งข้อสอบแล้ว`,
-                    { courseId: selectedCourse.firestoreId, targetType: 'quiz_submission', targetId: activeQuiz.firestoreId }
+                    { courseId: selectedCourse.firestoreId, targetType: 'quiz_result', targetId: activeQuiz.firestoreId }
                 );
             }
 

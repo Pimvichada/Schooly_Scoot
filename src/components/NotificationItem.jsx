@@ -12,6 +12,21 @@ const NOTIF_CONFIG = {
     bg: 'bg-[#96C68E]',
     hoverText: 'group-hover:text-[#96C68E]'
   },
+  quiz: {
+    Icon: FileText,
+    bg: 'bg-[#FFE787]',
+    hoverText: 'group-hover:text-[#3fbf28]'
+  },
+  assignment: {
+    Icon: FileText,
+    bg: 'bg-[#FFE787]',
+    hoverText: 'group-hover:text-[#3fbf28]'
+  },
+  system: {
+    Icon: Bell,
+    bg: 'bg-[#FF917B]',
+    hoverText: 'group-hover:text-[#FF917B]'
+  },
   default: {
     Icon: User,
     bg: 'bg-[#BEE1FF]',

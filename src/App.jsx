@@ -782,7 +782,7 @@ export default function SchoolyScootLMS() {
               }
             } catch (e) { console.error(e); }
           }
-        } else if (notif.targetType === 'quiz_result') { // NEW: Teacher -> View Results
+         } else if (notif.targetType === 'quiz_result' || notif.targetType === 'quiz_submission') {
           setCourseTab('quizzes');
           if (notif.targetId) {
             try {
