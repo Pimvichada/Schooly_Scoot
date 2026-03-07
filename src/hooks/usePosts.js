@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getPostsByCourse, createPost, deletePost } from '../services/postService';
+import { getPostsByCourse, createPost, deletePost, subscribeToPosts } from '../services/postService';
 import { createNotification } from '../services/notificationService';
 
 export const usePosts = (uid, profile, selectedCourse) => {
@@ -28,8 +28,20 @@ export const usePosts = (uid, profile, selectedCourse) => {
 
     // Initial fetch and on course change
     useEffect(() => {
-        fetchPosts();
-    }, [fetchPosts]);
+        if (!selectedCourse?.firestoreId) {
+            setPosts([]);
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        const unsubscribe = subscribeToPosts(selectedCourse.firestoreId, (postsData) => {
+            setPosts(postsData);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [selectedCourse?.firestoreId]);
 
     const handleCreatePost = async (e) => {
         if (e) e.preventDefault();
@@ -65,8 +77,6 @@ export const usePosts = (uid, profile, selectedCourse) => {
                 );
             });
 
-            // Update local state
-            setPosts(prev => [newPost, ...prev]);
             setNewPostContent('');
             setNewPostFiles([]);
             return newPost;
@@ -79,7 +89,6 @@ export const usePosts = (uid, profile, selectedCourse) => {
     const handleDeletePost = async (postId) => {
         try {
             await deletePost(postId);
-            setPosts(prev => prev.filter(p => p.id !== postId));
         } catch (error) {
             console.error("Failed to delete post", error);
             throw error;
@@ -87,11 +96,7 @@ export const usePosts = (uid, profile, selectedCourse) => {
     };
 
     const handleEditPost = (postId, newContent) => {
-        // Optimistic update for UI if needed, or handle via service then refresh
-        // The original code used optimistic update
-        setPosts(prev => prev.map(p =>
-            p.id === postId ? { icon: p.icon, ...p, content: newContent } : p
-        ));
+        // Subscription will update the UI automatically
     };
 
     const handlePostFileSelect = (e) => {
