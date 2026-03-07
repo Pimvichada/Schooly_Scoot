@@ -1,67 +1,76 @@
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc, collectionGroup } from 'firebase/firestore';
 
 /**
  * Fetch assignments for a course or user
  */
-export const getAssignments = async (courseName, uid, role) => {
+export const getAssignments = async (courseName, uid, role, courseNames = null) => {
     try {
         const assignmentsCol = collection(db, 'assignments');
         let q;
 
         if (courseName) {
             q = query(assignmentsCol, where('course', '==', courseName));
+        } else if (role === 'teacher' && uid) {
+            // OPTIMIZATION: Only fetch assignments owned by this teacher
+            q = query(assignmentsCol, where('ownerId', '==', uid));
+        } else if (role === 'student' && courseNames && courseNames.length > 0) {
+            // List of courses the student is in
+            q = query(assignmentsCol, where('course', 'in', courseNames.slice(0, 30)));
         } else {
-            // Fallback or fetch all for dashboard?
+            // For students or general view, we might still need to fetch more, 
+            // but we'll try to keep it as focused as possible.
             q = query(assignmentsCol);
         }
         const snapshot = await getDocs(q);
         const assignments = snapshot.docs.map(doc => ({
             ...doc.data(),
-            id: doc.id, // Ensure id is present for App.jsx compatibility
+            id: doc.id,
             firestoreId: doc.id
         }));
 
-        // If student, check submission status for each assignment
+        // If student, check submission status for each assignment efficiently
         if (role === 'student' && uid) {
-            const enrichedAssignments = await Promise.all(assignments.map(async (assignment) => {
-                try {
-                    // Check if this assignment has a submission from this user
-                    const subCol = collection(db, 'assignments', assignment.firestoreId, 'submissions');
-                    const subQuery = query(subCol, where('userId', '==', uid));
-                    const subSnapshot = await getDocs(subQuery);
+            // OPTIMIZATION: Fetch ALL submissions for this student in ONE query
+            const allSubmissionsQuery = query(collectionGroup(db, 'submissions'), where('userId', '==', uid));
+            const allSubmissionsSnapshot = await getDocs(allSubmissionsQuery);
 
-                    if (!subSnapshot.empty) {
-                        const submission = subSnapshot.docs[0].data();
-                        let files = [];
-                        if (Array.isArray(submission.file)) {
-                            files = submission.file;
-                        } else if (submission.file) {
-                            files = [submission.file];
-                        }
+            // Map by parent assignment ID for quick lookup
+            const submissionsByAssignment = {};
+            allSubmissionsSnapshot.docs.forEach(doc => {
+                const subData = doc.data();
+                // Parent of 'submissions' doc is 'assignments' doc
+                const assignmentId = doc.ref.parent.parent.id;
+                submissionsByAssignment[assignmentId] = subData;
+            });
 
-                        return {
-                            ...assignment,
-                            status: 'submitted',
-                            submittedFiles: files,
-                            score: submission.score,
-                            submittedAt: submission.submittedAt
-                        };
+            const enrichedAssignments = assignments.map((assignment) => {
+                const submission = submissionsByAssignment[assignment.firestoreId];
+
+                if (submission) {
+                    let files = [];
+                    if (Array.isArray(submission.file)) {
+                        files = submission.file;
+                    } else if (submission.file) {
+                        files = [submission.file];
                     }
-
-                    // If no submission found for this student, force status to 'pending'
 
                     return {
                         ...assignment,
-                        status: 'pending',
-                        submittedFiles: [],
-                        score: null
+                        status: 'submitted',
+                        submittedFiles: files,
+                        score: submission.score,
+                        submittedAt: submission.submittedAt
                     };
-                } catch (err) {
-                    console.error(`Error checking submission for ${assignment.firestoreId}:`, err);
-                    return assignment;
                 }
-            }));
+
+                return {
+                    ...assignment,
+                    status: 'pending',
+                    submittedFiles: [],
+                    score: null
+                };
+            });
             return enrichedAssignments;
         }
 

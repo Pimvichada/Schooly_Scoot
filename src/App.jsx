@@ -391,14 +391,17 @@ export default function SchoolyScootLMS() {
   useEffect(() => {
     const loadAssignments = async () => {
       if (authLoading) return; // Wait for auth to be ready
-
+      setIsAssignmentsLoading(true);
       // await seedAssignments(); // Run once (safe check inside service) - Commented out to avoid permission errors
       const uid = auth.currentUser ? auth.currentUser.uid : null;
-      const fetched = await getAssignments(null, uid, userRole);
+      const courseNames = courses.map(c => c.name);
+
+      const fetched = await getAssignments(null, uid, userRole, courseNames);
       setAssignments(fetched);
+      setIsAssignmentsLoading(false);
     };
     loadAssignments();
-  }, [authLoading, userRole, auth.currentUser]);
+  }, [authLoading, userRole, auth.currentUser, courses]);
 
   //  Assignment State (สำคัญมาก)
 
@@ -490,6 +493,7 @@ export default function SchoolyScootLMS() {
 
   // งาน
   const [assignments, setAssignments] = useState([]);
+  const [isAssignmentsLoading, setIsAssignmentsLoading] = useState(true);
   const [assignmentFilter, setAssignmentFilter] = useState('pending');
   // ฟอร์มสร้างงาน
   const [newAssignment, setNewAssignment] = useState({
@@ -2006,6 +2010,7 @@ export default function SchoolyScootLMS() {
                   <AssignmentsView
                     darkMode={darkMode}
                     assignments={assignments}
+                    isAssignmentsLoading={isAssignmentsLoading}
                     courses={courses}
                     userRole={userRole}
                     assignmentFilter={assignmentFilter}
