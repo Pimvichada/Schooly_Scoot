@@ -21,6 +21,7 @@ import { useTime } from './hooks/useTime';
 import { useMeeting } from './hooks/useMeeting';
 import { useQuiz } from './hooks/useQuiz';
 import { usePosts } from './hooks/usePosts';
+import { compressImage } from './utils/helpers.jsx';
 
 
 import {
@@ -200,12 +201,12 @@ export default function SchoolyScootLMS() {
     return new Promise((resolve) => {
       const msgStr = String(message).toLowerCase();
       let finalType = 'success';
-      const hasErrorWord = ['ผิดพลาด', 'ไม่สำเร็จ', 'error', 'failed', 'fail', 'ล้มเหลว', 'ไม่ได้', 'ชนกับ', 'สั้นเกินไป'].some(k => msgStr.includes(k));
+      const hasErrorWord = ['ผิดพลาด', 'ไม่สำเร็จ', 'error', 'failed', 'fail', 'ล้มเหลว', 'ไม่ได้', 'ชนกับ', 'สั้นเกินไป', 'ไม่เกิน', 'จำกัด'].some(k => msgStr.includes(k));
       const hasSuccessWord = ['สำเร็จ', 'เรียบร้อย', 'แล้ว'].some(k => msgStr.includes(k));
       if (hasErrorWord) finalType = 'error';
       if (hasSuccessWord) {
         finalType = 'success';
-        if (msgStr.includes('ไม่สำเร็จ')) finalType = 'error';
+        if (msgStr.includes('ไม่สำเร็จ') || msgStr.includes('ไม่เกิน') || msgStr.includes('จำกัด')) finalType = 'error';
       }
 
       setSystemAlert({
@@ -994,29 +995,19 @@ export default function SchoolyScootLMS() {
     });
   };
 
-  const handleQuestionImageUpload = (idx, file) => {
+  const handleQuestionImageUpload = async (idx, file) => {
     if (!file) return;
 
-    // Check file size (e.g., 2MB limit)
-    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-    if (file.size > MAX_SIZE) {
-      alert("รูปภาพต้องมีขนาดไม่เกิน 2MB");
-      return;
+    try {
+      const compressedBase64 = await compressImage(file);
+      handleUpdateQuestion(idx, 'image', compressedBase64);
+    } catch (error) {
+      console.error("Failed to compress question image", error);
+      alert("ไม่สามารถประมวลผลรูปภาพได้");
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result;
-      handleUpdateQuestion(idx, 'image', base64String);
-    };
-    reader.onerror = () => {
-      console.error("Failed to read file");
-      alert("เกิดข้อผิดพลาดในการอ่านไฟล์รูปภาพ");
-    };
-    reader.readAsDataURL(file);
   };
 
-  const handleOptionImageUpload = (qIdx, optIdx, file) => {
+  const handleOptionImageUpload = async (qIdx, optIdx, file) => {
     // Delete Case
     if (file === null) {
       setNewExam(prev => {
@@ -1035,33 +1026,24 @@ export default function SchoolyScootLMS() {
 
     if (!file) return;
 
-    // ... (rest is same)
-    const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-    if (file.size > MAX_SIZE) {
-      alert("รูปภาพต้องมีขนาดไม่เกิน 2MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
+    try {
+      const compressedBase64 = await compressImage(file);
       setNewExam(prev => {
         const updatedItems = [...prev.items];
         const targetItem = { ...updatedItems[qIdx] };
-        // Initialize optionImages if not present
         if (!targetItem.optionImages) {
           targetItem.optionImages = [null, null, null, null];
         }
         const updatedOptionImages = [...targetItem.optionImages];
-        updatedOptionImages[optIdx] = reader.result;
+        updatedOptionImages[optIdx] = compressedBase64;
         targetItem.optionImages = updatedOptionImages;
         updatedItems[qIdx] = targetItem;
         return { ...prev, items: updatedItems };
       });
-    };
-    reader.onerror = () => {
-      alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Failed to compress option image", error);
+      alert("ไม่สามารถประมวลผลรูปภาพได้");
+    }
   };
 
   const handleSaveExam = async (publishNowParam = null) => {
@@ -1299,8 +1281,16 @@ export default function SchoolyScootLMS() {
       const targetId = assignment.firestoreId || assignment.id; // Fallback only if legacy local data
 
       // Prepare file data with Base64 content
-      const processStudentFiles = async () => {
-        return Promise.all(studentUploadFiles.map(file => {
+      const fileData = await Promise.all(studentUploadFiles.map(async (file) => {
+        if (file.type.startsWith('image/')) {
+          const compressed = await compressImage(file);
+          return {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            content: compressed
+          };
+        } else {
           return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -1312,10 +1302,8 @@ export default function SchoolyScootLMS() {
             });
             reader.onerror = error => reject(error);
           });
-        }));
-      };
-
-      const fileData = await processStudentFiles();
+        }
+      }));
 
       // Call Service
       await submitAssignment(

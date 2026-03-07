@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import { updateUserProfile } from '../services/authService';
+import { compressImage } from '../utils/helpers.jsx';
 
 export const useAuthUser = () => {
     const [uid, setUid] = useState(auth.currentUser?.uid);
@@ -134,18 +135,16 @@ export const useAuthUser = () => {
         }
     };
 
-    const handleProfileImageUpload = (e) => {
+    const handleProfileImageUpload = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 500 * 1024) { // 500KB limit for base64
-                alert('รูปภาพต้องมีขนาดไม่เกิน 500KB เพื่อให้บันทึกได้สำเร็จ (Base64 มีข้อจำกัดด้านขนาด)');
-                return;
+            try {
+                const compressedBase64 = await compressImage(file);
+                setEditProfileData(prev => ({ ...prev, photoURL: compressedBase64 }));
+            } catch (err) {
+                console.error("Compression failed:", err);
+                alert("ไม่สามารถประมวลผลรูปภาพได้");
             }
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setEditProfileData(prev => ({ ...prev, photoURL: reader.result }));
-            };
-            reader.readAsDataURL(file);
         }
     };
 

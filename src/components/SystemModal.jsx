@@ -9,9 +9,9 @@ const SystemModal = ({ isOpen, onClose, onConfirm, type = "success", title, mess
         switch (type) {
             case 'confirm':
                 return {
-                    icon: <HelpCircle size={56} className="text-[#7766E4]" strokeWidth={3} />,
-                    circleStroke: '#7766E4',
-                    bgCircle: darkMode ? '#2d2a45' : '#f5f3ff'
+                    icon: <HelpCircle size={56} className="text-[#FF917B]" strokeWidth={3} />,
+                    circleStroke: '#FF917B',
+                    bgCircle: darkMode ? '#32211e' : '#fff5f2'
                 };
             case 'error':
             case 'danger':
@@ -98,7 +98,12 @@ const SystemModal = ({ isOpen, onClose, onConfirm, type = "success", title, mess
                     )}
                     <button
                         onClick={onConfirm || onClose}
-                        className="flex-1 py-4 bg-[#7766E4] hover:bg-[#6655D3] text-white rounded-[1.25rem] font-bold text-xl shadow-lg shadow-indigo-200 transition-all active:scale-95"
+                        className={`flex-1 py-4 text-white rounded-[1.25rem] font-bold text-xl shadow-lg transition-all active:scale-95 ${type === 'error' || type === 'danger' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
+                            type === 'warning' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200' :
+                                type === 'info' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
+                                    type === 'confirm' ? 'bg-[#FF917B] hover:bg-[#FF7A5C] shadow-orange-200' :
+                                        'bg-[#4ADE80] hover:bg-[#3ec471] shadow-green-200'
+                            }`}
                     >
                         OK
                     </button>

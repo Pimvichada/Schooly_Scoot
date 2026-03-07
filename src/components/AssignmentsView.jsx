@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckSquare, Trash, CheckCircle, FileText, Paperclip, Upload, X, Save, Eye, AlertCircle, Users } from 'lucide-react';
+import { compressImage } from '../utils/helpers.jsx';
 
 const AssignmentsView = ({
     darkMode,
@@ -374,14 +375,16 @@ export const AssignmentDetailModal = ({
 
                         <div className="w-full flex justify-end">
                             <button
-                                onClick={() => {
-                                    setAssignments(prev =>
-                                        prev.map(a =>
-                                            a.id === currentAssignmentData.id
-                                                ? { ...a, status: 'pending', submittedFiles: [] }
-                                                : a
-                                        )
-                                    );
+                                onClick={async () => {
+                                    if (await window.confirm('คุณต้องการยกเลิกการส่งเพื่อแก้ไขงานนี้ใช่หรือไม่?')) {
+                                        setAssignments(prev =>
+                                            prev.map(a =>
+                                                (a.id === currentAssignmentData.id || a.firestoreId === currentAssignmentData.firestoreId)
+                                                    ? { ...a, status: 'pending', submittedFiles: [] }
+                                                    : a
+                                            )
+                                        );
+                                    }
                                 }}
                                 className="text-sm text-red-400 hover:underline mt-2"
                             >
@@ -592,18 +595,28 @@ export const CreateAssignmentModal = ({
                         try {
                             // Prepare data for Firestore
                             const processFiles = async () => {
-                                return Promise.all(newAssignment.files.map(file => {
-                                    return new Promise((resolve, reject) => {
-                                        const reader = new FileReader();
-                                        reader.readAsDataURL(file);
-                                        reader.onload = () => resolve({
+                                return Promise.all(newAssignment.files.map(async (file) => {
+                                    if (file.type.startsWith('image/')) {
+                                        const compressedData = await compressImage(file);
+                                        return {
                                             name: file.name,
                                             size: file.size,
                                             type: file.type,
-                                            content: reader.result // Store Base64
+                                            content: compressedData
+                                        };
+                                    } else {
+                                        return new Promise((resolve, reject) => {
+                                            const reader = new FileReader();
+                                            reader.readAsDataURL(file);
+                                            reader.onload = () => resolve({
+                                                name: file.name,
+                                                size: file.size,
+                                                type: file.type,
+                                                content: reader.result // Store Base64
+                                            });
+                                            reader.onerror = error => reject(error);
                                         });
-                                        reader.onerror = error => reject(error);
-                                    });
+                                    }
                                 }));
                             };
 
