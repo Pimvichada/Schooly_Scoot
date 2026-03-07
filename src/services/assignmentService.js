@@ -11,15 +11,8 @@ export const getAssignments = async (courseName, uid, role, courseNames = null) 
 
         if (courseName) {
             q = query(assignmentsCol, where('course', '==', courseName));
-        } else if (role === 'teacher' && uid) {
-            // OPTIMIZATION: Only fetch assignments owned by this teacher
-            q = query(assignmentsCol, where('ownerId', '==', uid));
-        } else if (role === 'student' && courseNames && courseNames.length > 0) {
-            // List of courses the student is in
-            q = query(assignmentsCol, where('course', 'in', courseNames.slice(0, 30)));
         } else {
-            // For students or general view, we might still need to fetch more, 
-            // but we'll try to keep it as focused as possible.
+            // Fetch all assignments and filter/enrich based on user
             q = query(assignmentsCol);
         }
         const snapshot = await getDocs(q);
@@ -29,49 +22,49 @@ export const getAssignments = async (courseName, uid, role, courseNames = null) 
             firestoreId: doc.id
         }));
 
-        // If student, check submission status for each assignment efficiently
+        // If student, check submission status for each assignment
         if (role === 'student' && uid) {
-            // OPTIMIZATION: Fetch ALL submissions for this student in ONE query
-            const allSubmissionsQuery = query(collectionGroup(db, 'submissions'), where('userId', '==', uid));
-            const allSubmissionsSnapshot = await getDocs(allSubmissionsQuery);
-
-            // Map by parent assignment ID for quick lookup
-            const submissionsByAssignment = {};
-            allSubmissionsSnapshot.docs.forEach(doc => {
-                const subData = doc.data();
-                // Parent of 'submissions' doc is 'assignments' doc
-                const assignmentId = doc.ref.parent.parent.id;
-                submissionsByAssignment[assignmentId] = subData;
-            });
-
-            const enrichedAssignments = assignments.map((assignment) => {
-                const submission = submissionsByAssignment[assignment.firestoreId];
-
-                if (submission) {
-                    let files = [];
-                    if (Array.isArray(submission.file)) {
-                        files = submission.file;
-                    } else if (submission.file) {
-                        files = [submission.file];
+            let submissionsByAssignment = {};
+            try {
+                // Try efficient group query (requires index)
+                const allSubmissionsQuery = query(collectionGroup(db, 'submissions'), where('userId', '==', uid));
+                const allSubmissionsSnapshot = await getDocs(allSubmissionsQuery);
+                allSubmissionsSnapshot.docs.forEach(doc => {
+                    submissionsByAssignment[doc.ref.parent.parent.id] = doc.data();
+                });
+            } catch (err) {
+                console.warn("CollectionGroup query failed (index possibly missing), falling back to individual checks.");
+                // Fallback to slower but safe individual checks
+                return await Promise.all(assignments.map(async (assign) => {
+                    const subCol = collection(db, 'assignments', assign.firestoreId, 'submissions');
+                    const subSnapshot = await getDocs(query(subCol, where('userId', '==', uid)));
+                    if (!subSnapshot.empty) {
+                        const sub = subSnapshot.docs[0].data();
+                        return {
+                            ...assign,
+                            status: 'submitted',
+                            submittedFiles: Array.isArray(sub.file) ? sub.file : (sub.file ? [sub.file] : []),
+                            score: sub.score,
+                            submittedAt: sub.submittedAt
+                        };
                     }
+                    return { ...assign, status: 'pending', submittedFiles: [], score: null };
+                }));
+            }
 
+            return assignments.map((assign) => {
+                const sub = submissionsByAssignment[assign.firestoreId];
+                if (sub) {
                     return {
-                        ...assignment,
+                        ...assign,
                         status: 'submitted',
-                        submittedFiles: files,
-                        score: submission.score,
-                        submittedAt: submission.submittedAt
+                        submittedFiles: Array.isArray(sub.file) ? sub.file : (sub.file ? [sub.file] : []),
+                        score: sub.score,
+                        submittedAt: sub.submittedAt
                     };
                 }
-
-                return {
-                    ...assignment,
-                    status: 'pending',
-                    submittedFiles: [],
-                    score: null
-                };
+                return { ...assign, status: 'pending', submittedFiles: [], score: null };
             });
-            return enrichedAssignments;
         }
 
         // If teacher, check if there are ANY submissions to categorize as "submitted" (Active/Grading)

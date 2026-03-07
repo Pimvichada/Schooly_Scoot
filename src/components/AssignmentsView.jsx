@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckSquare, Trash, CheckCircle, FileText, Paperclip, Upload, X, Save, Eye, AlertCircle } from 'lucide-react';
+import { CheckSquare, Trash, CheckCircle, FileText, Paperclip, Upload, X, Save, Eye, AlertCircle, Users } from 'lucide-react';
 
 const AssignmentsView = ({
     darkMode,
@@ -10,6 +10,7 @@ const AssignmentsView = ({
     setAssignmentFilter,
     openGradingModal,
     setSelectedAssignment,
+    setActiveModal,
     deleteAssignment,
     setAssignments,
     isAssignmentsLoading
@@ -131,72 +132,90 @@ const AssignmentsView = ({
                 <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-50'} rounded-3xl p-6 shadow-sm border`}>
                     <div className="space-y-4">
                         {filteredAssignments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).length > 0 ? (
-                            filteredAssignments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((assign) => (
-                                <div key={assign.id} className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${(assign.status === 'pending' || assign.status === 'pending_review') ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
-                                                assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') :
-                                                    (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
-                                                }`}>
-                                                {assign.status === 'pending' ? (userRole === 'teacher' ? 'รอส่ง' : 'รอส่ง') :
-                                                    assign.status === 'pending_review' ? 'รอตรวจ' :
-                                                        assign.status === 'submitted' ? (userRole === 'teacher' ? 'ส่งครบ' : 'ส่งแล้ว') :
-                                                            'เลยกำหนด'}
-                                            </span>
-                                            <span className="text-xs text-slate-500">{assign.course}</span>
-                                        </div>
-                                        <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{assign.title}</h3>
-                                        <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
-                                    </div>
+                            filteredAssignments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((assign) => {
+                                const handleClick = () => {
+                                    if (userRole === 'teacher') {
+                                        openGradingModal(assign);
+                                    } else {
+                                        setSelectedAssignment(assign);
+                                        setActiveModal('assignmentDetail');
+                                    }
+                                };
 
-                                    <div className="mt-4 md:mt-0 flex items-center gap-4">
-                                        {(assign.score !== undefined && assign.score !== null && assign.score !== '') && (
-                                            <div className="text-right">
-                                                <div className="text-xs text-slate-500">คะแนน</div>
-                                                <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
+                                return (
+                                    <div
+                                        key={assign.id || assign.firestoreId}
+                                        onClick={handleClick}
+                                        className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}
+                                    >
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${(assign.status === 'pending' || assign.status === 'pending_review') ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
+                                                    assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') :
+                                                        (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
+                                                    }`}>
+                                                    {assign.status === 'pending' ? 'รอส่ง' :
+                                                        assign.status === 'pending_review' ? 'รอตรวจ' :
+                                                            assign.status === 'submitted' ? (userRole === 'teacher' ? 'ส่งครบ' : 'ส่งแล้ว') :
+                                                                'เลยกำหนด'}
+                                                </span>
+                                                <span className="text-xs text-slate-500">{assign.course}</span>
                                             </div>
-                                        )}
-                                        <button
-                                            onClick={() => {
-                                                if (userRole === 'teacher') {
-                                                    openGradingModal(assign);
-                                                } else {
-                                                    setSelectedAssignment(assign);
-                                                    setActiveModal('assignmentDetail');
-                                                }
-                                            }}
-                                            className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher'
-                                                ? (darkMode ? 'bg-slate-800 border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-700' : 'bg-white border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-50')
-                                                : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#A0D5FF]'
-                                                } transition-colors`}>
-                                            {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
-                                        </button>
+                                            <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{assign.title}</h3>
+                                            <div className="flex items-center gap-4 mt-1">
+                                                <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
+                                                {userRole === 'teacher' && (
+                                                    <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'} flex items-center gap-1`}>
+                                                        <Users size={14} /> {assign.submissionCount || 0} คน
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
 
-                                        {userRole === 'teacher' && (
+                                        <div className="mt-4 md:mt-0 flex items-center gap-4">
+                                            {(assign.score !== undefined && assign.score !== null && assign.score !== '') && (
+                                                <div className="text-right">
+                                                    <div className="text-xs text-slate-500">คะแนน</div>
+                                                    <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
+                                                </div>
+                                            )}
                                             <button
-                                                onClick={async (e) => {
+                                                onClick={(e) => {
                                                     e.stopPropagation();
-                                                    if (await window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
-                                                        try {
-                                                            await deleteAssignment(assign.firestoreId || assign.id);
-                                                            // Remove from local state
-                                                            setAssignments(prev => prev.filter(a => a.id !== assign.id));
-                                                        } catch (error) {
-                                                            console.error('Failed to delete', error);
-                                                            alert('ลบงานไม่สำเร็จ');
-                                                        }
-                                                    }
+                                                    handleClick();
                                                 }}
-                                                className={`p-2 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
-                                                title="ลบงาน"
-                                            >
-                                                <Trash size={20} />
+                                                className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher'
+                                                    ? (darkMode ? 'bg-slate-800 border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-700' : 'bg-white border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-50')
+                                                    : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#A0D5FF]'
+                                                    } transition-colors`}>
+                                                {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
                                             </button>
-                                        )}
+
+                                            {userRole === 'teacher' && (
+                                                <button
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (await window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+                                                            try {
+                                                                await deleteAssignment(assign.firestoreId || assign.id);
+                                                                // Remove from local state
+                                                                setAssignments(prev => prev.filter(a => (a.id || a.firestoreId) !== (assign.id || assign.firestoreId)));
+                                                            } catch (error) {
+                                                                console.error('Failed to delete', error);
+                                                                alert('ลบงานไม่สำเร็จ');
+                                                            }
+                                                        }
+                                                    }}
+                                                    className={`p-2 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                                                    title="ลบงาน"
+                                                >
+                                                    <Trash size={20} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <div className="text-center py-12">
                                 <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
@@ -216,6 +235,7 @@ export default AssignmentsView;
 
 export const AssignmentDetailModal = ({
     activeModal,
+    setActiveModal,
     currentAssignmentData,
     darkMode,
     openBase64InNewTab,
@@ -228,7 +248,13 @@ export const AssignmentDetailModal = ({
     if (activeModal !== 'assignmentDetail' || !currentAssignmentData) return null;
 
     return (
-        <div className="p-8">
+        <div className="p-8 relative">
+            <button
+                onClick={() => setActiveModal(null)}
+                className={`absolute top-4 right-4 p-2 rounded-full z-20 ${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}
+            >
+                <X size={20} className={darkMode ? 'text-slate-300' : 'text-slate-600'} />
+            </button>
             <div className="flex items-start gap-4 mb-6">
                 <div className="bg-[#FFE787] p-3 rounded-2xl">
                     <FileText size={32} className="text-slate-700" />

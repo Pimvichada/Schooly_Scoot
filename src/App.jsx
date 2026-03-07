@@ -10,7 +10,7 @@ import { getNotifications, seedNotifications, markNotificationAsRead, createNoti
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
 // import { getChats, seedChats, sendMessage } from './services/chatService';
 import { getUsersByIds } from './services/authService';
-import { uploadFile } from './services/uploadService';
+import { uploadFile as uploadFileService } from './services/uploadService';
 import LoginPage from './components/LoginPage';
 import AnalyticsView from './components/AnalyticsView';
 import { useWelcomeMessage } from './hooks/useWelcomeMessage';
@@ -506,7 +506,7 @@ export default function SchoolyScootLMS() {
 
 
   // State for student file upload
-  const [uploadFile, setUploadFile] = useState([]);
+  const [studentUploadFiles, setStudentUploadFiles] = useState([]);
   // Create Exam State
   const [newExam, setNewExam] = useState({
     id: null,
@@ -923,13 +923,13 @@ export default function SchoolyScootLMS() {
   };
 
   const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files); // แปลง FileList เป็น Array
+    const files = Array.from(e.target.files);
     if (files.length > 0) {
-      setUploadFile(prev => [...prev, ...files]); // เพิ่มไฟล์ใหม่เข้าไปในลิสต์เดิม
+      setStudentUploadFiles(prev => [...prev, ...files]);
     }
   };
   const removeFile = (index) => {
-    setUploadFile(prev => prev.filter((_, i) => i !== index));
+    setStudentUploadFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleLogin = (role) => {
@@ -1300,7 +1300,7 @@ export default function SchoolyScootLMS() {
 
       // Prepare file data with Base64 content
       const processStudentFiles = async () => {
-        return Promise.all(uploadFile.map(file => {
+        return Promise.all(studentUploadFiles.map(file => {
           return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -1338,19 +1338,19 @@ export default function SchoolyScootLMS() {
 
       // Update Local State
       setAssignments(prev => prev.map(assign => {
-        if (assign.id === assignmentId) {
+        if (assign.id === assignmentId || assign.firestoreId === assignmentId) {
           return {
             ...assign,
             status: 'submitted',
-            submittedFiles: uploadFile,
-            submittedAt: new Date().toISOString() // Keep local file objects for UI display
+            submittedFiles: studentUploadFiles,
+            submittedAt: new Date().toISOString()
           };
         }
         return assign;
       }));
 
       // Clear Modal
-      setUploadFile([]);
+      setStudentUploadFiles([]);
       setActiveModal(null);
       setSelectedAssignment(null);
       alert('ส่งงานเรียบร้อยแล้ว!');
@@ -1617,7 +1617,7 @@ export default function SchoolyScootLMS() {
 
     const finalizeClose = () => {
       setActiveModal(null);
-      setUploadFile([]);
+      setStudentUploadFiles([]);
       setSubmissions([]);
       // Clear submissions to prevent stale data
       setActiveQuiz(null);
@@ -1762,11 +1762,12 @@ export default function SchoolyScootLMS() {
           <AssignmentDetailModal
             {...{
               activeModal,
+              setActiveModal, // Add this
               currentAssignmentData,
               darkMode,
               openBase64InNewTab,
               handleFileUpload,
-              uploadFile,
+              uploadFile: studentUploadFiles, // Pass renamed state
               removeFile,
               handleConfirmSubmit,
               setAssignments
