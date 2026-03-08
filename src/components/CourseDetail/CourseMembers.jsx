@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, LogOut } from 'lucide-react';
+import { AlertCircle, LogOut, UserMinus } from 'lucide-react';
 
 const CourseMembers = ({
     darkMode,
@@ -10,6 +10,7 @@ const CourseMembers = ({
     selectedCourse,
     members,
     handleLeaveCourse,
+    handleRemoveMember,
     teacherProfile
 }) => {
     return (
@@ -95,17 +96,37 @@ const CourseMembers = ({
             </div>
 
             <h3 className={`font-bold mb-4 text-lg border-b pb-2 ${darkMode ? 'text-[#96C68E] border-slate-800' : 'text-[#96C68E] border-slate-100'}`}>เพื่อนร่วมชั้น ({members.length} คน)</h3>
-            <div className="space-y-4">
+            <div className="space-y-3">
                 {members.length > 0 ? members.map(m => (
-                    <div key={m.id} className="flex items-center gap-4 group">
-                        {m.avatar ? (
-                            <img src={m.avatar} alt={m.name} className="w-10 h-10 rounded-full object-cover" />
-                        ) : (
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${darkMode ? 'bg-slate-800 text-slate-500 group-hover:bg-indigo-900/30 group-hover:text-indigo-400' : 'bg-blue-50 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
-                                {m.name.charAt(0)}
+                    <div key={m.id} className="flex items-center justify-between gap-3 group">
+                        <div className="flex items-center gap-3">
+                            {m.avatar ? (
+                                <img
+                                    src={m.avatar}
+                                    alt={m.name}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm"
+                                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                />
+                            ) : null}
+                            <div
+                                className={`w-10 h-10 rounded-full items-center justify-center font-bold text-sm transition-colors ${m.avatar ? 'hidden' : 'flex'} ${darkMode ? 'bg-indigo-900/40 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}
+                            >
+                                {m.name.charAt(0).toUpperCase()}
                             </div>
+                            <div>
+                                <span className={`font-medium transition-colors ${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>{m.name}</span>
+                                <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>นักเรียน</p>
+                            </div>
+                        </div>
+                        {userRole === 'teacher' && (
+                            <button
+                                onClick={() => handleRemoveMember(m.id, m.name)}
+                                className={`p-2 rounded-lg text-red-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0 ${darkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'}`}
+                                title="ลบนักเรียนออกจากห้องเรียน"
+                            >
+                                <UserMinus size={18} />
+                            </button>
                         )}
-                        <span className={`font-medium transition-colors ${darkMode ? 'text-slate-300 group-hover:text-white' : 'text-slate-700 group-hover:text-slate-900'}`}>{m.name}</span>
                     </div>
                 )) : (
                     <p className={`${darkMode ? 'text-slate-600' : 'text-slate-500'}`}>ยังไม่มีนักเรียนในวิชานี้</p>

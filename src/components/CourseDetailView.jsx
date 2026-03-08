@@ -44,6 +44,7 @@ const CourseDetailView = ({
     handleReject,
     members,
     handleLeaveCourse,
+    handleRemoveMember,
     quizzes,
     mySubmissions,
     handleToggleQuizStatus,
@@ -143,6 +144,7 @@ const CourseDetailView = ({
                         selectedCourse={selectedCourse}
                         members={members}
                         handleLeaveCourse={handleLeaveCourse}
+                        handleRemoveMember={handleRemoveMember}
                         teacherProfile={teacherProfile}
                     />
                 );

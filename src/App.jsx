@@ -655,7 +655,7 @@ export default function SchoolyScootLMS() {
           id: u.uid,
           name: u.fullName || 'Unknown',
           role: 'student',
-          avatar: u.photoURL || 'bg-blue-200' // fallback color/avatar
+          avatar: u.photoURL || null // null if no photo
         })));
       } else {
         setMembers([]);
@@ -1503,6 +1503,21 @@ export default function SchoolyScootLMS() {
     }
   };
 
+  const handleRemoveMember = async (studentId, studentName) => {
+    if (!await confirm(`คุณต้องการลบนักเรียน ${studentName || ''} ออกจากห้องเรียนนี้ใช่หรือไม่?`)) return;
+    try {
+      if (!selectedCourse.firestoreId) {
+        alert('ไม่สามารถลบนักเรียนจากวิชาตัวอย่างได้ (Mock Data)');
+        return;
+      }
+      await leaveCourse(selectedCourse.firestoreId, studentId);
+      alert('ลบนักเรียนออกจากห้องเรียนเรียบร้อยแล้ว');
+    } catch (error) {
+      console.error("Failed to remove member", error);
+      alert('เกิดข้อผิดพลาดในการลบนักเรียน: ' + error.message);
+    }
+  };
+
   if (authLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-100">
       <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#96C68E]"></div>
@@ -1994,6 +2009,7 @@ export default function SchoolyScootLMS() {
                 handleReject={handleReject}
                 members={members}
                 handleLeaveCourse={handleLeaveCourse}
+                handleRemoveMember={handleRemoveMember}
                 quizzes={quizzes}
                 mySubmissions={mySubmissions}
                 handleToggleQuizStatus={handleToggleQuizStatus}
