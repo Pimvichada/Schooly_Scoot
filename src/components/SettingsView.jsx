@@ -32,19 +32,7 @@ const SettingsView = ({
                                 </div>
                             )}
                         </div>
-                        <button
-                            onClick={() => {
-                                setEditProfileData({
-                                    firstName: profile.firstName,
-                                    lastName: profile.lastName,
-                                    photoURL: profile.photoURL
-                                });
-                                setActiveModal('editProfile');
-                            }}
-                            className="text-sm text-blue-500 hover:text-blue-600 font-bold"
-                        >
-                            แก้ไขรูปโปรไฟล์
-                        </button>
+                       
                     </div>
 
                     <div className="flex-1 space-y-4 w-full">

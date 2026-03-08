@@ -52,11 +52,11 @@ const CourseFeed = ({
                     {/* Decorative Gradient Blob */}
                     <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${darkMode ? 'from-indigo-600/30 to-slate-800/30' : 'from-[#FFE787] to-[#BEE1FF]'} opacity-20 rounded-full blur-2xl`}></div>
 
-                    <h3 className="relative font-bold mb-6 flex items-center gap-2">
-                        <div className={`${darkMode ? 'bg-slate-800' : 'bg-[#E3F2FD]'} p-2 rounded-xl`}>
-                            <Info size={20} className={darkMode ? 'text-indigo-400' : 'text-[#5B9BD5]'} />
+                    <h3 className="relative font-bold mb-4 md:mb-6 flex items-center gap-2">
+                        <div className={`${darkMode ? 'bg-slate-800' : 'bg-[#E3F2FD]'} p-1.5 md:p-2 rounded-xl`}>
+                            <Info size={18} className={`${darkMode ? 'text-indigo-400' : 'text-[#5B9BD5]'} md:w-5 md:h-5`} />
                         </div>
-                        <span className={`bg-clip-text text-transparent bg-gradient-to-r ${darkMode ? 'from-white to-slate-400' : 'from-slate-800 to-slate-600'}`}>เกี่ยวกับวิชา</span>
+                        <span className={`text-base md:text-lg bg-clip-text text-transparent bg-gradient-to-r ${darkMode ? 'from-white to-slate-400' : 'from-slate-800 to-slate-600'}`}>เกี่ยวกับวิชา</span>
                     </h3>
 
                     <div className="relative space-y-5">
@@ -74,16 +74,16 @@ const CourseFeed = ({
                                 รหัสเข้าเรียน <Star size={12} className="text-[#FFE787] fill-[#FFE787]" />
                             </p>
                             <div
-                                className={`relative overflow-hidden flex items-center justify-between p-4 rounded-2xl border-2 border-dashed transition-all ${darkMode ? 'border-indigo-800 bg-slate-800 hover:bg-slate-700' : 'border-[#FF917B] bg-[#FFF0EE] hover:bg-[#FFE5E2]'
+                                className={`relative overflow-hidden flex items-center justify-between p-3 md:p-4 rounded-2xl border-2 border-dashed transition-all ${darkMode ? 'border-indigo-800 bg-slate-800 hover:bg-slate-700' : 'border-[#FF917B] bg-[#FFF0EE] hover:bg-[#FFE5E2]'
                                     } cursor-pointer`}
                                 onClick={() => {
                                     navigator.clipboard.writeText(selectedCourse.inviteCode);
                                 }}
                             >
                                 <div className={`absolute inset-0 opacity-10 ${darkMode ? 'bg-[radial-gradient(white_1px,transparent_1px)]' : 'bg-[radial-gradient(#FF917B_1px,transparent_1px)]'} [background-size:8px_8px]`}></div>
-                                <code className={`relative font-black text-xl tracking-widest ${darkMode ? 'text-indigo-400' : 'text-[#FF917B]'}`}>{selectedCourse.inviteCode}</code>
-                                <div className={`relative p-2 rounded-xl shadow-sm ${darkMode ? 'bg-slate-700' : 'bg-white'}`}>
-                                    <Copy size={16} className={darkMode ? 'text-indigo-400' : 'text-[#FF917B]'} />
+                                <code className={`relative font-black text-lg md:text-xl tracking-widest ${darkMode ? 'text-indigo-400' : 'text-[#FF917B]'}`}>{selectedCourse.inviteCode}</code>
+                                <div className={`relative p-1.5 md:p-2 rounded-xl shadow-sm ${darkMode ? 'bg-slate-700' : 'bg-white'}`}>
+                                    <Copy size={14} className={`${darkMode ? 'text-indigo-400' : 'text-[#FF917B]'} md:w-4 md:h-4`} />
                                 </div>
                             </div>
 
@@ -106,12 +106,12 @@ const CourseFeed = ({
                                             ];
                                             const color = item.dayOfWeek !== undefined ? dayColors[item.dayOfWeek] : { bg: 'bg-slate-100', text: 'text-slate-600', darkBg: 'bg-slate-800', darkText: 'text-slate-400' };
                                             return (
-                                                <div key={idx} className={`flex items-center justify-between p-2.5 rounded-xl border transition-all ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50/50 border-slate-100/80'}`}>
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[13px] shadow-sm ${darkMode ? `${color.darkBg} ${color.darkText}` : `${color.bg} ${color.text}`}`}>
+                                                <div key={idx} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-all ${darkMode ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-50/50 border-slate-100/80'}`}>
+                                                    <div className="flex items-center gap-2 md:gap-2.5">
+                                                        <div className={`w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center font-bold text-[11px] md:text-[13px] shadow-sm ${darkMode ? `${color.darkBg} ${color.darkText}` : `${color.bg} ${color.text}`}`}>
                                                             {item.dayLabel || ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'][item.dayOfWeek]}
                                                         </div>
-                                                        <span className={`text-[13px] font-bold tracking-tight ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                                        <span className={`text-[12px] md:text-[13px] font-bold tracking-tight ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                                                             {item.startTime} - {item.endTime} น.
                                                         </span>
                                                     </div>
@@ -132,26 +132,26 @@ const CourseFeed = ({
             {/* Main Feed Area */}
             <div className="md:col-span-3 space-y-6">
                 {/* Post Input Area */}
-                <div className={`p-4 md:p-6 rounded-[2rem] border shadow-sm relative transition-all duration-300 overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
-                    <div className="flex gap-4 mb-2">
-                        <div className={`w-14 h-14 rounded-full p-1 border-2 shadow-sm flex-shrink-0 ${darkMode ? 'bg-slate-800 border-indigo-900' : 'bg-white border-white'}`}>
+                <div className={`p-4 md:p-6 rounded-2xl md:rounded-[2rem] border shadow-sm relative transition-all duration-300 overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+                    <div className="flex gap-3 md:gap-4 mb-2">
+                        <div className={`w-10 h-10 md:w-14 md:h-14 rounded-full p-0.5 md:p-1 border-2 shadow-sm flex-shrink-0 ${darkMode ? 'bg-slate-800 border-indigo-900' : 'bg-white border-white'}`}>
                             {profile.photoURL ? (
                                 <img src={profile.photoURL} className="w-full h-full rounded-full object-cover" alt="" />
                             ) : (
-                                <div className="w-full h-full bg-[#BEE1FF] rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                <div className="w-full h-full bg-[#BEE1FF] rounded-full flex items-center justify-center text-white font-bold text-lg md:text-xl">
                                     {profile.firstName?.[0]}
                                 </div>
                             )}
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                             <textarea
                                 value={newPostContent}
                                 onChange={(e) => setNewPostContent(e.target.value)}
                                 maxLength={500}
                                 placeholder={`ประกาศบางอย่างให้กับชั้นเรียน ${selectedCourse.name}`}
-                                className={`w-full h-24 p-4 rounded-2xl border-none focus:ring-0 resize-none text-lg transition-all ${darkMode ? 'bg-slate-800 text-slate-100 placeholder-slate-500' : 'bg-slate-50 text-slate-700 placeholder-slate-400'}`}
+                                className={`w-full h-20 md:h-24 p-2 md:p-4 rounded-2xl border-none focus:ring-0 resize-none text-base md:text-lg transition-all ${darkMode ? 'bg-slate-800 text-slate-100 placeholder-slate-500' : 'bg-slate-50 text-slate-700 placeholder-slate-400'}`}
                             />
-                            <div className={`text-right text-[10px] font-bold mt-1 ${newPostContent.length >= 500 ? 'text-red-500' : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
+                            <div className={`text-right text-[9px] md:text-[10px] font-bold mt-1 ${newPostContent.length >= 500 ? 'text-red-500' : (darkMode ? 'text-slate-500' : 'text-slate-400')}`}>
                                 {newPostContent.length}/500
                             </div>
                         </div>
