@@ -21,6 +21,20 @@ const AssignmentsView = ({
         courses.some(c => c.name === assign.course)
     );
 
+    // Helper function to check if an assignment is "All Submitted" (regardless of grading)
+    const isAllSubmitted = (assign) => {
+        const targetCourse = courses.find(c => c.name === assign.course);
+        if (!targetCourse) return false;
+        const allStudentIds = targetCourse.studentIds || [];
+        const actualStudentIds = allStudentIds.filter(id => id !== targetCourse.ownerId);
+        if (actualStudentIds.length === 0) return false;
+        const submittedStudentIds = assign.submissions
+            ? [...new Set(assign.submissions.map(s => s.userId))]
+            : [];
+        const missingIds = actualStudentIds.filter(id => !submittedStudentIds.includes(id));
+        return assign.submissionCount > 0 && missingIds.length === 0;
+    };
+
     // Helper function to check if an assignment is "All Submitted and Graded"
     const isAllCompleted = (assign) => {
         const targetCourse = courses.find(c => c.name === assign.course);
@@ -49,17 +63,19 @@ const AssignmentsView = ({
             assign.pendingCount === 0;
     };
 
+    const isTeacher = userRole?.toLowerCase() === 'teacher';
+
     // 2. Filter by Status Tab (for the list display)
     const filteredAssignments = userAssignments.filter(assign => {
         if (assignmentFilter === 'all') return true;
         if (assignmentFilter === 'pending') {
-            if (userRole === 'teacher') {
+            if (isTeacher) {
                 // If not completely "ส่งครบ" (all submitted & graded), then it's still pending
                 return !isAllCompleted(assign);
             }
             return assign.status === 'pending' || assign.status === 'late';
         } else { // submitted
-            if (userRole === 'teacher') {
+            if (isTeacher) {
                 return isAllCompleted(assign);
             }
             return assign.status === 'submitted';
@@ -92,8 +108,8 @@ const AssignmentsView = ({
                             : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
                             }`}
                     >
-                        {userRole === 'teacher' ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({
-                            userRole === 'teacher'
+                        {isTeacher ? 'รอตรวจ' : 'ยังไม่ส่ง'} ({
+                            isTeacher
                                 ? userAssignments.filter(a => !isAllCompleted(a)).length
                                 : userAssignments.filter(a => a.status !== 'submitted').length
                         })
@@ -105,8 +121,8 @@ const AssignmentsView = ({
                             : `text-slate-500 hover:text-slate-700 ${darkMode ? 'dark:hover:text-slate-300' : ''}`
                             }`}
                     >
-                        {userRole === 'teacher' ? 'ส่งครบ' : 'ส่งแล้ว'} ({
-                            userRole === 'teacher'
+                        {isTeacher ? 'ตรวจแล้ว' : 'ส่งแล้ว'} ({
+                            isTeacher
                                 ? userAssignments.filter(a => isAllCompleted(a)).length
                                 : userAssignments.filter(a => a.status === 'submitted').length
                         })
@@ -143,79 +159,98 @@ const AssignmentsView = ({
                                     }
                                 };
 
-                                return (
-                                    <div
-                                        key={assign.id || assign.firestoreId}
-                                        onClick={handleClick}
-                                        className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}
-                                    >
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${(assign.status === 'pending' || assign.status === 'pending_review') ? (darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600') :
-                                                    assign.status === 'submitted' ? (darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600') :
-                                                        (darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600')
-                                                    }`}>
-                                                    {assign.status === 'pending' ? 'รอส่ง' :
-                                                        assign.status === 'pending_review' ? 'รอตรวจ' :
-                                                            assign.status === 'submitted' ? (userRole === 'teacher' ? 'ส่งครบ' : 'ส่งแล้ว') :
-                                                                'เลยกำหนด'}
-                                                </span>
-                                                <span className="text-xs text-slate-500">{assign.course}</span>
+                                return (() => {
+                                    const completed = isTeacher ? isAllCompleted(assign) : (assign.status === 'submitted');
+                                    const isLate = (assign.status === 'late' || (assign.dueDate && new Date(assign.dueDate) < new Date())) && !completed;
+
+                                    const badge = (() => {
+                                        if (isTeacher) {
+                                            const completed = isAllCompleted(assign);
+                                            const allSubmitted = isAllSubmitted(assign);
+
+                                            if (completed) return { text: 'ตรวจแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600' };
+                                            if (allSubmitted) return { text: 'ส่งครบ', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600' };
+
+                                            return { text: 'ส่งไม่ครบ', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600' };
+                                        } else {
+                                            const completed = assign.status === 'submitted';
+                                            if (completed) return { text: 'ส่งแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-100 text-green-600' };
+                                            if (isLate) return { text: 'เลยกำหนด', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-600' };
+                                            return { text: 'รอส่ง', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-100 text-yellow-600' };
+                                        }
+                                    })();
+
+                                    return (
+                                        <div
+                                            key={assign.id || assign.firestoreId}
+                                            onClick={handleClick}
+                                            className={`flex flex-col md:flex-row md:items-center p-4 border rounded-2xl transition-all cursor-pointer ${darkMode ? 'border-slate-800 hover:border-indigo-900 hover:bg-slate-800/50' : 'border-slate-100 hover:border-[#BEE1FF] hover:bg-slate-50'}`}
+                                        >
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${badge.color}`}>
+                                                        {badge.text}
+                                                    </span>
+                                                    <span className="text-xs text-slate-500">{assign.course}</span>
+                                                </div>
+                                                <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{assign.title}</h3>
+                                                <div className="flex items-center gap-4 mt-1">
+                                                    <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
+                                                    {userRole === 'teacher' && (
+                                                        <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'} flex items-center gap-1`}>
+                                                            <Users size={14} /> {assign.submissionCount || 0}/{(() => {
+                                                                const course = courses.find(c => c.name === assign.course);
+                                                                return course ? (course.studentIds?.length || 0) : '?';
+                                                            })()} คน
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{assign.title}</h3>
-                                            <div className="flex items-center gap-4 mt-1">
-                                                <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>กำหนดส่ง: {assign.dueDate ? new Date(assign.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'ยังไม่กำหนด'}</p>
+
+                                            <div className="mt-4 md:mt-0 flex items-center gap-4">
+                                                {(assign.score !== undefined && assign.score !== null && assign.score !== '') && (
+                                                    <div className="text-right">
+                                                        <div className="text-xs text-slate-500">คะแนน</div>
+                                                        <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
+                                                    </div>
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleClick();
+                                                    }}
+                                                    className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher'
+                                                        ? (darkMode ? 'bg-slate-800 border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-700' : 'bg-white border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-50')
+                                                        : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#A0D5FF]'
+                                                        } transition-colors`}>
+                                                    {userRole === 'teacher' ? 'ตรวจงาน' : (completed ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
+                                                </button>
+
                                                 {userRole === 'teacher' && (
-                                                    <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'} flex items-center gap-1`}>
-                                                        <Users size={14} /> {assign.submissionCount || 0} คน
-                                                    </p>
+                                                    <button
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (await window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+                                                                try {
+                                                                    await deleteAssignment(assign.firestoreId || assign.id);
+                                                                    // Remove from local state
+                                                                    setAssignments(prev => prev.filter(a => (a.id || a.firestoreId) !== (assign.id || assign.firestoreId)));
+                                                                } catch (error) {
+                                                                    console.error('Failed to delete', error);
+                                                                    alert('ลบงานไม่สำเร็จ');
+                                                                }
+                                                            }
+                                                        }}
+                                                        className={`p-2 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                                                        title="ลบงาน"
+                                                    >
+                                                        <Trash size={20} />
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
-
-                                        <div className="mt-4 md:mt-0 flex items-center gap-4">
-                                            {(assign.score !== undefined && assign.score !== null && assign.score !== '') && (
-                                                <div className="text-right">
-                                                    <div className="text-xs text-slate-500">คะแนน</div>
-                                                    <div className="font-bold text-[#96C68E] text-xl">{assign.score}</div>
-                                                </div>
-                                            )}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleClick();
-                                                }}
-                                                className={`px-6 py-2 rounded-xl font-bold text-sm ${userRole === 'teacher'
-                                                    ? (darkMode ? 'bg-slate-800 border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-700' : 'bg-white border-2 border-[#96C68E] text-[#96C68E] hover:bg-slate-50')
-                                                    : 'bg-[#BEE1FF] text-slate-800 hover:bg-[#A0D5FF]'
-                                                    } transition-colors`}>
-                                                {userRole === 'teacher' ? 'ตรวจงาน' : (assign.status === 'submitted' ? 'ดูงานที่ส่ง' : 'ส่งการบ้าน')}
-                                            </button>
-
-                                            {userRole === 'teacher' && (
-                                                <button
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        if (await window.confirm('คุณต้องการลบงานนี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
-                                                            try {
-                                                                await deleteAssignment(assign.firestoreId || assign.id);
-                                                                // Remove from local state
-                                                                setAssignments(prev => prev.filter(a => (a.id || a.firestoreId) !== (assign.id || assign.firestoreId)));
-                                                            } catch (error) {
-                                                                console.error('Failed to delete', error);
-                                                                alert('ลบงานไม่สำเร็จ');
-                                                            }
-                                                        }
-                                                    }}
-                                                    className={`p-2 rounded-xl transition-all ${darkMode ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
-                                                    title="ลบงาน"
-                                                >
-                                                    <Trash size={20} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
+                                    );
+                                })();
                             })
                         ) : (
                             <div className="text-center py-12">

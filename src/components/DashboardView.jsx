@@ -97,12 +97,23 @@ const DashboardView = ({
                     darkMode={darkMode}
                 />
                 <StatCard
-                    title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานรอตรวจ"}
+                    title={userRole === 'student' ? "การบ้านที่ต้องส่ง" : "งานที่ยังไม่เสร็จ"}
                     value={(() => {
                         const myAssignments = assignments.filter(a => courses.some(c => c.name.trim() === a.course.trim()));
-                        return userRole === 'student'
-                            ? myAssignments.filter(a => a.status === 'pending').length.toString()
-                            : myAssignments.filter(a => a.status !== 'submitted').length.toString();
+                        if (userRole === 'student') return myAssignments.filter(a => a.status === 'pending').length.toString();
+
+                        // Teacher: Count anything not fully completed (submitted & graded)
+                        // Note: For Dashboard count, we just need a simple estimate if courses list is long, 
+                        // but here we can try to be accurate since it's just a count.
+                        return myAssignments.filter(a => {
+                            const targetCourse = courses.find(c => c.name === a.course);
+                            if (!targetCourse) return true;
+                            const students = (targetCourse.studentIds || []).filter(id => id !== targetCourse.ownerId);
+                            // If any student missing or any pending review, it's "not finished"
+                            const allSubbed = a.submissionCount >= students.length && students.length > 0;
+                            const allGraded = a.pendingCount === 0;
+                            return !(allSubbed && allGraded);
+                        }).length.toString();
                     })()}
                     icon={<FileText size={64} />}
                     color={darkMode ? 'bg-slate-800' : 'bg-[#FF917B]'}

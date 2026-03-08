@@ -15,52 +15,83 @@ const CourseClasswork = ({
     setWorkView,
     setNewAssignment
 }) => {
+    const isTeacher = userRole?.toLowerCase() === 'teacher';
+
+    const isAllSubmitted = (assign) => {
+        if (!selectedCourse) return false;
+        const allStudentIds = selectedCourse.studentIds || [];
+        const actualStudentIds = allStudentIds.filter(id => id !== selectedCourse.ownerId);
+        if (actualStudentIds.length === 0) return false;
+        const submittedStudentIds = assign.submissions
+            ? [...new Set(assign.submissions.map(s => s.userId))]
+            : [];
+        const missingIds = actualStudentIds.filter(id => !submittedStudentIds.includes(id));
+        return assign.submissionCount > 0 && missingIds.length === 0;
+    };
+
+    const isAllCompleted = (assign) => {
+        if (!selectedCourse) return false;
+        const allStudentIds = selectedCourse.studentIds || [];
+        const actualStudentIds = allStudentIds.filter(id => id !== selectedCourse.ownerId);
+        if (actualStudentIds.length === 0) return false;
+        const submittedStudentIds = assign.submissions
+            ? [...new Set(assign.submissions.map(s => s.userId))]
+            : [];
+        const missingIds = actualStudentIds.filter(id => !submittedStudentIds.includes(id));
+        return assign.submissionCount > 0 && missingIds.length === 0 && assign.pendingCount === 0;
+    };
+
     const courseAssignments = assignments.filter(a => a.course === selectedCourse.name).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    const pendingWork = courseAssignments.filter(a => a.status !== 'submitted');
-    const submittedWork = courseAssignments.filter(a => a.status === 'submitted');
+    const pendingWork = courseAssignments.filter(a => isTeacher ? !isAllCompleted(a) : a.status !== 'submitted');
+    const submittedWork = courseAssignments.filter(a => isTeacher ? isAllCompleted(a) : a.status === 'submitted');
 
     const renderCard = (data) => {
-        const isDone = data.status === 'submitted';
-        let overdueDays = 0;
-        if (data.dueDate) {
-            const due = new Date(data.dueDate);
-            const compareDate = isDone && data.submittedAt ? new Date(data.submittedAt) : (isDone ? due : new Date());
+        const completed = isTeacher ? isAllCompleted(data) : (data.status === 'submitted');
+        const allSubmitted = isTeacher ? isAllSubmitted(data) : completed;
+        const isLate = (data.status === 'late' || (data.dueDate && new Date(data.dueDate) < new Date())) && !completed;
 
-            if (compareDate > due) {
-                const diffTime = Math.abs(compareDate - due);
-                if (!isDone || (isDone && data.submittedAt && new Date(data.submittedAt) > due)) {
-                    overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                }
+        const badge = (() => {
+            if (isTeacher) {
+                if (completed) return { text: 'ตรวจแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-50 text-green-600' };
+                if (allSubmitted) return { text: 'ส่งครบ', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-50 text-yellow-600' };
+                return { text: 'ส่งไม่ครบ', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600' };
+            } else {
+                if (completed) return { text: 'ส่งแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-50 text-green-600' };
+                if (isLate) return { text: 'เลยกำหนด', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600' };
+                return { text: 'ยังไม่ส่ง', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-50 text-yellow-600' };
             }
-        }
+        })();
 
         return (
-            <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${isDone
+            <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${completed
                 ? (darkMode ? 'bg-slate-800/50 border-slate-700 opacity-60' : 'bg-slate-50/50 border-slate-100 opacity-80')
                 : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-600 shadow-lg shadow-black/20' : 'bg-white border-slate-100 hover:shadow-md')
                 }`}>
                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${isDone
-                        ? (darkMode ? 'bg-green-900/20 text-green-400' : 'bg-green-50 text-green-500')
-                        : (darkMode ? 'bg-yellow-900/20 text-yellow-400' : 'bg-yellow-50 text-yellow-500')
-                        }`}>
-                        {isDone ? <CheckCircle size={20} className={darkMode ? 'text-green-400' : 'text-green-500'} /> : <FileText size={20} className={darkMode ? 'text-yellow-400' : 'text-yellow-500'} />}
+                    <div className={`p-1.5 rounded-lg font-bold text-[10px] ${badge.color}`}>
+                        {badge.text}
                     </div>
                     <div>
-                        <h4 className={`font-bold ${isDone
+                        <h4 className={`font-bold ${completed
                             ? (darkMode ? 'text-slate-500' : 'text-slate-400')
                             : (darkMode ? 'text-slate-200' : 'text-slate-800')
                             }`}>{data.title}</h4>
                         <div className="flex items-center gap-2">
-                            <p className={`text-xs ${isDone
+                            <p className={`text-xs ${completed
                                 ? (darkMode ? 'text-green-400 font-bold' : 'text-green-500 font-bold')
                                 : (darkMode ? 'text-slate-500' : 'text-slate-400')
                                 }`}>
-                                {isDone ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'ยังไม่มีกำหนดส่ง')}
+                                {isTeacher
+                                    ? `ส่งแล้ว ${data.submissionCount || 0}/${(() => {
+                                        const count = selectedCourse.studentIds?.length || 0;
+                                        return count;
+                                    })()} คน`
+                                    : (completed ? 'ส่งเรียบร้อยแล้ว' : (data.dueDate ? `กำหนดส่ง: ${new Date(data.dueDate).toLocaleString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}` : 'ยังไม่มีกำหนดส่ง'))
+                                }
                             </p>
-                            {overdueDays > 0 && userRole === 'student' && (
+                            {isLate && userRole === 'student' && (
                                 <span className="text-xs font-bold text-red-500">
-                                    (ล่าช้า {overdueDays} วัน)
+                                    (เลยกำหนด)
                                 </span>
                             )}
                         </div>
@@ -70,7 +101,7 @@ const CourseClasswork = ({
                     <button
                         onClick={() => {
                             setSelectedAssignment(data);
-                            if (userRole === 'teacher') openGradingModal(data);
+                            if (isTeacher) openGradingModal(data);
                             else setActiveModal('assignmentDetail');
                         }}
                         className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${darkMode
@@ -78,9 +109,9 @@ const CourseClasswork = ({
                             : 'bg-slate-50 text-slate-400 group-hover:bg-[#BEE1FF] group-hover:text-slate-800'
                             }`}
                     >
-                        {isDone ? 'ดูผลการเรียน' : 'ดูรายละเอียด'}
+                        {isTeacher ? 'ตรวจงาน' : (completed ? 'ดูผลการเรียน' : 'ส่งการบ้าน')}
                     </button>
-                    {userRole === 'teacher' && (
+                    {isTeacher && (
                         <div className="flex gap-2">
                             <button
                                 onClick={async (e) => {
@@ -136,21 +167,21 @@ const CourseClasswork = ({
                 <div className="space-y-6">
                     <section>
                         <h3 className={`text-md font-bold mb-3 flex items-center ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                            <Clock className="mr-2 text-yellow-500" size={18} /> งานทั้งหมด ({pendingWork.length})
+                            <Clock className="mr-2 text-yellow-500" size={18} /> {isTeacher ? 'งานที่ยังไม่เสร็จ' : 'งานทั้งหมด'} ({pendingWork.length})
                         </h3>
                         <div className="space-y-3">
                             {pendingWork.length > 0 ? pendingWork.map(renderCard) : (
                                 <div className={`p-8 rounded-2xl text-center border-2 border-dashed ${darkMode ? 'bg-slate-800/50 text-slate-500 border-slate-700' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
-                                    ไม่มีงานค้าง ดีมาก! ✨
+                                    {isTeacher ? 'ไม่มีงานค้างเลย สุดยอด! ✨' : 'ไม่มีงานค้าง ดีมาก! ✨'}
                                 </div>
                             )}
                         </div>
                     </section>
 
-                    {userRole === 'student' && submittedWork.length > 0 && (
+                    {(isTeacher ? submittedWork.length > 0 : (userRole === 'student' && submittedWork.length > 0)) && (
                         <section className={`pt-4 border-t ${darkMode ? 'border-slate-800' : 'border-slate-100'}`}>
                             <h3 className={`text-md font-bold mb-3 flex items-center ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                                <CheckCircle className="mr-2 text-green-500" size={18} /> ส่งแล้ว ({submittedWork.length})
+                                <CheckCircle className="mr-2 text-green-500" size={18} /> {isTeacher ? 'ตรวจแล้ว' : 'ส่งแล้ว'} ({submittedWork.length})
                             </h3>
                             <div className="space-y-3">
                                 {submittedWork.map(renderCard)}
