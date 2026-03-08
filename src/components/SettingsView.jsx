@@ -158,9 +158,9 @@ const SettingsView = ({
 };
 
 const Info = ({ label, value, darkMode }) => (
-    <div className={`${darkMode ? 'bg-slate-400 border-slate-300' : 'bg-[#f8fafc] border-[#f1f5f9]'} p-4 rounded-2xl border`}>
-        <p className={`text-xs ${darkMode ? 'text-slate-200 font-bold' : 'text-[#94a3b8] font-bold'} uppercase mb-1`}>{label}</p>
-        <p className={`${darkMode ? 'text-white' : 'text-[#1e293b]'} text-lg font-bold`}>{value}</p>
+    <div className={`${darkMode ? 'bg-slate-400 border-slate-300' : 'bg-[#f8fafc] border-[#f1f5f9]'} p-4 rounded-2xl border w-full overflow-hidden shadow-sm`}>
+        <p className={`text-[10px] md:text-xs ${darkMode ? 'text-slate-200 font-bold' : 'text-[#94a3b8] font-bold'} uppercase mb-1 tracking-wider`}>{label}</p>
+        <p className={`${darkMode ? 'text-white' : 'text-[#1e293b]'} text-base md:text-lg font-bold break-all leading-snug`}>{value}</p>
     </div>
 );
 

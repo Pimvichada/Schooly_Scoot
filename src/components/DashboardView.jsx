@@ -14,19 +14,19 @@ import NotificationItem from './NotificationItem';
 import { Cute1, MascotTriangle } from './Mascots';
 
 // --- Sub-component: StatCard ---
-const StatCard = ({ title, value, color, icon, onClick, interactive = true, darkMode }) => (
+const StatCard = ({ title, value, color, icon, onClick, interactive = true, darkMode, centerOnMobile = false }) => (
     <div
         onClick={interactive ? onClick : undefined}
-        className={`${color} p-5 rounded-3xl shadow-sm relative overflow-hidden transition-all ${interactive ? 'hover:shadow-md cursor-pointer hover:scale-105 active:scale-95' : ''
-            }`}
+        className={`${color} p-4 md:p-6 rounded-3xl shadow-sm relative overflow-hidden transition-all flex flex-col ${interactive ? 'hover:shadow-md cursor-pointer hover:scale-[1.03] active:scale-95' : ''
+            } ${centerOnMobile ? 'items-center md:items-start text-center md:text-left' : ''}`}
     >
-        <div className="absolute right-[-10px] top-[-10px] opacity-20 transform rotate-12">
+        <div className="absolute right-[-10px] top-[-10px] opacity-20 transform rotate-12 scale-75 md:scale-100">
             {icon}
         </div>
-        <h3 className={`font-medium ${darkMode ? 'text-slate-400' : 'text-slate-700'} text-sm mb-1`}>{title}</h3>
-        <div className={`text-3xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{value}</div>
+        {title && <h3 className={`font-bold ${darkMode ? 'text-white/70' : 'text-slate-700'} text-xs md:text-sm mb-1 uppercase tracking-tight`}>{title}</h3>}
+        <div className={`text-2xl md:text-3xl font-black ${darkMode ? 'text-white' : 'text-slate-800'} truncate w-full`}>{value}</div>
         {interactive && (
-            <div className={`mt-2 text-xs ${darkMode ? 'text-slate-400' : 'text-slate-800'} font-bold opacity-60 flex items-center`}>
+            <div className={`mt-2 text-[10px] md:text-xs ${darkMode ? 'text-white/60' : 'text-slate-800/60'} font-bold flex items-center w-full ${centerOnMobile ? 'justify-center md:justify-start' : ''}`}>
                 แตะเพื่อดูรายละเอียด
             </div>
         )}
@@ -53,37 +53,33 @@ const DashboardView = ({
         <div className={`h-screen space-y-6 ${darkMode ? 'text-slate-100' : ''}`}>
             {/* Welcome Section */}
             <div className={`rounded-3xl p-6 md:p-10 relative overflow-hidden group ${darkMode ? 'bg-slate-800' : 'bg-[#BEE1FF]'}`}>
-                <div className="relative z-10 max-w-[70%]">
+                <div className="relative z-10 flex flex-col items-center md:items-start text-center md:text-left w-full md:max-w-[70%]">
                     <h1 className={`text-2xl md:text-4xl font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                         สวัสดี, {userRole === 'student' ? `น้อง${profile.firstName}!` : `คุณครู${profile.firstName}!`} 👋
                     </h1>
-                    <p className={darkMode ? 'text-slate-300' : 'text-slate-600'}>
+                    <p className={`${darkMode ? 'text-slate-300' : 'text-slate-600'} text-sm md:text-base max-w-xs md:max-w-none`}>
                         {welcomeMessage}
                     </p>
-                    <div className="mt-6 flex space-x-3">
+                    <div className="mt-8 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         {userRole === 'teacher' ? (
-                            <button onClick={() => setActiveModal('pendingQuizzes')} className={`bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all border border-slate-100 flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-slate-200 border-slate-600' : ''}`}>
+                            <button onClick={() => setActiveModal('pendingQuizzes')} className={`bg-white text-slate-800 px-8 md:px-6 py-3 md:py-2.5 rounded-2xl font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all border border-slate-100 flex items-center justify-center gap-2 text-sm md:text-base ${darkMode ? 'bg-slate-700 text-slate-200 border-slate-600' : ''}`}>
                                 <ClipboardCheck size={18} className="text-[#96C68E]" /> ตรวจข้อสอบ
                             </button>
                         ) : (
-                            <button onClick={() => setActiveTab('schedule')} className={`bg-white text-slate-800 px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all ${darkMode ? 'bg-slate-700 text-slate-200 border border-slate-600' : ''}`}>
+                            <button onClick={() => setActiveTab('schedule')} className={`bg-white text-slate-800 px-8 md:px-6 py-3 md:py-2.5 rounded-2xl font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all text-sm md:text-base flex items-center justify-center ${darkMode ? 'bg-slate-700 text-slate-200 border border-slate-600' : ''}`}>
                                 ดูตารางเรียน
                             </button>
                         )}
-                        <button onClick={() => setActiveTab('analytics')} className="bg-[#FF917B] text-white px-6 py-2 rounded-xl font-bold shadow-sm hover:shadow hover:scale-105 transition-all">
-                            <TrendingUp size={18} className="inline mr-1" /> วิเคราะห์การเรียน
+                        <button onClick={() => setActiveTab('analytics')} className="bg-[#FF917B] text-white px-8 md:px-6 py-3 md:py-2.5 rounded-2xl font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all flex items-center justify-center text-sm md:text-base">
+                            <TrendingUp size={18} className="mr-2" /> วิเคราะห์การเรียน
                         </button>
                     </div>
                 </div>
 
-                {/* Decorative Mascots with Hover Animation */}
-                <div className="absolute right-4 top-1/2 transform -translate-y-1/2 md:right-10 flex space-x-[-20px] items-center">
-                    <div className="transition-transform duration-300 hover:-translate-y-4 hover:rotate-6 cursor-pointer">
-                        <Cute1 className="w-24 h-24 md:w-40 md:h-40" />
-                    </div>
-                    <div className="transition-transform duration-300 hover:-translate-y-4 hover:-rotate-6 cursor-pointer delay-75">
-                        <MascotTriangle className="w-20 h-20 md:w-32 md:h-32" />
-                    </div>
+                {/* Decorative Mascots - Adjust for mobile centering */}
+                <div className="absolute right-2 md:right-10 top-2 md:top-1/2 md:transform md:-translate-y-1/2 opacity-20 md:opacity-100 flex space-x-[-15px] md:space-x-[-20px] items-center pointer-events-none md:pointer-events-auto">
+                    <Cute1 className="w-16 h-16 md:w-40 md:h-40" />
+                    <MascotTriangle className="w-14 h-14 md:w-32 md:h-32" />
                 </div>
             </div>
 
@@ -109,22 +105,25 @@ const DashboardView = ({
                     onClick={() => setActiveTab('assignments')}
                     darkMode={darkMode}
                 />
-                <StatCard
-                    value={
-                        <div className="flex flex-col">
-                            <span className={`text-4xl font-black ${darkMode ? 'text-slate-200' : 'text-slate-800'} tracking-tight`}>
-                                {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <span className={`text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-slate-600'} mt-1 opacity-80`}>
-                                {currentTime.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                            </span>
-                        </div>
-                    }
-                    color={darkMode ? 'bg-slate-800' : 'bg-[#96C68E]'}
-                    icon={<Clock size={80} className="opacity-40" />}
-                    onClick={() => setActiveTab('calendar')}
-                    darkMode={darkMode}
-                />
+                <div className="col-span-2 md:col-span-1">
+                    <StatCard
+                        value={
+                            <div className="flex flex-col items-center md:items-start">
+                                <span className={`text-2xl md:text-4xl font-black ${darkMode ? 'text-white' : 'text-slate-800'} tracking-tight`}>
+                                    {currentTime.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className={`text-[10px] md:text-sm font-bold ${darkMode ? 'text-white/60' : 'text-slate-600'} mt-0.5 uppercase`}>
+                                    {currentTime.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </span>
+                            </div>
+                        }
+                        color={darkMode ? 'bg-slate-800' : 'bg-[#96C68E]'}
+                        icon={<Clock size={80} className="opacity-40" />}
+                        onClick={() => setActiveTab('calendar')}
+                        darkMode={darkMode}
+                        centerOnMobile={true}
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -169,13 +168,13 @@ const DashboardView = ({
                                     <div key={idx} className={`flex items-center p-4 rounded-2xl transition-all ${isTimeActive
                                         ? (darkMode ? 'bg-green-900/20 border-[#96C68E] border' : 'bg-[#F0FDF4] border-[#96C68E]')
                                         : (darkMode ? 'bg-slate-700/50 border-slate-600 border' : 'bg-slate-50 border-slate-50')}`}>
-                                        <div className={`w-28 font-bold ${isTimeActive ? 'text-[#96C68E]' : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
+                                        <div className={`w-20 md:w-28 text-xs md:text-base font-bold ${isTimeActive ? 'text-[#96C68E]' : (darkMode ? 'text-slate-400' : 'text-slate-500')} flex-shrink-0`}>
                                             {slot.startTime} - {slot.endTime}
                                         </div>
-                                        <div className={`flex-1 px-4 border-l ${darkMode ? 'border-slate-700' : 'border-slate-200'} ml-4`}>
-                                            <div className={`font-bold text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{slot.subject}</div>
-                                            <div className="text-sm text-slate-500 flex items-center mt-1">
-                                                <span className={`${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-600'} px-2 py-0.5 rounded text-xs mr-2`}>ห้อง {slot.room}</span>
+                                        <div className={`flex-1 px-3 md:px-4 border-l ${darkMode ? 'border-slate-700' : 'border-slate-200'} ml-2 md:ml-4 overflow-hidden`}>
+                                            <div className={`font-bold text-sm md:text-lg ${darkMode ? 'text-slate-100' : 'text-slate-800'} truncate`}>{slot.subject}</div>
+                                            <div className="text-[10px] md:text-sm text-slate-500 flex items-center mt-0.5">
+                                                <span className={`${darkMode ? 'bg-slate-700 text-slate-400 border-slate-600' : 'bg-slate-100 text-slate-600 border-slate-200'} border px-1.5 md:px-2 py-0.5 rounded-lg font-bold text-[9px] md:text-xs mr-2 shadow-sm`}>ห้อง {slot.room}</span>
                                             </div>
                                         </div>
                                         {isMeetingActive && (

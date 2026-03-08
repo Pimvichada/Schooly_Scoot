@@ -19,11 +19,15 @@ export const getAssignments = async (courseName, uid, role, courseNames = null) 
             q = query(assignmentsCol);
         }
         const snapshot = await getDocs(q);
-        const assignments = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            firestoreId: doc.id
-        }));
+        currentAssignments = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                firestoreId: doc.id,
+                course: (data.course || '').trim()
+            };
+        });
 
         // If student, check submission status for each assignment
         if (role === 'student' && uid) {
@@ -132,68 +136,93 @@ export const getAssignments = async (courseName, uid, role, courseNames = null) 
  * Subscribe to assignments with real-time updates
  */
 export const subscribeToAssignments = (uid, role, courseNames, callback) => {
+    if (!uid) {
+        callback([]);
+        return () => { };
+    }
+
     const assignmentsCol = collection(db, 'assignments');
     let q;
 
-    if (courseNames && courseNames.length > 0) {
-        q = query(assignmentsCol, where('course', 'in', courseNames.slice(0, 10)));
-    } else {
+    // Robust course name trimming
+    const trimmedCourseNames = (courseNames || [])
+        .map(n => typeof n === 'string' ? n.trim() : n)
+        .filter(Boolean);
+
+    if (trimmedCourseNames.length > 0) {
+        q = query(assignmentsCol, where('course', 'in', trimmedCourseNames.slice(0, 10)));
+    } else if (role === 'teacher') {
         q = query(assignmentsCol);
+    } else {
+        callback([]);
+        return () => { };
     }
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-        const assignments = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            firestoreId: doc.id
+    let currentAssignments = [];
+    let currentSubmissions = {};
+    let unsubSubmissions = null;
+    let isInitialSubmissionsLoaded = false;
+
+    // Helper to fetch submissions manually for all assignments
+    const fetchSubmissionsEagerly = async (assignments) => {
+        if (role !== 'student' || !uid || assignments.length === 0) return {};
+
+        const subs = {};
+        await Promise.all(assignments.map(async (assign) => {
+            try {
+                const targetId = assign.firestoreId || assign.id;
+                const subCol = collection(db, 'assignments', targetId, 'submissions');
+                const qSub = query(subCol, where('userId', '==', uid));
+                const subSnap = await getDocs(qSub);
+                if (!subSnap.empty) {
+                    subs[targetId] = subSnap.docs[0].data();
+                }
+            } catch (e) {
+                console.warn(`Manual sub fetch failed for ${assign.id}:`, e);
+            }
+        }));
+        return subs;
+    };
+
+    const processData = async () => {
+        if (currentAssignments.length === 0) {
+            callback([]);
+            return;
+        }
+
+        // Deep copy and prepare IDs
+        let finalAssignments = currentAssignments.map(assign => ({
+            ...assign,
+            joinId: assign.firestoreId || assign.id
         }));
 
-        // Now enrich them just like getAssignments does
-        // (Copied the logic here for the listener)
-
-        let finalAssignments = assignments;
-
         if (role === 'student' && uid) {
-            let submissionsByAssignment = {};
-            try {
-                const allSubmissionsQuery = query(collectionGroup(db, 'submissions'), where('userId', '==', uid));
-                const allSubmissionsSnapshot = await getDocs(allSubmissionsQuery);
-                allSubmissionsSnapshot.docs.forEach(doc => {
-                    submissionsByAssignment[doc.ref.parent.parent.id] = doc.data();
-                });
-            } catch (err) {
-                console.warn("Real-time student enrichment fallback");
-            }
-
-            finalAssignments = assignments.map((assign) => {
-                const sub = submissionsByAssignment[assign.firestoreId];
+            finalAssignments = finalAssignments.map((assign) => {
+                const sub = currentSubmissions[assign.joinId];
                 if (sub) {
                     return {
                         ...assign,
                         status: 'submitted',
                         submittedFiles: Array.isArray(sub.file) ? sub.file : (sub.file ? [sub.file] : []),
-                        score: sub.score,
+                        score: sub.score || null,
                         submittedAt: sub.submittedAt
                     };
                 }
+                // If we haven't even loaded submissions yet, we might want to wait or show loading
+                // But for now, default to pending
                 return { ...assign, status: 'pending', submittedFiles: [], score: null };
             });
         } else if (role === 'teacher') {
-            finalAssignments = await Promise.all(assignments.map(async (assignment) => {
+            finalAssignments = await Promise.all(finalAssignments.map(async (assignment) => {
                 try {
-                    const subCol = collection(db, 'assignments', assignment.firestoreId, 'submissions');
+                    const subCol = collection(db, 'assignments', assignment.joinId, 'submissions');
                     const subSnapshot = await getDocs(subCol);
-
                     let pendingCount = 0;
                     if (!subSnapshot.empty) {
                         subSnapshot.docs.forEach(doc => {
-                            const data = doc.data();
-                            if (!data.score) pendingCount++;
+                            if (!doc.data().score) pendingCount++;
                         });
-                    }
-
-                    if (!subSnapshot.empty) {
-                        const subs = subSnapshot.docs.map(doc => doc.data());
+                        const subs = subSnapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
                         return {
                             ...assignment,
                             status: (pendingCount > 0 ? 'pending_review' : 'submitted'),
@@ -202,25 +231,64 @@ export const subscribeToAssignments = (uid, role, courseNames, callback) => {
                             submissions: subs
                         };
                     }
-                    return {
-                        ...assignment,
-                        status: 'pending',
-                        submissionCount: 0,
-                        pendingCount: 0,
-                        submissions: []
-                    };
-                } catch (err) {
-                    return assignment;
-                }
+                    return { ...assignment, status: 'pending', submissionCount: 0, pendingCount: 0, submissions: [] };
+                } catch (err) { return assignment; }
             }));
         }
 
         callback(finalAssignments);
+    };
+
+    // 1. Listen to Assignments
+    const unsubAssignments = onSnapshot(q, async (snapshot) => {
+        const newAssignments = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            firestoreId: doc.id,
+            course: (doc.data().course || '').trim()
+        }));
+
+        currentAssignments = newAssignments;
+
+        // On first assignment load, also do an eager submission fetch for students
+        if (role === 'student' && !isInitialSubmissionsLoaded) {
+            const initialSubs = await fetchSubmissionsEagerly(newAssignments);
+            currentSubmissions = { ...currentSubmissions, ...initialSubs };
+            isInitialSubmissionsLoaded = true;
+        }
+
+        processData();
     }, (error) => {
         console.error("Error in assignments subscription:", error);
     });
 
-    return unsubscribe;
+    // 2. Listen to Submissions group-wide (Student only)
+    if (role === 'student') {
+        try {
+            const subGroupQ = query(collectionGroup(db, 'submissions'), where('userId', '==', uid));
+            unsubSubmissions = onSnapshot(subGroupQ, (snapshot) => {
+                const updatedSubs = { ...currentSubmissions };
+                snapshot.docs.forEach(doc => {
+                    const assignmentId = doc.ref.parent.parent.id;
+                    if (assignmentId) {
+                        updatedSubs[assignmentId] = doc.data();
+                    }
+                });
+                currentSubmissions = updatedSubs;
+                isInitialSubmissionsLoaded = true;
+                processData();
+            }, (err) => {
+                console.warn("Submissions listener failed (index possibly missing), relying on eager fetch fallback");
+            });
+        } catch (e) {
+            console.error("Submissions group listener setup failed:", e);
+        }
+    }
+
+    return () => {
+        unsubAssignments();
+        if (unsubSubmissions) unsubSubmissions();
+    };
 };
 
 /**

@@ -16,9 +16,8 @@ const AssignmentsView = ({
     setAssignments,
     isAssignmentsLoading
 }) => {
-    // 1. Base Filter: Filter by Course (User must be related to the course)
     const userAssignments = assignments.filter(assign =>
-        courses.some(c => c.name === assign.course)
+        courses.some(c => (c.name || '').trim() === (assign.course || '').trim())
     );
 
     // Helper function to check if an assignment is "All Submitted and Graded"
