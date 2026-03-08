@@ -125,23 +125,23 @@ const CreateExamModal = ({
     };
 
     return (
-        <div className="p-8 h-full flex flex-col relative">
+        <div className="p-4 md:p-8 h-full flex flex-col relative">
             {showConfirm && (
                 <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/40 rounded-[2rem] backdrop-blur-sm m-4">
-                    <div className={`p-8 rounded-3xl w-full max-w-sm shadow-2xl transform transition-all scale-100 opacity-100 flex flex-col gap-6 ${darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-100'}`}>
+                    <div className={`p-6 md:p-8 rounded-3xl w-full max-w-sm shadow-2xl transform transition-all scale-100 opacity-100 flex flex-col gap-4 md:gap-6 ${darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-white border border-slate-100'}`}>
                         <div className="flex items-center">
-                            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-4">
-                                <FileText size={24} />
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 md:mr-4 shrink-0">
+                                <FileText size={20} className="md:w-6 md:h-6" />
                             </div>
-                            <h3 className={`text-xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>ตั้งค่าการเผยแพร่</h3>
+                            <h3 className={`text-lg md:text-xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>ตั้งค่าการเผยแพร่</h3>
                         </div>
-                        <p className={`text-sm leading-relaxed font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        <p className={`text-xs md:text-sm leading-relaxed font-medium ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
                             ต้องการเผยแพร่แบบทดสอบทันทีเลยหรือไม่?
                             <br /><br />
                             <span className="flex items-start mb-2"><CheckCircle2 className="w-4 h-4 mr-2 text-green-500 mt-0.5 shrink-0" /> เผยแพร่เลย: นักเรียนจะเห็นและได้รับการแจ้งเตือนทันที</span>
                             <span className="flex items-start"><Clock className="w-4 h-4 mr-2 text-orange-500 mt-0.5 shrink-0" /> ยังไม่เปิดใช้งาน: เก็บไว้ก่อน ค่อยเปิดใช้งานและแจ้งเตือนภายหลัง</span>
                         </p>
-                        <div className="flex flex-col gap-3 mt-2">
+                        <div className="flex flex-col gap-2 md:gap-3 mt-2">
                             <button
                                 onClick={() => {
                                     setShowConfirm(false);
@@ -170,12 +170,12 @@ const CreateExamModal = ({
                     </div>
                 </div>
             )}
-            <h2 className={`text-2xl font-bold mb-6 flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                <Plus className="mr-3 text-[#FF917B]" /> สร้างแบบทดสอบใหม่
+            <h2 className={`text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                <Plus className="mr-2 md:mr-3 text-[#FF917B] shrink-0" /> สร้างแบบทดสอบใหม่
             </h2>
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-6">
+            <div className="flex-1 overflow-y-auto pr-1 md:pr-2 custom-scrollbar space-y-4 md:space-y-6">
                 {/* Exam Details */}
-                <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-2xl border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 p-3 md:p-4 rounded-2xl border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                     <div>
                         <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>ชื่อแบบทดสอบ</label>
                         <input
@@ -320,35 +320,35 @@ const CreateExamModal = ({
                 </div>
 
                 {/* Question Editor */}
-                <div className="space-y-4">
-                    <h3 className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>รายการคำถาม ({newExam.items.length})</h3>
+                <div className="space-y-3 md:space-y-4">
+                    <h3 className={`font-bold text-sm md:text-base ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>รายการคำถาม ({newExam.items.length})</h3>
                     {newExam.items.map((item, idx) => (
-                        <div key={idx} className={`border rounded-2xl p-4 relative group transition-all shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#BEE1FF]/30' : 'bg-white border-slate-200 hover:border-[#BEE1FF]'}`}>
-                            <div className="flex justify-between items-center mb-3">
-                                <div className="flex items-center gap-3">
-                                    <span className={`text-xs font-bold px-2 py-1 rounded ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>ข้อที่ {idx + 1}</span>
+                        <div key={idx} className={`border rounded-xl md:rounded-2xl p-3 md:p-4 relative group transition-all shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#BEE1FF]/30' : 'bg-white border-slate-200 hover:border-[#BEE1FF]'}`}>
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-0 mb-3">
+                                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                                    <span className={`text-[10px] md:text-xs font-bold px-2 py-1 rounded ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>ข้อที่ {idx + 1}</span>
                                     <select
                                         value={item.type || 'choice'}
                                         onChange={(e) => handleUpdateQuestion(idx, 'type', e.target.value)}
-                                        className={`text-xs font-bold border rounded-lg px-2 py-1 outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
+                                        className={`text-[10px] md:text-xs font-bold border rounded-lg px-1 md:px-2 py-1 outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
                                     >
                                         <option value="choice">ปรนัย (4 ตัวเลือก)</option>
                                         <option value="true_false">ถูก/ผิด (True/False)</option>
                                         <option value="matching">จับคู่ (Matching)</option>
                                         <option value="text">เติมคำ (Keywords)</option>
                                     </select>
-                                    <div className={`flex items-center gap-2 rounded-lg px-2 py-1 border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                                        <span className={`text-xs font-bold ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>คะแนน:</span>
+                                    <div className={`flex items-center gap-1 md:gap-2 rounded-lg px-1.5 md:px-2 py-1 border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                                        <span className={`text-[10px] md:text-xs font-bold ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>คะแนน:</span>
                                         <input
                                             type="number"
                                             min="1"
-                                            className={`w-12 text-xs font-black bg-transparent outline-none text-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}
+                                            className={`w-8 md:w-12 text-[10px] md:text-xs font-black bg-transparent outline-none text-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}
                                             value={item.points || 1}
                                             onChange={(e) => handleUpdateQuestion(idx, 'points', Number(e.target.value))}
                                         />
                                     </div>
                                 </div>
-                                <button onClick={() => handleRemoveQuestion(idx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash size={16} /></button>
+                                <button onClick={() => handleRemoveQuestion(idx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 p-1 md:p-1.5 rounded-lg transition-colors self-end sm:self-auto"><Trash size={14} className="md:w-4 md:h-4" /></button>
                             </div>
 
                             <div className="mb-4">
@@ -436,8 +436,8 @@ const CreateExamModal = ({
                                 )}
 
                                 {item.type === 'true_false' && (
-                                    <div className="flex gap-4">
-                                        <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold ${item.correctAnswer === true ? (darkMode ? 'bg-green-900/30 border-green-500 text-green-400' : 'bg-green-50 border-green-500 text-green-700') : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:border-green-500/30' : 'bg-white border-slate-200 text-slate-400 hover:border-green-200')}`}>
+                                    <div className="flex gap-2 sm:gap-4">
+                                        <label className={`flex-1 p-2 sm:p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold text-xs sm:text-base ${item.correctAnswer === true ? (darkMode ? 'bg-green-900/30 border-green-500 text-green-400' : 'bg-green-50 border-green-500 text-green-700') : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:border-green-500/30' : 'bg-white border-slate-200 text-slate-400 hover:border-green-200')}`}>
                                             <input
                                                 type="radio"
                                                 name={`tf-${idx}`}
@@ -445,9 +445,9 @@ const CreateExamModal = ({
                                                 onChange={() => handleUpdateQuestion(idx, 'correctAnswer', true)}
                                                 className="hidden"
                                             />
-                                            <CheckCircle2 size={20} className="mr-2" /> ถูก (True)
+                                            <CheckCircle2 size={16} className="mr-1.5 sm:mr-2 sm:w-5 sm:h-5" /> ถูก (True)
                                         </label>
-                                        <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold ${item.correctAnswer === false ? (darkMode ? 'bg-red-900/30 border-red-500 text-red-400' : 'bg-red-50 border-red-500 text-red-700') : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:border-red-500/30' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200')}`}>
+                                        <label className={`flex-1 p-2 sm:p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-center font-bold text-xs sm:text-base ${item.correctAnswer === false ? (darkMode ? 'bg-red-900/30 border-red-500 text-red-400' : 'bg-red-50 border-red-500 text-red-700') : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-500 hover:border-red-500/30' : 'bg-white border-slate-200 text-slate-400 hover:border-red-200')}`}>
                                             <input
                                                 type="radio"
                                                 name={`tf-${idx}`}
@@ -455,7 +455,7 @@ const CreateExamModal = ({
                                                 onChange={() => handleUpdateQuestion(idx, 'correctAnswer', false)}
                                                 className="hidden"
                                             />
-                                            <X size={20} className="mr-2" /> ผิด (False)
+                                            <X size={16} className="mr-1.5 sm:mr-2 sm:w-5 sm:h-5" /> ผิด (False)
                                         </label>
                                     </div>
                                 )}
@@ -463,10 +463,10 @@ const CreateExamModal = ({
                                 {item.type === 'matching' && (
                                     <div className="space-y-2">
                                         {(item.pairs || []).map((pair, pIdx) => (
-                                            <div key={pIdx} className="flex gap-2 items-center">
+                                            <div key={pIdx} className="grid grid-cols-[1fr_auto_1fr_auto] gap-1 sm:gap-2 items-center">
                                                 <input
-                                                    placeholder="ฝั่งซ้าย (โจทย์)"
-                                                    className={`flex-1 p-2 rounded-lg border text-sm outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+                                                    placeholder="ฝั่งซ้าย"
+                                                    className={`w-full p-2 rounded-lg border text-xs sm:text-sm outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
                                                     value={pair.left}
                                                     onChange={(e) => {
                                                         const newPairs = [...item.pairs];
@@ -474,10 +474,10 @@ const CreateExamModal = ({
                                                         handleUpdateQuestion(idx, 'pairs', newPairs);
                                                     }}
                                                 />
-                                                <ArrowRight size={16} className={`${darkMode ? 'text-slate-600' : 'text-slate-300'}`} />
+                                                <ArrowRight size={14} className={`sm:w-4 sm:h-4 ${darkMode ? 'text-slate-600' : 'text-slate-300'}`} />
                                                 <input
-                                                    placeholder="ฝั่งขวา (คำตอบ)"
-                                                    className={`flex-1 p-2 rounded-lg border text-sm outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+                                                    placeholder="ฝั่งขวา"
+                                                    className={`w-full p-2 rounded-lg border text-xs sm:text-sm outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
                                                     value={pair.right}
                                                     onChange={(e) => {
                                                         const newPairs = [...item.pairs];
@@ -546,15 +546,15 @@ const CreateExamModal = ({
                     ))}
                     <button
                         onClick={handleAddQuestion}
-                        className={`w-full py-3 border-2 border-dashed rounded-xl font-bold transition-all ${darkMode ? 'border-slate-700 text-slate-500 hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-800/30' : 'border-slate-300 text-slate-500 hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-50'}`}
+                        className={`w-full py-2.5 md:py-3 border-2 border-dashed rounded-xl font-bold text-sm md:text-base transition-all ${darkMode ? 'border-slate-700 text-slate-500 hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-800/30' : 'border-slate-300 text-slate-500 hover:border-[#96C68E] hover:text-[#96C68E] hover:bg-slate-50'}`}
                     >
                         + เพิ่มข้อสอบ
                     </button>
                 </div>
             </div >
-            <div className={`mt-4 pt-4 border-t flex justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                <button onClick={onSaveClick} className="px-6 py-3 rounded-xl bg-[#96C68E] text-white font-bold hover:bg-[#85b57d] shadow-sm flex items-center">
-                    <Save size={20} className="mr-2" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
+            <div className={`mt-3 md:mt-4 pt-3 md:pt-4 border-t flex justify-end gap-2 md:gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                <button onClick={onSaveClick} className="px-4 md:px-6 py-2 md:py-3 rounded-xl bg-[#96C68E] text-white font-bold text-sm md:text-base hover:bg-[#85b57d] shadow-sm flex items-center">
+                    <Save size={18} className="mr-1.5 md:mr-2 md:w-5 md:h-5" /> {newExam.id ? 'บันทึกการแก้ไข' : 'สร้างแบบทดสอบ'}
                 </button>
             </div>
         </div >
