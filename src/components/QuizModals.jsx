@@ -281,11 +281,11 @@ const CreateExamModal = ({
 
 
                     {/* Schedule Exam */}
-                    <div className={`col-span-full p-4 rounded-xl border ${darkMode ? 'bg-orange-950/20 border-orange-900/30' : 'bg-orange-50 border-orange-100'}`}>
-                        <label className="flex items-center gap-3 cursor-pointer mb-2">
+                    <div className={`col-span-full p-2 md:p-4 rounded-lg md:rounded-xl border ${darkMode ? 'bg-orange-950/20 border-orange-900/30' : 'bg-orange-50 border-orange-100'}`}>
+                        <label className="flex items-center gap-1.5 md:gap-3 cursor-pointer mb-1 md:mb-2">
                             <input
                                 type="checkbox"
-                                className="w-5 h-5 accent-[#FF917B] rounded-lg"
+                                className="w-3.5 h-3.5 md:w-5 md:h-5 accent-[#FF917B] rounded shrink-0"
                                 checked={!!newExam.scheduledAt}
                                 onChange={(e) => {
                                     if (e.target.checked) {
@@ -299,17 +299,17 @@ const CreateExamModal = ({
                                     }
                                 }}
                             />
-                            <span className={`font-bold flex items-center ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
-                                <Calendar size={18} className="mr-2 text-orange-500" /> กำหนดเวลาสอบ (Scheduled Release)
+                            <span className={`font-bold flex items-center text-[10px] sm:text-xs md:text-base ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                                <Calendar size={18} className="mr-1 md:mr-2 text-orange-500 w-3.5 h-3.5 md:w-5 md:h-5 shrink-0" /> กำหนดเวลาสอบ (Scheduled Release)
                             </span>
                         </label>
-                        <p className={`text-sm ml-8 mb-3 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>หากกำหนดเวลา นักเรียนจะไม่เห็นข้อสอบจนกว่าจะถึงเวลาที่กำหนด</p>
+                        <p className={`text-[9px] sm:text-[10px] md:text-sm ml-5 md:ml-8 mb-1.5 md:mb-3 ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>หากกำหนดเวลา นักเรียนจะไม่เห็นข้อสอบจนกว่าจะถึงเวลาที่กำหนด</p>
 
                         {newExam.scheduledAt && (
-                            <div className="ml-8">
+                            <div className="ml-5 md:ml-8">
                                 <input
                                     type="datetime-local"
-                                    className={`w-full md:w-1/2 p-3 rounded-xl border outline-none font-medium ${darkMode ? 'bg-slate-800 border-orange-900/50 text-slate-200' : 'bg-white border-orange-200 text-slate-700 focus:border-orange-400'}`}
+                                    className={`w-full md:w-1/2 p-1 md:p-3 text-[10px] sm:text-xs md:text-base rounded md:rounded-xl border outline-none font-medium ${darkMode ? 'bg-slate-800 border-orange-900/50 text-slate-200' : 'bg-white border-orange-200 text-slate-700 focus:border-orange-400'}`}
                                     style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                                     value={newExam.scheduledAt}
                                     onChange={(e) => setNewExam({ ...newExam, scheduledAt: e.target.value })}
@@ -324,31 +324,31 @@ const CreateExamModal = ({
                     <h3 className={`font-bold text-sm md:text-base ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>รายการคำถาม ({newExam.items.length})</h3>
                     {newExam.items.map((item, idx) => (
                         <div key={idx} className={`border rounded-xl md:rounded-2xl p-3 md:p-4 relative group transition-all shadow-sm ${darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#BEE1FF]/30' : 'bg-white border-slate-200 hover:border-[#BEE1FF]'}`}>
-                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 sm:gap-0 mb-3">
-                                <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                                    <span className={`text-[10px] md:text-xs font-bold px-2 py-1 rounded ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>ข้อที่ {idx + 1}</span>
+                            <div className="flex justify-between items-center mb-3 w-full gap-1.5 sm:gap-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2 flex-1 md:flex-none min-w-0">
+                                    <span className={`text-xs md:text-sm font-bold px-2 md:px-3 py-1.5 md:py-2 rounded shrink-0 ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>ข้อที่ {idx + 1}</span>
                                     <select
                                         value={item.type || 'choice'}
                                         onChange={(e) => handleUpdateQuestion(idx, 'type', e.target.value)}
-                                        className={`text-[10px] md:text-xs font-bold border rounded-lg px-1 md:px-2 py-1 outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
+                                        className={`flex-1 md:flex-none md:w-auto min-w-0 text-xs md:text-sm font-bold border rounded-lg md:rounded-xl px-2 py-1.5 md:py-2 outline-none focus:border-[#96C68E] ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-600'}`}
                                     >
                                         <option value="choice">ปรนัย (4 ตัวเลือก)</option>
                                         <option value="true_false">ถูก/ผิด (True/False)</option>
                                         <option value="matching">จับคู่ (Matching)</option>
                                         <option value="text">เติมคำ (Keywords)</option>
                                     </select>
-                                    <div className={`flex items-center gap-1 md:gap-2 rounded-lg px-1.5 md:px-2 py-1 border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
-                                        <span className={`text-[10px] md:text-xs font-bold ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>คะแนน:</span>
+                                    <div className={`flex items-center gap-1 md:gap-2 rounded-lg md:rounded-xl px-2 md:px-3 py-1.5 md:py-2 border shrink-0 ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                                        <span className={`text-xs md:text-sm font-bold hidden sm:inline ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>คะแนน:</span>
                                         <input
                                             type="number"
                                             min="1"
-                                            className={`w-8 md:w-12 text-[10px] md:text-xs font-black bg-transparent outline-none text-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}
+                                            className={`w-8 md:w-14 text-xs md:text-sm font-black bg-transparent outline-none text-center ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}
                                             value={item.points || 1}
                                             onChange={(e) => handleUpdateQuestion(idx, 'points', Number(e.target.value))}
                                         />
                                     </div>
                                 </div>
-                                <button onClick={() => handleRemoveQuestion(idx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 p-1 md:p-1.5 rounded-lg transition-colors self-end sm:self-auto"><Trash size={14} className="md:w-4 md:h-4" /></button>
+                                <button onClick={() => handleRemoveQuestion(idx)} className="text-red-300 hover:text-red-500 hover:bg-red-50 p-1.5 md:p-2 rounded-lg md:rounded-xl transition-colors shrink-0"><Trash size={16} className="md:w-5 md:h-5" /></button>
                             </div>
 
                             <div className="mb-4">
@@ -388,22 +388,22 @@ const CreateExamModal = ({
                                 )}
                             </div>
 
-                            <div className={`rounded-xl p-4 border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                            <div className={`rounded-xl p-2.5 md:p-4 border ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                                 {(!item.type || item.type === 'choice') && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                                         {item.options.map((opt, optIdx) => (
-                                            <div key={optIdx} className={`p-3 rounded-xl border focus-within:ring-1 focus-within:ring-[#96C68E] relative transition-all ${darkMode ? 'bg-slate-800 border-slate-700 focus-within:border-[#96C68E]' : 'bg-white border-slate-200 focus-within:border-[#96C68E]'}`}>
-                                                <div className="flex items-center gap-2 mb-2">
+                                            <div key={optIdx} className={`p-2 md:p-3 rounded-lg md:rounded-xl border focus-within:ring-1 focus-within:ring-[#96C68E] relative transition-all ${darkMode ? 'bg-slate-800 border-slate-700 focus-within:border-[#96C68E]' : 'bg-white border-slate-200 focus-within:border-[#96C68E]'}`}>
+                                                <div className="flex items-center gap-2 mb-1 md:mb-2">
                                                     <input
                                                         type="radio"
                                                         name={`correct-${idx}`}
                                                         checked={item.correct === optIdx}
                                                         onChange={() => handleUpdateQuestion(idx, 'correct', optIdx)}
-                                                        className="w-4 h-4 accent-[#96C68E]"
+                                                        className="w-3.5 h-3.5 md:w-4 md:h-4 accent-[#96C68E]"
                                                     />
                                                     <input
                                                         type="text"
-                                                        className={`flex-1 text-sm outline-none font-medium bg-transparent ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}
+                                                        className={`flex-1 text-xs md:text-sm outline-none font-medium bg-transparent min-w-0 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}
                                                         placeholder={`ตัวเลือก ${optIdx + 1}`}
                                                         value={opt}
                                                         onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
