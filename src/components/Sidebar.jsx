@@ -52,15 +52,19 @@ const Sidebar = ({
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
 
-                <h1 className="flex justify-center items-center">
-                    <img
-                        src={logo_no_text}
-                        alt="Schooly Scoot Logo"
-                        className="h-20 w-auto"
-                    />
-                </h1>
-
-                <span className={`text-xl font-bold tracking-tight text-center mb-6 transition-colors ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot</span>
+                <button
+                    onClick={() => handleSelect('dashboard')}
+                    className="flex flex-col items-center w-full group cursor-pointer"
+                >
+                    <h1 className="flex justify-center items-center">
+                        <img
+                            src={logo_no_text}
+                            alt="Schooly Scoot Logo"
+                            className="h-20 w-auto group-hover:scale-105 transition-transform duration-200"
+                        />
+                    </h1>
+                    <span className={`text-xl font-bold tracking-tight text-center mb-6 transition-colors group-hover:text-[#96C68E] ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot</span>
+                </button>
 
                 <nav className="flex-1 overflow-y-auto custom-scrollbar">
                     <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">เมนูหลัก</p>
