@@ -14,7 +14,7 @@ import {
     confirmPasswordReset,
     verifyPasswordResetCode,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 
 /**
  * Register a new user
@@ -209,6 +209,29 @@ export const updateUserProfile = async (uid, updateData) => {
         const docRef = doc(db, "users", uid);
         try {
             await updateDoc(docRef, updateData);
+
+            // 3. Sync Name with Courses if it's a teacher
+            const userSnap = await getDoc(docRef);
+            const userData = userSnap.data();
+
+            if (userData?.role === 'teacher' && (updateData.firstName || updateData.lastName || updateData.fullName)) {
+                const firstName = updateData.firstName || userData.firstName || '';
+                const lastName = updateData.lastName || userData.lastName || '';
+                const teacherName = `ครู${firstName}${lastName ? ' ' + lastName : ''}`.trim();
+
+                const coursesCol = collection(db, 'courses');
+                const q = query(coursesCol, where('ownerId', '==', uid));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const batch = writeBatch(db);
+                    querySnapshot.forEach((courseDoc) => {
+                        batch.update(courseDoc.ref, { teacher: teacherName });
+                    });
+                    await batch.commit();
+                    console.log(`Synced teacher name to ${querySnapshot.size} courses`);
+                }
+            }
         } catch (e) {
             if (e.code === 'not-found' || e.message?.includes('not found')) {
                 await setDoc(docRef, {

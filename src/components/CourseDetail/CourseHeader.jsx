@@ -2,6 +2,10 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
 const CourseHeader = ({ selectedCourse, setSelectedCourse, darkMode, teacherProfile }) => {
+    const teacherDisplayName = teacherProfile
+        ? `ครู${teacherProfile.firstName || ''}${teacherProfile.lastName ? ' ' + teacherProfile.lastName : ''}`.trim()
+        : selectedCourse.teacher;
+
     return (
         <div className="space-y-6">
             <button
@@ -10,19 +14,18 @@ const CourseHeader = ({ selectedCourse, setSelectedCourse, darkMode, teacherProf
             >
                 <ChevronRight className="rotate-180 mr-1" /> กลับไปหน้ารวม
             </button>
-
             <div className={`${selectedCourse.color} rounded-[2.5rem] p-8 relative overflow-hidden transition-all duration-700 shadow-xl shadow-black/5`}>
                 <div className="relative z-10 text-slate-800">
                     <h1 className="text-4xl font-black mb-2">{selectedCourse.name}</h1>
                     <div className="flex items-center gap-2">
                         {teacherProfile?.photoURL ? (
-                            <img src={teacherProfile.photoURL} alt={selectedCourse.teacher} className="w-8 h-8 rounded-full object-cover border-2 border-white/50" />
+                            <img src={teacherProfile.photoURL} alt={teacherDisplayName} className="w-8 h-8 rounded-full object-cover border-2 border-white/50" />
                         ) : (
                             <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-bold text-xs">
-                                {selectedCourse.teacher?.charAt(0)}
+                                {teacherDisplayName?.charAt(1) || selectedCourse.teacher?.charAt(0)}
                             </div>
                         )}
-                        <p className="text-lg font-medium opacity-80">{selectedCourse.code} • {selectedCourse.teacher}</p>
+                        <p className="text-lg font-medium opacity-80">{selectedCourse.code} • {teacherDisplayName}</p>
                     </div>
                 </div>
                 <div className="absolute right-12 top-1/2 -translate-y-1/2 opacity-20 scale-[2.5] text-slate-800">

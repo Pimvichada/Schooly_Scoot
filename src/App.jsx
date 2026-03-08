@@ -318,8 +318,22 @@ export default function SchoolyScootLMS() {
 
 
   // Filter visible and hidden courses
-  const visibleCourses = courses.filter(c => !hiddenCourseIds.includes(c.firestoreId));
-  const hiddenCoursesList = courses.filter(c => hiddenCourseIds.includes(c.firestoreId));
+  const enrichedCourses = useMemo(() => {
+    if (!courses || !profile || userRole !== 'teacher') return courses;
+    return courses.map(course => {
+      // If the current user is the owner of the course, use their latest profile name
+      if (course.ownerId === uid) {
+        const fullName = profile.firstName
+          ? `ครู${profile.firstName}${profile.lastName ? ' ' + profile.lastName : ''}`.trim()
+          : course.teacher;
+        return { ...course, teacher: fullName };
+      }
+      return course;
+    });
+  }, [courses, profile, uid, userRole]);
+
+  const visibleCourses = enrichedCourses.filter(c => !hiddenCourseIds.includes(c.firestoreId));
+  const hiddenCoursesList = enrichedCourses.filter(c => hiddenCourseIds.includes(c.firestoreId));
   const [showHiddenCourses, setShowHiddenCourses] = useState(false);
 
 
@@ -1494,7 +1508,7 @@ export default function SchoolyScootLMS() {
         startDate: newCourseData.startDate,
         endDate: newCourseData.endDate,
         schedule: newCourseData.scheduleItems,
-        teacher: profile.firstName ? `ครู${profile.firstName}` : 'คุณครู',
+        teacher: profile.firstName ? `ครู${profile.firstName}${profile.lastName ? ' ' + profile.lastName : ''}` : 'คุณครู',
         ownerId: auth.currentUser.uid
       });
 
@@ -1972,7 +1986,7 @@ export default function SchoolyScootLMS() {
                     userRole={userRole}
                     profile={profile}
                     welcomeMessage={welcomeMessage}
-                    courses={courses}
+                    courses={enrichedCourses}
                     assignments={assignments}
                     currentTime={currentTime}
                     notifications={notifications}
