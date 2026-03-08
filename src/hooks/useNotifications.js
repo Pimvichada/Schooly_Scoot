@@ -30,7 +30,11 @@ export const useNotifications = (uid, notificationsEnabled) => {
             try {
                 const audio = new Audio(notiSoundUrl);
                 audio.volume = 0.5;
-                audio.play().catch(e => console.error("Audio play failed:", e));
+                audio.play().catch(e => {
+                    // Browsers block audio until the user clicks/interacts with the page
+                    // This warning is normal if the first notification happens immediately on load
+                    console.warn("Audio play blocked by browser (user interaction required):", e.message);
+                });
             } catch (err) {
                 console.error("Error initializing audio:", err);
             }

@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import {
     X, Plus, Calendar, Trash, ImageIcon, Save, Trophy, BarChart3,
     CheckCircle2, TrendingUp, Users, Clock, ArrowRight, AlertCircle,
-    ChevronLeft, FileText, ClipboardList, ClipboardCheck, BookOpen, CheckCircle
+    ChevronLeft, ChevronRight, FileText, ClipboardList, ClipboardCheck, BookOpen, CheckCircle
 } from 'lucide-react';
 import { MascotStar } from './Mascots';
 import { updateQuizSubmission, getQuizSubmissions as getSubmissionsService } from '../services/quizService';
@@ -566,7 +566,7 @@ const ViewResultsModal = ({ courseSubmissions, activeQuiz, darkMode, closeModal,
         if (!courseSubmissions || courseSubmissions.length === 0) return { avg: 0, passRate: 0, max: 0, count: 0, totalPossible: 1 };
         const graded = courseSubmissions.filter(s => s.status !== 'pending_grading');
         const count = courseSubmissions.length;
-        const totalPossible = activeQuiz?.totalPoints || activeQuiz?.items?.length || 1;
+        const totalPossible = activeQuiz?.totalPoints || activeQuiz?.items?.reduce((t, i) => t + (Number(i.points) || 1), 0) || 1;
 
         if (graded.length === 0) return { avg: "0.0", passRate: 0, max: 0, count, totalPossible };
 
@@ -585,69 +585,61 @@ const ViewResultsModal = ({ courseSubmissions, activeQuiz, darkMode, closeModal,
     }, [courseSubmissions, activeQuiz, selectedCourse]);
 
     return (
-        <div className="p-8 h-full flex flex-col w-full">
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="bg-[#FFF7ED] p-3 rounded-2xl shadow-sm">
-                        <Trophy className="text-[#F59E0B]" size={36} />
-                    </div>
-                    <div>
-                        <h2 className={`text-3xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'} tracking-tight`}>ผลคะแนนสอบ</h2>
-                        <p className={`text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>แบบทดสอบ: {activeQuiz?.title}</p>
+        <div className="p-4 md:p-8 h-full flex flex-col w-full">
+            <div className="flex justify-between items-center mb-6 md:mb-8">
+                <div className="flex items-center gap-2 md:gap-4 font-inter">
+                    {/* BACK BUTTON */}
+                    <button
+                        onClick={() => setActiveModal('pendingQuizzes')}
+                        className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-colors shrink-0 ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        title="กลับไปหน้ารอตรวจ"
+                    >
+                        <ChevronLeft size={20} className="md:w-6 md:h-6" />
+                    </button>
+
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="bg-[#FFF7ED] p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm shrink-0">
+                            <Trophy className="text-[#F59E0B]" size={28} />
+                        </div>
+                        <div className="min-w-0">
+                            <h2 className={`text-lg md:text-3xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'} tracking-tight leading-tight truncate`}>ผลคะแนนสอบ</h2>
+                            <p className={`text-[10px] md:text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'} line-clamp-1`}>{activeQuiz?.title}</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* STAT CARDS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <div className={`p-6 rounded-[2rem] border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                        <p className={`text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนเฉลี่ย</p>
-                        <BarChart3 size={20} className="text-[#818CF8]" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-6 md:mb-8">
+                {[
+                    { label: 'คะแนนเฉลี่ย', val: stats.avg, sub: `/${stats.totalPossible}`, icon: BarChart3, color: 'text-[#818CF8]' },
+                    { label: 'ผ่านเกณฑ์', val: `${stats.passRate}%`, icon: CheckCircle, color: 'text-[#34D399]' },
+                    { label: 'คะแนนสูงสุด', val: stats.max, icon: TrendingUp, color: 'text-[#FBBF24]' },
+                    { label: 'ส่งแล้ว', val: stats.count, sub: `/${stats.totalStudents || stats.count}`, icon: Users, color: 'text-[#60A5FA]' }
+                ].map((s, i) => (
+                    <div key={i} className={`p-3 md:p-6 rounded-2xl md:rounded-[2rem] border transition-transform hover:scale-[1.02] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                        <div className="flex justify-between items-start mb-1 md:mb-4">
+                            <p className={`text-[10px] md:text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'} line-clamp-1`}>{s.label}</p>
+                            <s.icon size={14} className={`${s.color} md:block hidden`} />
+                        </div>
+                        <div className="flex items-baseline gap-0.5 md:gap-1">
+                            <span className={`text-xl md:text-4xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{s.val}</span>
+                            {s.sub && <span className="text-slate-400 font-bold text-[10px] md:text-lg opacity-40">{s.sub}</span>}
+                        </div>
                     </div>
-                    <div className="flex items-baseline gap-1">
-                        <span className={`text-4xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{stats.avg}</span>
-                        <span className="text-slate-400 font-bold text-lg">/ {stats.totalPossible}</span>
-                    </div>
-                </div>
-
-                <div className={`p-6 rounded-[2rem] border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                        <p className={`text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ผ่านเกณฑ์ (50%)</p>
-                        <CheckCircle size={20} className="text-[#34D399]" />
-                    </div>
-                    <span className={`text-4xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{stats.passRate}%</span>
-                </div>
-
-                <div className={`p-6 rounded-[2rem] border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                        <p className={`text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนสูงสุด</p>
-                        <TrendingUp size={20} className="text-[#FBBF24]" />
-                    </div>
-                    <span className={`text-4xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{stats.max}</span>
-                </div>
-
-                <div className={`p-6 rounded-[2rem] border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                        <p className={`text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ส่งแล้ว</p>
-                        <Users size={20} className="text-[#60A5FA]" />
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                        <span className={`text-4xl font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{stats.count}</span>
-                        <span className="text-slate-400 font-bold text-lg">/ {stats.totalStudents || stats.count} คน</span>
-                    </div>
-                </div>
+                ))}
             </div>
 
-            {/* TABLE */}
-            <div className={`flex-1 overflow-hidden flex flex-col rounded-[2rem] border ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-white border-slate-100 shadow-sm'}`}>
-                <div className={`px-6 py-4 border-b flex font-bold text-xs uppercase tracking-wider ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+            {/* LIST */}
+            <div className={`flex-1 overflow-hidden flex flex-col rounded-2xl md:rounded-[2rem] border ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                {/* Desk Header */}
+                <div className={`hidden md:flex px-6 py-4 border-b font-bold text-[10px] uppercase tracking-wider ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
                     <div className="flex-1">นักเรียน</div>
                     <div className="w-40 text-center">สถานะ</div>
                     <div className="w-56 text-center">เวลาส่ง</div>
                     <div className="w-32 text-center">คะแนนสอบ</div>
                 </div>
+
                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                     {courseSubmissions.length === 0 ? (
                         <div className="text-center py-20 text-slate-400">
@@ -655,51 +647,67 @@ const ViewResultsModal = ({ courseSubmissions, activeQuiz, darkMode, closeModal,
                             <p className="text-lg font-bold">ยังไม่มีนักเรียนส่งข้อสอบ</p>
                         </div>
                     ) : (
-                        courseSubmissions.map((sub, idx) => (
-                            <div
-                                key={sub.firestoreId || idx}
-                                onClick={() => {
-                                    setSelectedSubmission(sub);
-                                    setManualScores(sub.itemScores || {});
-                                    setActiveModal('viewAnswerDetail');
-                                }}
-                                className={`px-6 py-5 flex items-center border-b last:border-0 transition-all cursor-pointer group hover:bg-[#F8FAFC] ${darkMode ? 'border-slate-700 hover:bg-slate-700/50' : 'border-slate-50'}`}
-                            >
-                                <div className="flex-1 flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ring-4 ring-white shadow-sm ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-[#F1F5F9] text-slate-500'}`}>
-                                        {sub.studentName?.charAt(0) || '?'}
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {courseSubmissions.map((sub, idx) => (
+                                <div
+                                    key={sub.firestoreId || idx}
+                                    onClick={() => {
+                                        setSelectedSubmission(sub);
+                                        setManualScores(sub.itemScores || {});
+                                        setActiveModal('viewAnswerDetail');
+                                    }}
+                                    className={`px-4 py-3 md:px-6 md:py-5 flex items-center transition-all cursor-pointer group hover:bg-slate-50 ${darkMode ? 'hover:bg-slate-800/50' : ''}`}
+                                >
+                                    {/* Student Name & Info */}
+                                    <div className="flex-1 flex items-center gap-2 md:gap-4 overflow-hidden">
+                                        <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center font-black text-xs md:text-lg shrink-0 shadow-sm ring-2 ring-white/10 ${darkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                                            {sub.studentName?.charAt(0) || '?'}
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <h3 className={`font-bold text-xs md:text-lg leading-tight truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{sub.studentName}</h3>
+                                            <div className="md:hidden flex items-center gap-1">
+                                                <Clock size={8} className="text-slate-400" />
+                                                <span className={`text-[8px] font-bold ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                                    {sub.submittedAt ? (sub.submittedAt.toDate ? sub.submittedAt.toDate().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : new Date(sub.submittedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })) : '-'}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{sub.studentName}</h3>
-                                </div>
 
-                                <div className="w-40 flex justify-center">
-                                    {sub.status === 'pending_grading' ? (
-                                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${darkMode ? 'bg-orange-900/30 text-orange-400' : 'bg-orange-50 text-orange-500'}`}>รอตรวจ</span>
-                                    ) : (
-                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F0FDF4] border border-[#DCFCE7]">
-                                            <CheckCircle className="text-[#10B981]" size={14} />
-                                            <span className="text-xs font-black text-[#059669]">ส่งแล้ว</span>
+                                    <div className="flex items-center gap-2 md:contents">
+                                        {/* Status */}
+                                        <div className="md:w-40 flex md:justify-center shrink-0">
+                                            {sub.status === 'pending_grading' ? (
+                                                <span className={`px-2 py-0.5 rounded-md text-[8px] md:text-[10px] font-bold whitespace-nowrap ${darkMode ? 'bg-orange-950 text-orange-400 border border-orange-900/30' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>รอตรวจ</span>
+                                            ) : (
+                                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-50 border border-green-100 dark:bg-green-900/20 dark:border-green-800/30">
+                                                    <CheckCircle className="text-green-500" size={10} />
+                                                    <span className="text-[8px] md:text-[10px] font-black text-green-700 dark:text-green-400">ส่งแล้ว</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
 
-                                <div className={`w-56 text-center text-sm font-bold flex items-center justify-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                                    <Clock size={16} className="text-slate-300" />
-                                    {sub.submittedAt ? (sub.submittedAt.toDate ? sub.submittedAt.toDate().toLocaleString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : new Date(sub.submittedAt).toLocaleString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' })) : '-'}
-                                </div>
-
-                                <div className="w-32 text-center text-lg">
-                                    {sub.status === 'pending_grading' ? (
-                                        <span className="text-slate-300 font-bold">-</span>
-                                    ) : (
-                                        <div className="flex justify-center items-center gap-1">
-                                            <span className={`text-2xl font-black ${sub.score === 0 ? 'text-red-500' : 'text-[#10B981]'}`}>{sub.score}</span>
-                                            <span className="text-slate-300 font-bold text-sm">/ {sub.total || stats.totalPossible}</span>
+                                        {/* Time Desktop Only */}
+                                        <div className={`hidden md:flex w-56 text-center text-sm font-bold items-center justify-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                            {sub.submittedAt ? (sub.submittedAt.toDate ? sub.submittedAt.toDate().toLocaleString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : new Date(sub.submittedAt).toLocaleString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit', hour: '2-digit', minute: '2-digit' })) : '-'}
                                         </div>
-                                    )}
+
+                                        {/* Score */}
+                                        <div className="md:w-32 flex md:justify-center items-center shrink-0">
+                                            {sub.status === 'pending_grading' ? (
+                                                <span className="text-slate-300 font-bold px-2 text-xs">-</span>
+                                            ) : (
+                                                <div className="flex items-baseline gap-0.5">
+                                                    <span className={`text-base md:text-2xl font-black ${sub.score === 0 ? 'text-red-500' : 'text-green-600 dark:text-[#96C68E]'}`}>{sub.score}</span>
+                                                    <span className="text-slate-400 font-bold text-[8px] md:text-xs">/{sub.total || stats.totalPossible}</span>
+                                                </div>
+                                            )}
+                                            <ChevronRight size={14} className="ml-1 md:ml-3 text-slate-300 md:hidden" />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
@@ -715,28 +723,28 @@ const ViewAnswerDetailModal = ({
     return (activeModal === 'viewAnswerDetail' && selectedSubmission && activeQuiz && (
         <div className="flex flex-col h-full w-full">
             {/* HEADER */}
-            <div className={`px-8 py-6 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
-                <div className="flex items-center space-x-4">
+            <div className={`px-4 py-3 md:px-8 md:py-6 border-b flex justify-between items-center ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
+                <div className="flex items-center gap-2 md:gap-4 overflow-hidden">
                     <button
                         onClick={() => setActiveModal('viewResults')}
-                        className={`p-3 rounded-2xl transition-colors ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        className={`p-2 md:p-3 rounded-xl md:rounded-2xl transition-colors shrink-0 ${darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={20} className="md:w-6 md:h-6" />
                     </button>
-                    <div className="bg-indigo-100 p-3 rounded-2xl">
-                        <FileText className="text-indigo-500" size={32} />
+                    <div className="bg-indigo-100 p-2 md:p-3 rounded-xl md:rounded-2xl shrink-0 hidden sm:block">
+                        <FileText className="text-indigo-500 md:w-8 md:h-8" size={24} />
                     </div>
-                    <div>
-                        <h2 className={`text-2xl font-extrabold tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                    <div className="min-w-0">
+                        <h2 className={`text-sm md:text-2xl font-extrabold tracking-tight truncate ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
                             {selectedSubmission.studentName}
                         </h2>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className={`font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คะแนนรวม:</span>
-                            <div className={`flex items-center gap-1 rounded-lg p-1 border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center gap-1.5 md:gap-2 mt-0.5 md:mt-1">
+                            <span className={`text-[10px] md:text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'} whitespace-nowrap`}>คะแนนรวม:</span>
+                            <div className={`flex items-center gap-0.5 md:gap-1 rounded-lg p-0.5 md:p-1 border ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
                                 {selectedSubmission.status === 'pending_grading' ? (
-                                    <span className="text-lg font-bold text-orange-400 px-2">รอตรวจ</span>
+                                    <span className="text-[10px] md:text-lg font-bold text-orange-400 px-1 md:px-2">รอตรวจ</span>
                                 ) : (
-                                    <span className={`text-xl font-black px-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                                    <span className={`text-[10px] md:text-xl font-black px-1 md:px-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
                                         {activeQuiz.items.reduce((total, item, idx) => {
                                             const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
                                             let isCorrect = false;
@@ -759,13 +767,13 @@ const ViewAnswerDetailModal = ({
                                         }, 0)}
                                     </span>
                                 )}
-                                <span className="text-slate-400 font-medium pr-2">/ {activeQuiz?.totalPoints || activeQuiz?.items?.reduce((total, item) => total + (Number(item.points) || 1), 0) || selectedSubmission.total}</span>
+                                <span className="text-slate-400 font-medium text-[8px] md:text-sm pr-1 md:pr-2">/ {activeQuiz?.totalPoints || activeQuiz?.items?.reduce((total, item) => total + (Number(item.points) || 1), 0) || selectedSubmission.total}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-1.5 md:gap-3 shrink-0">
                     <button
                         onClick={async () => {
                             try {
@@ -832,22 +840,22 @@ const ViewAnswerDetailModal = ({
                                 alert('บันทึกไม่สำเร็จ: ' + err.message);
                             }
                         }}
-                        className="px-6 py-2 bg-[#96C68E] text-white rounded-xl hover:bg-[#85b57d] transition-colors shadow-md font-bold flex items-center gap-2"
+                        className="px-3 md:px-6 py-1.5 md:py-2 bg-[#96C68E] text-white rounded-lg md:rounded-xl hover:bg-[#85b57d] transition-colors shadow-md font-bold flex items-center gap-1 md:gap-2 text-[10px] md:text-base"
                     >
-                        <Save size={20} /> บันทึกการตรวจ
+                        <Save size={14} className="md:w-5 md:h-5" /> <span className="hidden xs:inline">บันทึก</span>
                     </button>
                     <button
                         onClick={closeModal}
-                        className="group p-2 hover:bg-red-50 rounded-xl transition-colors duration-200"
+                        className="group p-1.5 md:p-2 hover:bg-red-50 rounded-lg md:rounded-xl transition-colors duration-200 shrink-0"
                     >
-                        <X size={28} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+                        <X size={20} className="text-slate-400 md:w-7 md:h-7 group-hover:text-red-500 transition-colors" />
                     </button>
                 </div>
             </div>
 
             {/* CONTENT */}
-            <div className={`flex-1 overflow-y-auto p-8 ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50/50'}`}>
-                <div className="max-w-5xl mx-auto space-y-6">
+            <div className={`flex-1 overflow-y-auto p-4 md:p-8 ${darkMode ? 'bg-slate-950/50' : 'bg-slate-50/50'}`}>
+                <div className="max-w-5xl mx-auto space-y-4 md:space-y-6">
                     {activeQuiz.items.map((item, idx) => {
                         const answer = selectedSubmission.answers ? selectedSubmission.answers[idx] : null;
                         let isCorrect = false;
@@ -876,23 +884,23 @@ const ViewAnswerDetailModal = ({
                         const maxPoints = item.points || 1;
 
                         return (
-                            <div key={idx} className={`p-6 rounded-3xl border shadow-sm transition-all hover:shadow-md ${item.manualGrading ? (darkMode ? 'bg-slate-800 border-orange-900/30 ring-4 ring-orange-900/10' : 'bg-white border-orange-100 ring-4 ring-orange-50/50') : (isCorrect ? (darkMode ? 'bg-slate-800 border-green-900/30 ring-4 ring-green-900/10' : 'bg-white border-green-100 ring-4 ring-green-50/50') : (darkMode ? 'bg-slate-800 border-red-900/30 ring-4 ring-red-900/10' : 'bg-white border-red-100 ring-4 ring-red-50/50'))}`}>
-                                <div className="flex justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className={`flex items-center justify-center w-8 h-8 rounded-lg font-bold text-sm ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                            <div key={idx} className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border shadow-sm transition-all hover:shadow-md ${item.manualGrading ? (darkMode ? 'bg-slate-800 border-orange-900/30 ring-2 md:ring-4 ring-orange-900/10' : 'bg-white border-orange-100 ring-2 md:ring-4 ring-orange-50/50') : (isCorrect ? (darkMode ? 'bg-slate-800 border-green-900/30 ring-2 md:ring-4 ring-green-900/10' : 'bg-white border-green-100 ring-2 md:ring-4 ring-green-50/50') : (darkMode ? 'bg-slate-800 border-red-900/30 ring-2 md:ring-4 ring-red-900/10' : 'bg-white border-red-100 ring-2 md:ring-4 ring-red-50/50'))}`}>
+                                <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
+                                    <div className="flex items-start gap-2 md:gap-3">
+                                        <span className={`flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-lg font-bold text-[10px] md:text-sm shrink-0 ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
                                             {idx + 1}
                                         </span>
-                                        <h3 className={`font-bold text-lg ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.q}</h3>
+                                        <h3 className={`font-bold text-sm md:text-lg leading-snug ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{item.q}</h3>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-bold text-slate-400">คะแนน</span>
+                                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                                        <span className="text-[10px] md:text-xs font-bold text-slate-400">คะแนน</span>
                                         <input
                                             type="number"
                                             min="0"
                                             max={maxPoints}
                                             disabled={!item.manualGrading}
-                                            className={`w-16 p-1 text-center font-bold border rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 ${item.manualGrading ? (darkMode ? 'bg-orange-900/20 border-orange-700 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-700') : (darkMode ? 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed')}`}
+                                            className={`w-12 md:w-16 p-1 text-center font-bold text-xs md:text-base border rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 ${item.manualGrading ? (darkMode ? 'bg-orange-900/20 border-orange-700 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-700') : (darkMode ? 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed' : 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed')}`}
                                             value={currentScore}
                                             onChange={(e) => {
                                                 if (item.manualGrading) {
@@ -900,56 +908,56 @@ const ViewAnswerDetailModal = ({
                                                 }
                                             }}
                                         />
-                                        <span className="text-slate-400 font-bold">/ {maxPoints}</span>
+                                        <span className="text-slate-400 font-bold text-xs md:text-sm">/ {maxPoints}</span>
                                     </div>
                                 </div>
 
                                 {item.manualGrading && (
                                     <div className="mb-4">
-                                        <span className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center w-fit ${darkMode ? 'bg-orange-900/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
-                                            <AlertCircle size={14} className="mr-1" /> ต้องตรวจเอง (Manual Grading)
+                                        <span className={`px-2 py-1 rounded-lg text-[9px] md:text-xs font-bold flex items-center w-fit ${darkMode ? 'bg-orange-900/20 text-orange-400' : 'bg-orange-100 text-orange-700'}`}>
+                                            <AlertCircle size={12} className="mr-1 md:w-3.5 md:h-3.5" /> ต้องตรวจเอง
                                         </span>
                                     </div>
                                 )}
 
                                 {item.image && (
-                                    <div className="mb-6 pl-11">
-                                        <img src={item.image} alt="Question" className="h-48 rounded-2xl border border-slate-100 object-cover shadow-sm" />
+                                    <div className="mb-4 md:mb-6 pl-0 md:pl-11">
+                                        <img src={item.image} alt="Question" className="h-32 md:h-48 w-full md:w-auto rounded-xl md:rounded-2xl border border-slate-100 object-cover shadow-sm" />
                                     </div>
                                 )}
 
-                                <div className="pl-11 space-y-4">
+                                <div className="pl-0 md:pl-11 space-y-2 md:space-y-4">
                                     {(!item.type || item.type === 'choice') && (
                                         item.options.map((opt, optIdx) => {
-                                            let optionClass = "p-3 rounded-xl border flex items-center justify-between transition-all relative overflow-hidden ";
+                                            let optionClass = "p-2.5 md:p-3 rounded-lg md:rounded-xl border flex items-center justify-between transition-all relative overflow-hidden text-xs md:text-base ";
                                             if (optIdx === item.correct) optionClass += (darkMode ? "bg-green-900/20 border-green-500/50 text-green-400 font-bold" : "bg-green-50 border-green-200 text-green-700 font-bold");
                                             else if (optIdx === answer) optionClass += (darkMode ? "bg-slate-700 border-slate-600 text-slate-300 font-bold" : "bg-slate-50 border-slate-200 text-slate-600 font-bold");
                                             else optionClass += (darkMode ? "bg-slate-800 border-slate-700 text-slate-500 opacity-60" : "bg-white border-slate-100 text-slate-400 opacity-60");
 
                                             return (
                                                 <div key={optIdx} className={optionClass}>
-                                                    <span className="flex items-center gap-3 relative z-10">
-                                                        <div className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-[10px] opacity-50">
+                                                    <span className="flex items-center gap-2 md:gap-3 relative z-10">
+                                                        <div className="w-5 h-5 md:w-6 md:h-6 rounded-full border border-current flex items-center justify-center text-[8px] md:text-[10px] opacity-50 shrink-0">
                                                             {['A', 'B', 'C', 'D'][optIdx]}
                                                         </div>
-                                                        {opt}
+                                                        <span className="min-w-0 break-words">{opt}</span>
                                                     </span>
-                                                    {optIdx === item.correct && <CheckCircle size={18} className="text-green-500" />}
-                                                    {optIdx === answer && optIdx !== item.correct && <span className="text-xs font-bold text-slate-400">ตอบ</span>}
+                                                    {optIdx === item.correct && <CheckCircle size={14} className="text-green-500 shrink-0 md:w-4.5 md:h-4.5" />}
+                                                    {optIdx === answer && optIdx !== item.correct && <span className="text-[9px] md:text-xs font-bold text-slate-400 shrink-0">ตอบ</span>}
                                                 </div>
                                             );
                                         })
                                     )}
 
                                     {item.type === 'text' && (
-                                        <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-700/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-                                            <p className="text-xs font-bold text-slate-400 mb-1">คำตอบของนักเรียน:</p>
-                                            <p className={`text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{answer || '-'}</p>
-                                            <div className={`mt-3 pt-3 border-t ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
-                                                <p className="text-xs font-bold text-slate-400 mb-1">เฉลย (Keywords):</p>
-                                                <div className="flex flex-wrap gap-2">
+                                        <div className={`p-3 md:p-4 rounded-xl border ${darkMode ? 'bg-slate-700/50 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+                                            <p className="text-[9px] md:text-xs font-bold text-slate-400 mb-1">คำตอบของนักเรียน:</p>
+                                            <p className={`text-base md:text-lg font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{answer || '-'}</p>
+                                            <div className={`mt-2 md:mt-3 pt-2 md:pt-3 border-t ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+                                                <p className="text-[9px] md:text-xs font-bold text-slate-400 mb-1">เฉลย (Keywords):</p>
+                                                <div className="flex flex-wrap gap-1.5 md:gap-2">
                                                     {(item.keywords || []).map((k, kIdx) => (
-                                                        <span key={kIdx} className={`border px-2 py-1 rounded text-xs ${darkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}>{k}</span>
+                                                        <span key={kIdx} className={`border px-1.5 md:px-2 py-0.5 md:py-1 rounded text-[9px] md:text-xs ${darkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-white border-slate-200 text-slate-500'}`}>{k}</span>
                                                     ))}
                                                 </div>
                                             </div>
@@ -957,16 +965,16 @@ const ViewAnswerDetailModal = ({
                                     )}
 
                                     {item.type === 'matching' && (
-                                        <div className={`p-4 rounded-xl space-y-2 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                                        <div className={`p-3 md:p-4 rounded-xl space-y-1.5 md:space-y-2 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
                                             {(item.pairs || []).map((pair, pIdx) => (
-                                                <div key={pIdx} className="flex justify-between items-center text-sm">
-                                                    <span className={darkMode ? 'text-slate-300' : 'text-slate-700'}>{pair.left}</span>
-                                                    <ArrowRight size={14} className="text-slate-300" />
-                                                    <div className="flex flex-col items-end">
-                                                        <span className={((answer && answer[pIdx]) === pair.right) ? 'text-green-600 font-bold' : 'text-slate-500'}>
+                                                <div key={pIdx} className="flex justify-between items-center text-[11px] md:text-sm gap-2">
+                                                    <span className={`min-w-0 truncate ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{pair.left}</span>
+                                                    <ArrowRight size={12} className="text-slate-300 shrink-0 md:w-3.5 md:h-3.5" />
+                                                    <div className="flex flex-col items-end min-w-0">
+                                                        <span className={`truncate max-w-full ${((answer && answer[pIdx]) === pair.right) ? 'text-green-600 font-bold' : 'text-slate-500'}`}>
                                                             {answer ? answer[pIdx] : '-'}
                                                         </span>
-                                                        <span className="text-[10px] text-slate-400">(เฉลย: {pair.right})</span>
+                                                        <span className="text-[8px] md:text-[10px] text-slate-400 truncate">(เฉลย: {pair.right})</span>
                                                     </div>
                                                 </div>
                                             ))}
@@ -980,10 +988,10 @@ const ViewAnswerDetailModal = ({
             </div>
 
             {/* FOOTER */}
-            <div className={`px-8 py-5 border-t flex justify-end ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
+            <div className={`px-4 py-3 md:px-8 md:py-5 border-t flex justify-end ${darkMode ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'}`}>
                 <button
                     onClick={() => setActiveModal('viewResults')}
-                    className="px-6 py-2.5 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200"
+                    className="px-4 md:px-6 py-2 md:py-2.5 bg-slate-800 text-white text-xs md:text-sm font-semibold rounded-lg md:rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-md"
                 >
                     กลับไปหน้าผลรวม
                 </button>
@@ -1011,43 +1019,56 @@ const TakeQuizModal = ({
     }, [activeQuiz.firestoreId || activeQuiz.id]); // Re-shuffle only if it's a different quiz
 
     return (
-        <div className="p-8 h-[80vh] flex flex-col">
-            <div className={`mb-6 pb-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
-                <div className="flex justify-between items-center mb-2">
-                    <h2 className={`text-2xl font-bold flex items-center ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
-                        <ClipboardList className="mr-3 text-[#FF917B]" /> {activeQuiz.title}
+        <div className="p-4 md:p-8 h-full flex flex-col pt-12 md:pt-8 relative">
+            <button
+                onClick={closeModal}
+                className="absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors md:hidden"
+            >
+                <X size={20} className="text-slate-400" />
+            </button>
+            <div className={`mb-4 md:mb-6 pb-3 md:pb-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                <div className="flex justify-between items-center mb-1 md:mb-2 gap-2">
+                    <h2 className={`text-lg md:text-2xl font-bold flex items-center truncate ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>
+                        <ClipboardList className="mr-2 md:mr-3 text-[#FF917B] shrink-0 md:w-6 md:h-6" size={18} /> <span className="truncate">{activeQuiz.title}</span>
                     </h2>
-                    <div className={`flex items-center font-bold px-4 py-2 rounded-xl transition-colors ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : (darkMode ? 'bg-green-900/20 text-[#96C68E] border border-[#96C68E]/30' : 'bg-[#F0FDF4] text-[#96C68E]')}`}>
-                        <Clock size={18} className="mr-2" />
+                    <div className={`flex items-center font-bold px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl transition-colors shrink-0 text-xs md:text-base ${quizRemainingSeconds < 60 ? 'bg-red-50 text-red-500 animate-pulse' : (darkMode ? 'bg-green-900/20 text-[#96C68E] border border-[#96C68E]/30' : 'bg-[#F0FDF4] text-[#96C68E]')}`}>
+                        <Clock size={14} className="mr-1.5 md:w-5 md:h-5 md:mr-2" />
                         {quizRemainingSeconds > 0
                             ? `${Math.floor(quizRemainingSeconds / 60)}:${(quizRemainingSeconds % 60).toString().padStart(2, '0')} นาที`
                             : activeQuiz.time}
                     </div>
                 </div>
-                <p className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
+                <p className={`text-[10px] md:text-sm font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{activeQuiz.course} • {activeQuiz.questions} ข้อ</p>
             </div>
 
             {quizResult ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center">
-                    <div className="w-32 h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-6 shadow-lg">
-                        <MascotStar className="w-24 h-24" />
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
+                    <div className="w-24 h-24 md:w-32 md:h-32 bg-[#BEE1FF] rounded-full flex items-center justify-center mb-4 md:mb-6 shadow-lg">
+                        <MascotStar className="w-16 h-16 md:w-24 md:h-24" />
                     </div>
-                    <h3 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ส่งข้อสอบเรียบร้อย!</h3>
+                    <h3 className={`text-xl md:text-3xl font-black mb-1 md:mb-2 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>ส่งข้อสอบเรียบร้อย!</h3>
                     {quizResult.status === 'pending_grading' ? (
                         <>
-                            <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ข้อสอบนี้มีส่วนที่ต้องรอคุณครูตรวจ</p>
-                            <div className={`text-4xl font-bold text-orange-400 mb-8 px-6 py-4 rounded-2xl border ${darkMode ? 'bg-orange-900/10 border-orange-500/30' : 'bg-orange-50 border-orange-100'}`}>
+                            <p className={`text-xs md:text-base mb-4 md:mb-6 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ข้อสอบนี้มีส่วนที่ต้องรอคุณครูตรวจ</p>
+                            <div className={`text-2xl md:text-5xl font-black text-orange-400 mb-4 md:mb-8 px-5 py-6 md:px-12 md:py-8 rounded-2xl md:rounded-[2.5rem] border-4 leading-tight shadow-xl shadow-orange-100/50 ${darkMode ? 'bg-orange-950/20 border-orange-900/50 shadow-none' : 'bg-orange-50/50 border-orange-100'}`}>
+                                <p className="text-xl md:text-2xl mb-1 opacity-60">สถานะ</p>
                                 รอการตรวจให้คะแนน
                             </div>
                         </>
                     ) : (
                         <>
-                            <p className={`mb-6 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คุณทำคะแนนได้</p>
-                            <div className="text-6xl font-bold text-[#FF917B] mb-8">
-                                {quizResult.score} <span className={`text-2xl ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>/ {quizResult.total}</span>
+                            <p className={`text-xs md:text-base mb-4 md:mb-6 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คุณทำคะแนนได้</p>
+                            <div className="text-5xl md:text-8xl font-black text-[#FF917B] mb-4 md:mb-8 flex items-baseline gap-2">
+                                {quizResult.score} <span className={`text-xl md:text-3xl font-bold ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>/ {quizResult.total}</span>
                             </div>
                         </>
                     )}
+                    <button
+                        onClick={closeModal}
+                        className="mt-4 px-8 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-all active:scale-95 shadow-md md:hidden"
+                    >
+                        กลับสู่หน้าหลัก
+                    </button>
                 </div>
             ) : (
                 <>
