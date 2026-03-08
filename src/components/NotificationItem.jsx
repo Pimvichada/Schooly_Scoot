@@ -67,7 +67,7 @@ export default function NotificationItem({ notif, onClick, displayTime, compact 
       </div>
 
       <div className="flex flex-col justify-center flex-1">
-        <p className={`${titleTextClass} leading-tight transition-colors ${titleSize} ${notif.read ? '' : hoverText}`}>
+        <p className={`${titleTextClass} leading-tight transition-colors ${titleSize} break-words ${notif.read ? '' : hoverText}`}>
           {notif.message}
         </p>
         <p className={`${compact ? 'text-xs' : 'text-sm'} text-slate-500 mt-1`}>
@@ -145,8 +145,8 @@ export const NotificationModals = ({
             </div>
           </div>
           <div className={`p-4 rounded-xl border mb-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
-            <h4 className={`font-bold mb-2 ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedNotification.message}</h4>
-            <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+            <h4 className={`font-bold mb-2 break-words ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{selectedNotification.message}</h4>
+            <p className={`text-sm leading-relaxed break-words ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
               {selectedNotification.detail || "ไม่มีรายละเอียดเพิ่มเติม"}
             </p>
           </div>

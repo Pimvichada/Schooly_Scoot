@@ -187,7 +187,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
 
 
     return (
-        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all duration-300 group ${isHidden ? 'opacity-60' : ''}`}>
+        <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} p-4 md:p-6 rounded-[2rem] border shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden ${isHidden ? 'opacity-60' : ''}`}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex gap-4">
                     <div className={`w-12 h-12 rounded-2xl p-1 shadow-sm ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
@@ -273,8 +273,8 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
             </div>
 
 
-            <div className="pl-[4.5rem]">
-                <p className={`whitespace-pre-wrap leading-relaxed text-[0.95rem] ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{post.content}</p>
+            <div className="pl-0 md:pl-[4.5rem]">
+                <p className={`whitespace-pre-wrap break-words leading-relaxed text-[0.95rem] ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{post.content}</p>
 
                 {post.attachments && post.attachments.length > 0 && (
                     <div className="mt-4">
@@ -340,7 +340,7 @@ const PostItem = ({ post, currentUser, onDelete, onEdit, darkMode }) => {
                                             <span className={`font-bold text-sm ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{comment.author?.name}</span>
                                             <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>{comment.createdAt || 'เมื่อสักครู่'}</span>
                                         </div>
-                                        <p className={`text-sm leading-relaxed ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{comment.content}</p>
+                                        <p className={`text-sm leading-relaxed break-words ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>{comment.content}</p>
                                     </div>
                                 </div>
                             ))}

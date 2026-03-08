@@ -48,7 +48,7 @@ const CourseFeed = ({
             {/* Left Sidebar - Class Info & Upcoming Work */}
             <div className="md:col-span-1 space-y-6">
                 {/* About Course Card */}
-                <div className={`${darkMode ? 'bg-slate-900 border-slate-800 shadow-xl shadow-black/20' : 'bg-white border-slate-100 shadow-sm shadow-indigo-100/20'} p-6 rounded-3xl border relative overflow-hidden transition-all duration-300`}>
+                <div className={`${darkMode ? 'bg-slate-900 border-slate-800 shadow-xl shadow-black/20' : 'bg-white border-slate-100 shadow-sm shadow-indigo-100/20'} p-4 md:p-6 rounded-3xl border relative overflow-hidden transition-all duration-300`}>
                     {/* Decorative Gradient Blob */}
                     <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${darkMode ? 'from-indigo-600/30 to-slate-800/30' : 'from-[#FFE787] to-[#BEE1FF]'} opacity-20 rounded-full blur-2xl`}></div>
 
@@ -66,7 +66,7 @@ const CourseFeed = ({
                                     <p className={`text-xs font-bold uppercase mt-1 flex items-center gap-1 ${darkMode ? 'text-indigo-400' : 'text-[#BEE1FF]'}`}>
                                         คำอธิบาย
                                     </p>
-                                    <p className={`text-sm leading-relaxed font-medium ${darkMode ? 'text-slate-300' : 'text-indigo-900'}`}>{selectedCourse.description}</p>
+                                    <p className={`text-sm leading-relaxed font-medium break-words ${darkMode ? 'text-slate-300' : 'text-indigo-900'}`}>{selectedCourse.description}</p>
                                 </div>
                             )}
 
@@ -132,7 +132,7 @@ const CourseFeed = ({
             {/* Main Feed Area */}
             <div className="md:col-span-3 space-y-6">
                 {/* Post Input Area */}
-                <div className={`p-6 rounded-[2rem] border shadow-sm relative transition-all duration-300 ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+                <div className={`p-4 md:p-6 rounded-[2rem] border shadow-sm relative transition-all duration-300 overflow-hidden ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
                     <div className="flex gap-4 mb-2">
                         <div className={`w-14 h-14 rounded-full p-1 border-2 shadow-sm flex-shrink-0 ${darkMode ? 'bg-slate-800 border-indigo-900' : 'bg-white border-white'}`}>
                             {profile.photoURL ? (
@@ -159,7 +159,7 @@ const CourseFeed = ({
 
                     {/* File Previews */}
                     {newPostFiles.length > 0 && (
-                        <div className="flex flex-wrap gap-3 mt-3 pl-[4.5rem]">
+                        <div className="flex flex-wrap gap-3 mt-3 pl-0 md:pl-[4.5rem]">
                             {newPostFiles.map((file, index) => (
                                 <div key={index} className="relative group">
                                     {file.type.startsWith('image/') ? (
@@ -188,7 +188,7 @@ const CourseFeed = ({
                     )}
 
                     {/* Toolbar */}
-                    <div className="flex justify-between items-center mt-2 pl-[4.5rem]">
+                    <div className="flex justify-between items-center mt-2 pl-0 md:pl-[4.5rem]">
                         <div className="flex gap-2">
                             <button
                                 onClick={() => fileInputRef.current?.click()}
