@@ -50,17 +50,17 @@ const CourseClasswork = ({
         const allSubmitted = isTeacher ? isAllSubmitted(data) : completed;
         const isLate = (data.status === 'late' || (data.dueDate && new Date(data.dueDate) < new Date())) && !completed;
 
-        const badge = (() => {
-            if (isTeacher) {
-                if (completed) return { text: 'ตรวจแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-50 text-green-600' };
-                if (allSubmitted) return { text: 'ส่งครบ', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-50 text-yellow-600' };
-                return { text: 'ส่งไม่ครบ', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600' };
-            } else {
-                if (completed) return { text: 'ส่งแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-50 text-green-600' };
-                if (isLate) return { text: 'เลยกำหนด', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600' };
-                return { text: 'ยังไม่ส่ง', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-50 text-yellow-600' };
-            }
-        })();
+        // const badge = (() => {
+        //     if (isTeacher) {
+        //         if (completed) return { text: 'ตรวจแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-50 text-green-600' };
+        //         if (allSubmitted) return { text: 'ส่งครบ', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-50 text-yellow-600' };
+        //         return { text: 'ส่งไม่ครบ', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600' };
+        //     } else {
+        //         if (completed) return { text: 'ส่งแล้ว', color: darkMode ? 'bg-green-900/40 text-green-400' : 'bg-green-50 text-green-600' };
+        //         if (isLate) return { text: 'เลยกำหนด', color: darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-50 text-red-600' };
+        //         return { text: 'ยังไม่ส่ง', color: darkMode ? 'bg-yellow-900/40 text-yellow-400' : 'bg-yellow-50 text-yellow-600' };
+        //     }
+        // })();
 
         return (
             <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${completed
@@ -68,9 +68,9 @@ const CourseClasswork = ({
                 : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-600 shadow-lg shadow-black/20' : 'bg-white border-slate-100 hover:shadow-md')
                 }`}>
                 <div className="flex items-center gap-4">
-                    <div className={`p-1.5 rounded-lg font-bold text-[10px] ${badge.color}`}>
+                    {/* <div className={`p-1.5 rounded-lg font-bold text-[10px] ${badge.color}`}>
                         {badge.text}
-                    </div>
+                    </div> */}
                     <div>
                         <h4 className={`font-bold ${completed
                             ? (darkMode ? 'text-slate-500' : 'text-slate-400')
