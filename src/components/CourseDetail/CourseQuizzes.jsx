@@ -37,72 +37,133 @@ const CourseQuizzes = ({
             </div>
 
             {userRole === 'teacher' ? (
-                <div className={`${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} rounded-[2rem] border overflow-hidden`}>
-                    <table className="w-full text-left">
-                        <thead className={darkMode ? 'bg-slate-800/50' : 'bg-slate-50'}>
-                            <tr>
-                                <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ชื่อชุดข้อสอบ</th>
-                                <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>สถานะ</th>
-                                <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>คำถาม</th>
-                                <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>เวลา</th>
-                                <th className={`p-4 font-bold text-right ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-100'}`}>
-                            {quizzes.length > 0 ? quizzes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((quiz) => (
-                                <tr key={quiz.firestoreId} className={darkMode ? 'hover:bg-slate-800/30 transition-colors' : 'hover:bg-slate-50 transition-colors'}>
-                                    <td className="p-4">
-                                        <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</div>
+                <div className="space-y-4">
+                    {/* Desktop View: Table */}
+                    <div className={`hidden md:block ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'} rounded-[2rem] border overflow-hidden`}>
+                        <table className="w-full text-left">
+                            <thead className={darkMode ? 'bg-slate-800/50' : 'bg-slate-50'}>
+                                <tr>
+                                    <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>ชื่อชุดข้อสอบ</th>
+                                    <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>สถานะ</th>
+                                    <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>คำถาม</th>
+                                    <th className={`p-4 font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>เวลา</th>
+                                    <th className={`p-4 font-bold text-right ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-100'}`}>
+                                {quizzes.length > 0 ? quizzes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((quiz) => (
+                                    <tr key={quiz.firestoreId} className={darkMode ? 'hover:bg-slate-800/30 transition-colors' : 'hover:bg-slate-50 transition-colors'}>
+                                        <td className="p-4">
+                                            <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{quiz.title}</div>
+                                            {quiz.scheduledAt && (
+                                                <div className={`text-xs flex items-center mt-1 font-medium w-fit px-2 py-0.5 rounded-lg border ${darkMode ? 'bg-orange-900/20 text-orange-400 border-orange-900/30' : 'bg-orange-50 text-orange-500 border-orange-100'}`}>
+                                                    <Calendar size={12} className="mr-1" />
+                                                    เริ่ม: {new Date(quiz.scheduledAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4">
+                                            <button
+                                                onClick={() => handleToggleQuizStatus(quiz)}
+                                                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${quiz.status === 'available'
+                                                    ? (darkMode ? 'bg-green-900/40 text-[#96C68E] border-[#96C68E]' : 'bg-[#F0FDF4] text-[#96C68E] border-[#96C68E]')
+                                                    : (darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-400 border-slate-200')
+                                                    }`}>
+                                                {quiz.status === 'available' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                                            </button>
+                                        </td>
+                                        <td className={`p-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{quiz.questions} ข้อ</td>
+                                        <td className={`p-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{parseInt(quiz.time)} นาที</td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleViewResults(quiz)}
+                                                    className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-yellow-400 hover:bg-yellow-900/20' : 'text-slate-300 hover:text-yellow-500 hover:bg-yellow-50'} rounded-xl`}
+                                                    title="ดูคะแนน"
+                                                >
+                                                    <Trophy size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEditQuiz(quiz)}
+                                                    className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-blue-400 hover:bg-blue-900/20' : 'text-slate-300 hover:text-blue-500 hover:bg-blue-50'} rounded-xl`}
+                                                    title="แก้ไข"
+                                                >
+                                                    <Settings size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteQuiz(quiz.firestoreId)}
+                                                    className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'} rounded-xl`}
+                                                    title="ลบ"
+                                                >
+                                                    <Trash size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan="5" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีแบบทดสอบ</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile View: Cards */}
+                    <div className="md:hidden space-y-4">
+                        {quizzes.length > 0 ? quizzes.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).map((quiz) => (
+                            <div key={quiz.firestoreId} className={`p-5 rounded-3xl border transition-all active:scale-[0.98] ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100 shadow-sm'}`}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex-1 pr-3">
+                                        <h3 className={`font-bold text-lg leading-tight ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{quiz.title}</h3>
                                         {quiz.scheduledAt && (
-                                            <div className={`text-xs flex items-center mt-1 font-medium w-fit px-2 py-0.5 rounded-lg border ${darkMode ? 'bg-orange-900/20 text-orange-400 border-orange-900/30' : 'bg-orange-50 text-orange-500 border-orange-100'}`}>
-                                                <Calendar size={12} className="mr-1" />
-                                                เริ่ม: {new Date(quiz.scheduledAt).toLocaleString('th-TH', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            <div className={`text-[10px] flex items-center mt-2 font-medium w-fit px-2 py-0.5 rounded-lg border ${darkMode ? 'bg-orange-900/20 text-orange-400 border-orange-900/30' : 'bg-orange-50 text-orange-500 border-orange-100'}`}>
+                                                <Calendar size={10} className="mr-1" />
+                                                {new Date(quiz.scheduledAt).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         )}
-                                    </td>
-                                    <td className="p-4">
+                                    </div>
+                                    <button
+                                        onClick={() => handleToggleQuizStatus(quiz)}
+                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-extrabold transition-all border shrink-0 shadow-sm ${quiz.status === 'available'
+                                            ? (darkMode ? 'bg-green-900/40 text-[#96C68E] border-[#96C68E]' : 'bg-[#F0FDF4] text-[#96C68E] border-[#96C68E]')
+                                            : (darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-400 border-slate-200')
+                                            }`}>
+                                        {quiz.status === 'available' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center gap-6 text-[12px] text-slate-500 mb-6 font-bold px-1">
+                                    <span className="flex items-center gap-1.5"><HelpCircle size={15} className="text-[#96C68E]" /> {quiz.questions} ข้อ</span>
+                                    <span className="flex items-center gap-1.5"><Clock size={15} className="text-orange-400" /> {parseInt(quiz.time)} นาที</span>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2">
+                                    <span className="text-[10px] text-slate-400 uppercase tracking-widest font-extrabold opacity-70">จัดการข้อสอบ</span>
+                                    <div className="flex gap-1">
                                         <button
-                                            onClick={() => handleToggleQuizStatus(quiz)}
-                                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all border ${quiz.status === 'available'
-                                                ? (darkMode ? 'bg-green-900/40 text-[#96C68E] border-[#96C68E]' : 'bg-[#F0FDF4] text-[#96C68E] border-[#96C68E]')
-                                                : (darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-400 border-slate-200')
-                                                }`}>
-                                            {quiz.status === 'available' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                                            onClick={() => handleViewResults(quiz)}
+                                            className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-yellow-400 hover:bg-yellow-900/20' : 'text-slate-300 hover:text-yellow-500 hover:bg-yellow-50'} rounded-xl`}
+                                        >
+                                            <Trophy size={18} />
                                         </button>
-                                    </td>
-                                    <td className={`p-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{quiz.questions} ข้อ</td>
-                                    <td className={`p-4 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{parseInt(quiz.time)} นาที</td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleViewResults(quiz)}
-                                                className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-yellow-400 hover:bg-yellow-900/20' : 'text-slate-300 hover:text-yellow-500 hover:bg-yellow-50'} rounded-xl`}
-                                                title="ดูคะแนน"
-                                            >
-                                                <Trophy size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleEditQuiz(quiz)}
-                                                className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-blue-400 hover:bg-blue-900/20' : 'text-slate-300 hover:text-blue-500 hover:bg-blue-50'} rounded-xl`}
-                                                title="แก้ไข"
-                                            >
-                                                <Settings size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteQuiz(quiz.firestoreId)}
-                                                className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'} rounded-xl`}
-                                                title="ลบ"
-                                            >
-                                                <Trash size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )) : (
-                                <tr><td colSpan="5" className={`p-8 text-center ${darkMode ? 'text-slate-600' : 'text-slate-400'}`}>ยังไม่มีแบบทดสอบ</td></tr>
-                            )}
-                        </tbody>
-                    </table>
+                                        <button
+                                            onClick={() => handleEditQuiz(quiz)}
+                                            className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-blue-400 hover:bg-blue-900/20' : 'text-slate-300 hover:text-blue-500 hover:bg-blue-50'} rounded-xl`}
+                                        >
+                                            <Settings size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteQuiz(quiz.firestoreId)}
+                                            className={`p-2 transition-all ${darkMode ? 'text-slate-600 hover:text-red-400 hover:bg-red-900/20' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'} rounded-xl`}
+                                        >
+                                            <Trash size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className={`p-8 text-center rounded-3xl border border-dashed ${darkMode ? 'text-slate-600 border-slate-800' : 'text-slate-400 border-slate-200'}`}>ยังไม่มีแบบทดสอบ</div>
+                        )}
+                    </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

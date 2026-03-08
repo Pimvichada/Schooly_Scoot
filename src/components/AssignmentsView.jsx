@@ -757,6 +757,8 @@ export const GradingModal = ({
     setAssignments,
     setSubmissions
 }) => {
+    const [selectedStudentForFiles, setSelectedStudentForFiles] = useState(null);
+
     if ((activeModal !== 'grading' && activeModal !== 'grading_detail') || !selectedAssignment) return null;
 
     const closeModal = () => {
@@ -820,40 +822,39 @@ export const GradingModal = ({
             )}
 
             <div className={`p-8 flex flex-col h-full ${darkMode ? 'text-slate-200' : ''}`}>
-                <div className={`flex justify-between items-start mb-6 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'} pb-4`}>
+                <div className={`flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'} pb-4`}>
                     <div>
-                        <h2 className={`text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ตรวจงาน: {selectedAssignment.title}</h2>
+                        <h2 className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>ตรวจงาน: {selectedAssignment.title}</h2>
                         <div className="flex items-center gap-3 text-slate-500">
-                            <p>{selectedAssignment.course}</p>
+                            <p className="text-sm md:text-base">{selectedAssignment.course}</p>
                             <div className="h-1 w-1 rounded-full bg-slate-300"></div>
-                            {/* Left side minimal metadata if needed */}
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
                         <button
                             onClick={() => setActiveModal('grading_detail')}
-                            className={`hover:text-[#96C68E] cursor-pointer transition-colors flex items-center gap-1 font-bold text-sm px-3 py-2 rounded-xl border hover:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
+                            className={`flex-1 md:flex-none hover:text-[#96C68E] cursor-pointer transition-colors flex items-center justify-center gap-1 font-bold text-sm px-3 py-2.5 rounded-xl border hover:border-[#96C68E] ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
                             title="ดูรายละเอียดงานต้นฉบับ"
                         >
                             <Eye size={16} /> ดูโจทย์
                         </button>
-                        <div className="bg-[#BEE1FF] px-4 py-2 rounded-xl text-slate-700 font-bold">
+                        <div className="flex-1 md:flex-none bg-[#BEE1FF] px-4 py-2.5 rounded-xl text-slate-700 font-bold text-sm text-center whitespace-nowrap">
                             คะแนนเต็ม: {selectedAssignment.maxScore || 10}
                         </div>
                     </div>
                 </div>
 
                 {/* Grading Tabs */}
-                <div className={`flex gap-2 mt-4 border-b pb-2 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                <div className={`flex gap-2 mt-4 border-b pb-2 ${darkMode ? 'border-slate-700' : 'border-slate-100'} overflow-x-auto flex-nowrap scrollbar-hide`}>
                     <button
                         onClick={() => setGradingTab('submitted')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${gradingTab === 'submitted' ? 'bg-[#96C68E] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${gradingTab === 'submitted' ? 'bg-[#96C68E] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
                         ส่งแล้ว ({submissions.length})
                     </button>
                     <button
                         onClick={() => setGradingTab('missing')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${gradingTab === 'missing' ? 'bg-[#FF917B] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
+                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${gradingTab === 'missing' ? 'bg-[#FF917B] text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
                         ยังไม่ส่ง ({missingSubmissions.length})
                     </button>
@@ -866,98 +867,141 @@ export const GradingModal = ({
                             <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-b-4 border-[#96C68E]"></div>
                         </div>
                     ) : gradingTab === 'submitted' ? (
-                        <table className="w-full">
-                            <thead className={`text-left text-sm border-b ${darkMode ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
-                                <tr>
-                                    <th className="pb-2">ชื่อ-นามสกุล</th>
-                                    <th className="pb-2">สถานะ</th>
-                                    <th className="pb-2">ไฟล์แนบ</th>
-                                    <th className="pb-2 text-center">คะแนน</th>
-                                </tr>
-                            </thead>
-                            <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
-                                {submissions.length > 0 ? submissions.map((student) => (
-                                    <tr key={student.firestoreId || student.id} className={`group ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}>
-                                        <td className={`py-3 font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
-                                            <div className="flex items-center gap-3">
-                                                {student.userPhotoURL ? (
-                                                    <img src={student.userPhotoURL} alt={student.userName} className="w-8 h-8 rounded-full object-cover" />
-                                                ) : (
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-                                                        {student.userName ? student.userName.charAt(0) : '?'}
+                        <div className="space-y-4">
+                            {/* Table Layout for Desktop */}
+                            <div className="hidden md:block">
+                                <table className="w-full">
+                                    <thead className={`text-left text-sm border-b ${darkMode ? 'text-slate-400 border-slate-700' : 'text-slate-500 border-slate-100'}`}>
+                                        <tr>
+                                            <th className="pb-2">ชื่อ-นามสกุล</th>
+                                            <th className="pb-2">สถานะ</th>
+                                            <th className="pb-2 text-center">คะแนน</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
+                                        {submissions.length > 0 ? submissions.map((student) => (
+                                            <tr key={student.firestoreId || student.id} className={`group ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}>
+                                                <td className={`py-4 font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                                    <div
+                                                        className="flex items-center gap-3 cursor-pointer hover:text-[#96C68E] transition-colors group/name"
+                                                        onClick={() => setSelectedStudentForFiles(student)}
+                                                    >
+                                                        <div className="relative">
+                                                            {student.userPhotoURL ? (
+                                                                <img src={student.userPhotoURL} alt={student.userName} className="w-8 h-8 rounded-full object-cover border border-transparent group-hover/name:border-[#96C68E]" />
+                                                            ) : (
+                                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'} border border-transparent group-hover/name:border-[#96C68E]`}>
+                                                                    {student.userName ? student.userName.charAt(0) : '?'}
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute -right-1 -bottom-1 bg-white rounded-full p-0.5 shadow-sm opacity-0 group-hover/name:opacity-100 transition-opacity">
+                                                                <Eye size={10} className="text-[#96C68E]" />
+                                                            </div>
+                                                        </div>
+                                                        <span className="group-hover/name:underline">{student.userName || 'Unknown'}</span>
                                                     </div>
-                                                )}
-                                                {student.userName || 'Unknown'}
-                                            </div>
-                                        </td>
-                                        <td className="py-3">
-                                            <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
-                                        </td>
-                                        <td className="py-3">
-                                            {student.file ? (
-                                                <div className="flex flex-col gap-1">
-                                                    {(() => {
-                                                        const files = Array.isArray(student.file) ? student.file : [student.file];
-                                                        if (files.length === 0) return <span className="text-red-400 text-xs font-bold">ไฟล์ว่างเปล่า (Empty)</span>;
+                                                </td>
+                                                <td className="py-4">
+                                                    <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs font-bold">ส่งแล้ว</span>
+                                                </td>
+                                                <td className="py-4 text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="-"
+                                                            value={editingScores[student.firestoreId || student.id] || ""}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
 
-                                                        return files.map((f, idx) => (
-                                                            <button
-                                                                key={idx}
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    if (f.content) {
-                                                                        openBase64InNewTab(f.content, f.type || 'application/pdf');
-                                                                    } else {
-                                                                        alert(`ไม่พบเนื้อหาไฟล์: ${f.name}`);
-                                                                    }
-                                                                }}
-                                                                className={`text-left font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-2 border px-2 py-1 rounded cursor-pointer text-sm max-w-full ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-200'}`}
-                                                                title={f.name || `File ${idx + 1}`}
-                                                            >
-                                                                <FileText size={16} className="text-blue-500 flex-shrink-0" />
-                                                                <span className="truncate">{f.name || `ไฟล์แนบ ${idx + 1}`}</span>
-                                                            </button>
-                                                        ));
-                                                    })()}
+                                                                setEditingScores(prev => ({
+                                                                    ...prev,
+                                                                    [student.firestoreId || student.id]: val
+                                                                }));
+                                                            }}
+                                                            className={`w-16 p-2 border rounded-lg text-center font-bold focus:border-[#96C68E] outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'} ${parseFloat(editingScores[student.firestoreId || student.id]) > parseFloat(selectedAssignment.maxScore || 10) ? 'border-red-500' : ''
+                                                                }`}
+                                                        />
+                                                        {parseFloat(editingScores[student.firestoreId || student.id]) > parseFloat(selectedAssignment.maxScore || 10) && (
+                                                            <span className="text-[10px] text-red-500 font-bold whitespace-nowrap animate-in fade-in duration-200">
+                                                                ไม่เกิน {selectedAssignment.maxScore || 10}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr><td colSpan="3" className="text-center py-8 text-slate-400">ยังไม่มีใครส่งงาน</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Card Layout for Mobile */}
+                            <div className="md:hidden space-y-4">
+                                {submissions.length > 0 ? submissions.map((student) => {
+                                    const studentId = student.firestoreId || student.id;
+                                    const isOverScore = parseFloat(editingScores[studentId]) > parseFloat(selectedAssignment.maxScore || 10);
+
+                                    return (
+                                        <div key={studentId} className={`p-4 rounded-2xl border transition-all active:scale-[0.98] ${darkMode ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50/50 border-slate-100'}`}>
+                                            <div className="flex items-center justify-between">
+                                                <div
+                                                    className="flex items-center gap-3 cursor-pointer flex-1"
+                                                    onClick={() => setSelectedStudentForFiles(student)}
+                                                >
+                                                    <div className="relative">
+                                                        {student.userPhotoURL ? (
+                                                            <img src={student.userPhotoURL} alt={student.userName} className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm" />
+                                                        ) : (
+                                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-white text-slate-500 shadow-sm'}`}>
+                                                                {student.userName ? student.userName.charAt(0) : '?'}
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute -right-1 -bottom-1 bg-[#96C68E] rounded-full p-1 shadow-sm text-white">
+                                                            <Eye size={12} />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-800'}`}>{student.userName || 'Unknown'}</div>
+                                                        <span className="bg-green-100 text-green-600 px-2 py-0.5 rounded text-[10px] font-bold">ส่งแล้ว</span>
+                                                    </div>
                                                 </div>
-                                            ) : (
-                                                <span className="text-red-400 text-xs font-bold flex items-center gap-1">
-                                                    <AlertCircle size={12} /> ไม่พบไฟล์แนบ
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-3 text-center">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <input
-                                                    type="text"
-                                                    placeholder="-"
-                                                    value={editingScores[student.firestoreId || student.id] || ""}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        // Allow only numbers and decimals
-                                                        if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
+                                                <div className="text-right pl-4 border-l border-slate-200/50">
+                                                    <div className="text-[10px] text-slate-500 mb-1">ให้คะแนน</div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="-"
+                                                            value={editingScores[studentId] || ""}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                if (val !== "" && !/^\d*\.?\d*$/.test(val)) return;
 
-                                                        setEditingScores(prev => ({
-                                                            ...prev,
-                                                            [student.firestoreId || student.id]: val
-                                                        }));
-                                                    }}
-                                                    className={`w-16 p-2 border rounded-lg text-center font-bold focus:border-[#96C68E] outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'} ${parseFloat(editingScores[student.firestoreId || student.id]) > parseFloat(selectedAssignment.maxScore || 10) ? 'border-red-500' : ''
-                                                        }`}
-                                                />
-                                                {parseFloat(editingScores[student.firestoreId || student.id]) > parseFloat(selectedAssignment.maxScore || 10) && (
-                                                    <span className="text-[10px] text-red-500 font-bold whitespace-nowrap animate-in fade-in duration-200">
-                                                        กรอกคะแนนได้ไม่เกิน {selectedAssignment.maxScore || 10}
-                                                    </span>
-                                                )}
+                                                                setEditingScores(prev => ({
+                                                                    ...prev,
+                                                                    [studentId]: val
+                                                                }));
+                                                            }}
+                                                            className={`w-14 p-2 border rounded-lg text-center font-bold focus:border-[#96C68E] outline-none ${darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-white border-slate-200 text-slate-900'} ${isOverScore ? 'border-red-500' : ''}`}
+                                                        />
+                                                        {isOverScore && (
+                                                            <span className="text-[8px] text-red-500 font-bold">
+                                                                Max: {selectedAssignment.maxScore || 10}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr><td colSpan="4" className="text-center py-4 text-slate-400">ยังไม่มีใครส่งงาน</td></tr>
+                                        </div>
+                                    );
+                                }) : (
+                                    <div className="text-center py-12 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                        <p className="font-bold">ยังไม่มีใครส่งงาน</p>
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
+                            </div>
+                        </div>
                     ) : (
                         <div className="space-y-4">
                             {missingSubmissions.length > 0 ? (
@@ -990,10 +1034,10 @@ export const GradingModal = ({
                     )}
                 </div>
 
-                <div className={`mt-6 pt-4 border-t flex justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
+                <div className={`mt-6 pt-4 border-t flex flex-col md:flex-row md:justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
                     <button
                         onClick={closeModal}
-                        className={`px-6 py-3 rounded-xl border font-bold ${darkMode ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        className={`w-full md:w-auto px-6 py-3.5 rounded-xl border font-bold order-2 md:order-1 ${darkMode ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
                     >
                         ปิด
                     </button>
@@ -1004,14 +1048,13 @@ export const GradingModal = ({
                                 const targetId = selectedAssignment.firestoreId || selectedAssignment.id;
                                 const maxScore = parseFloat(selectedAssignment.maxScore || 10);
 
-                                // Pre-validate all scores before saving
                                 for (const student of submissions) {
                                     const subId = student.firestoreId || student.id;
                                     const val = editingScores[subId];
                                     if (val !== "" && val !== null && val !== undefined) {
                                         const numericVal = parseFloat(val);
                                         if (isNaN(numericVal) || numericVal > maxScore || numericVal < 0) {
-                                            alert(`สามารถกรอกคะแนนได้ตามที่กำหนดไว้เท่านั้น`);
+                                            alert(`สามารถกรอกคะแนนได้ไม่เกิน ${maxScore} คะแนนเท่านั้น`);
                                             return;
                                         }
                                     }
@@ -1021,7 +1064,6 @@ export const GradingModal = ({
                                     const subId = student.firestoreId || student.id;
                                     const newScore = editingScores[subId];
 
-                                    // Use the state value
                                     await gradeSubmission(targetId, subId, newScore);
 
                                     if (newScore !== "" && newScore !== null) {
@@ -1040,14 +1082,13 @@ export const GradingModal = ({
                                 });
 
                                 await Promise.all(savePromises);
-                                alert('บันทึกคะแนนแล้ว');
+                                alert('บันทึกคะแนนเรียบร้อยแล้ว');
 
                                 setSubmissions(prev => prev.map(s => {
                                     const subId = s.firestoreId || s.id;
                                     return { ...s, score: editingScores[subId] };
                                 }));
 
-                                // Update Main Assignments State with new Pending Count and submissions
                                 setAssignments(prev => prev.map(a => {
                                     const currentAssignId = a.firestoreId || a.id;
                                     if (currentAssignId === targetId) {
@@ -1073,13 +1114,95 @@ export const GradingModal = ({
                                 alert('บันทึกคะแนนไม่สำเร็จ');
                             }
                         }}
-                        className="px-6 py-3 rounded-xl bg-[#96C68E] hover:bg-[#85b57d] font-bold text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
+                        className="w-full md:w-auto px-6 py-3.5 rounded-xl bg-[#96C68E] hover:bg-[#85b57d] font-bold text-white shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 order-1 md:order-2"
                     >
                         <Save size={18} />
                         บันทึกคะแนนทั้งหมด
                     </button>
                 </div>
             </div>
+
+            {/* Sub-view for Student Files */}
+            {selectedStudentForFiles && (
+                <div className={`absolute inset-0 z-[60] ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-slate-800'} p-8 flex flex-col animate-in slide-in-from-right duration-300`}>
+                    <div className="flex items-center gap-4 mb-8">
+                        <button
+                            onClick={() => setSelectedStudentForFiles(null)}
+                            className={`p-2 rounded-xl transition-all ${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-slate-100 hover:bg-slate-200'}`}
+                        >
+                            <X size={24} />
+                        </button>
+                        <h2 className="text-2xl font-bold">ไฟล์งานของนักเรียน</h2>
+                    </div>
+
+                    <div className={`p-6 rounded-3xl border mb-8 flex items-center gap-4 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                        {selectedStudentForFiles.userPhotoURL ? (
+                            <img src={selectedStudentForFiles.userPhotoURL} alt={selectedStudentForFiles.userName} className="w-16 h-16 rounded-full object-cover shadow-md" />
+                        ) : (
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-2xl ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-white text-slate-500 shadow-sm'}`}>
+                                {selectedStudentForFiles.userName ? selectedStudentForFiles.userName.charAt(0) : '?'}
+                            </div>
+                        )}
+                        <div>
+                            <h3 className="text-xl font-bold">{selectedStudentForFiles.userName}</h3>
+                            <p className="text-slate-500 text-sm">ส่งงาน: {selectedAssignment.title}</p>
+                        </div>
+                        <div className="ml-auto bg-green-100 text-green-600 px-4 py-1.5 rounded-xl font-bold text-sm">
+                            ส่งแล้ว
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+                        <div className="space-y-4">
+                            <h4 className={`font-bold flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                <Paperclip size={18} /> ไฟล์ที่แนบมา ({Array.isArray(selectedStudentForFiles.file) ? selectedStudentForFiles.file.length : (selectedStudentForFiles.file ? 1 : 0)})
+                            </h4>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {selectedStudentForFiles.file ? (() => {
+                                    const files = Array.isArray(selectedStudentForFiles.file) ? selectedStudentForFiles.file : [selectedStudentForFiles.file];
+                                    if (files.length === 0) return <div className="text-center p-8 border border-dashed rounded-3xl text-slate-400">ไม่พบไฟล์งาน</div>;
+
+                                    return files.map((f, idx) => (
+                                        <div key={idx} className={`flex items-center gap-4 border p-4 rounded-2xl group ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                                            <div className="bg-blue-50 p-3 rounded-2xl">
+                                                <FileText className="text-blue-500" size={24} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`font-bold truncate ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{f.name || `ไฟล์แนบ ${idx + 1}`}</p>
+                                                <p className="text-xs text-slate-400">{(f.size ? (f.size / 1024).toFixed(1) : "?")} KB</p>
+                                            </div>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    if (f.content) openBase64InNewTab(f.content, f.type || 'application/pdf');
+                                                    else alert('ไม่พบเนื้อหาไฟล์');
+                                                }}
+                                                className="bg-[#96C68E] text-white p-3 rounded-xl hover:bg-[#85b57d] transition-all"
+                                                title="เปิดดูไฟล์"
+                                            >
+                                                <Eye size={20} />
+                                            </button>
+                                        </div>
+                                    ));
+                                })() : (
+                                    <div className="text-center p-12 bg-red-50 text-red-500 rounded-3xl border border-dashed border-red-200 flex flex-col items-center">
+                                        <AlertCircle size={48} className="mb-4 opacity-50" />
+                                        <p className="font-bold">นักเรียนยังไม่ได้แนบไฟล์งาน</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => setSelectedStudentForFiles(null)}
+                        className={`mt-6 w-full py-4 rounded-2xl font-bold transition-all shadow-sm ${darkMode ? 'bg-slate-800 text-slate-100 hover:bg-slate-700' : 'bg-slate-100 text-slate-800 hover:bg-slate-200'}`}
+                    >
+                        กลับไปยังหน้ารวม
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
