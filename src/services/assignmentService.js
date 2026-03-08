@@ -1,5 +1,5 @@
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc, collectionGroup } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc, deleteDoc, collectionGroup, onSnapshot } from 'firebase/firestore';
 
 /**
  * Fetch assignments for a course or user
@@ -11,6 +11,9 @@ export const getAssignments = async (courseName, uid, role, courseNames = null) 
 
         if (courseName) {
             q = query(assignmentsCol, where('course', '==', courseName));
+        } else if (courseNames && courseNames.length > 0) {
+            // Filter by multiple course names (only first 10 due to firestore limit, but usually enough)
+            q = query(assignmentsCol, where('course', 'in', courseNames.slice(0, 10)));
         } else {
             // Fetch all assignments and filter/enrich based on user
             q = query(assignmentsCol);
@@ -123,6 +126,101 @@ export const getAssignments = async (courseName, uid, role, courseNames = null) 
         console.error("Error getting assignments:", error);
         return [];
     }
+};
+
+/**
+ * Subscribe to assignments with real-time updates
+ */
+export const subscribeToAssignments = (uid, role, courseNames, callback) => {
+    const assignmentsCol = collection(db, 'assignments');
+    let q;
+
+    if (courseNames && courseNames.length > 0) {
+        q = query(assignmentsCol, where('course', 'in', courseNames.slice(0, 10)));
+    } else {
+        q = query(assignmentsCol);
+    }
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+        const assignments = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            firestoreId: doc.id
+        }));
+
+        // Now enrich them just like getAssignments does
+        // (Copied the logic here for the listener)
+
+        let finalAssignments = assignments;
+
+        if (role === 'student' && uid) {
+            let submissionsByAssignment = {};
+            try {
+                const allSubmissionsQuery = query(collectionGroup(db, 'submissions'), where('userId', '==', uid));
+                const allSubmissionsSnapshot = await getDocs(allSubmissionsQuery);
+                allSubmissionsSnapshot.docs.forEach(doc => {
+                    submissionsByAssignment[doc.ref.parent.parent.id] = doc.data();
+                });
+            } catch (err) {
+                console.warn("Real-time student enrichment fallback");
+            }
+
+            finalAssignments = assignments.map((assign) => {
+                const sub = submissionsByAssignment[assign.firestoreId];
+                if (sub) {
+                    return {
+                        ...assign,
+                        status: 'submitted',
+                        submittedFiles: Array.isArray(sub.file) ? sub.file : (sub.file ? [sub.file] : []),
+                        score: sub.score,
+                        submittedAt: sub.submittedAt
+                    };
+                }
+                return { ...assign, status: 'pending', submittedFiles: [], score: null };
+            });
+        } else if (role === 'teacher') {
+            finalAssignments = await Promise.all(assignments.map(async (assignment) => {
+                try {
+                    const subCol = collection(db, 'assignments', assignment.firestoreId, 'submissions');
+                    const subSnapshot = await getDocs(subCol);
+
+                    let pendingCount = 0;
+                    if (!subSnapshot.empty) {
+                        subSnapshot.docs.forEach(doc => {
+                            const data = doc.data();
+                            if (!data.score) pendingCount++;
+                        });
+                    }
+
+                    if (!subSnapshot.empty) {
+                        const subs = subSnapshot.docs.map(doc => doc.data());
+                        return {
+                            ...assignment,
+                            status: (pendingCount > 0 ? 'pending_review' : 'submitted'),
+                            submissionCount: subSnapshot.size,
+                            pendingCount: pendingCount,
+                            submissions: subs
+                        };
+                    }
+                    return {
+                        ...assignment,
+                        status: 'pending',
+                        submissionCount: 0,
+                        pendingCount: 0,
+                        submissions: []
+                    };
+                } catch (err) {
+                    return assignment;
+                }
+            }));
+        }
+
+        callback(finalAssignments);
+    }, (error) => {
+        console.error("Error in assignments subscription:", error);
+    });
+
+    return unsubscribe;
 };
 
 /**

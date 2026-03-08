@@ -5,7 +5,7 @@ import { doc, onSnapshot, getDoc, collection, query, where, getDocs } from 'fire
 import { getUserProfile, logoutUser, updateUserProfile, toggleHiddenCourse, getUserDetails } from './services/authService';
 import { getAllCourses, seedCourses, createCourse, deleteCourse, getCoursesForUser, joinCourse, updateCourse, leaveCourse, approveJoinRequest, rejectJoinRequest } from './services/courseService';
 import { createQuiz, getQuizzesByCourse, deleteQuiz, updateQuiz, submitQuiz as submitQuizService, checkSubmission, getQuizSubmissions, updateQuizSubmissionScore, updateQuizSubmission, getQuiz, startQuizAttempt } from './services/quizService';
-import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission } from './services/assignmentService';
+import { getAssignments, seedAssignments, submitAssignment, getSubmissions, updateAssignmentStatus, createAssignment, deleteAssignment, gradeSubmission, subscribeToAssignments } from './services/assignmentService';
 import { getNotifications, seedNotifications, markNotificationAsRead, createNotification, markAllNotificationsAsRead, subscribeToNotifications } from './services/notificationService';
 import { createPost, getPostsByCourse, subscribeToPosts, addComment, getComments, toggleLikePost, deletePost, updatePost, toggleHidePost } from './services/postService';
 // import { getChats, seedChats, sendMessage } from './services/chatService';
@@ -402,21 +402,22 @@ export default function SchoolyScootLMS() {
 
 
 
-  // Fetch Assignments
+  // Real-time Assignments Subscription (Real-time fixes)
   useEffect(() => {
-    const loadAssignments = async () => {
-      if (authLoading) return; // Wait for auth to be ready
-      setIsAssignmentsLoading(true);
-      // await seedAssignments(); // Run once (safe check inside service) - Commented out to avoid permission errors
-      const uid = auth.currentUser ? auth.currentUser.uid : null;
-      const courseNames = courses.map(c => c.name);
+    if (authLoading || !isLoggedIn) return;
 
-      const fetched = await getAssignments(null, uid, userRole, courseNames);
+    const uid = auth.currentUser ? auth.currentUser.uid : null;
+    const courseNames = courses.map(c => c.name);
+
+    setIsAssignmentsLoading(true);
+
+    const unsubscribe = subscribeToAssignments(uid, userRole, courseNames, (fetched) => {
       setAssignments(fetched);
       setIsAssignmentsLoading(false);
-    };
-    loadAssignments();
-  }, [authLoading, userRole, auth.currentUser, courses]);
+    });
+
+    return () => unsubscribe();
+  }, [authLoading, isLoggedIn, userRole, auth.currentUser, courses]);
 
   //  Assignment State (สำคัญมาก)
 
