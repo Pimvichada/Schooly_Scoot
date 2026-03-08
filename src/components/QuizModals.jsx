@@ -310,6 +310,7 @@ const CreateExamModal = ({
                                 <input
                                     type="datetime-local"
                                     className={`w-full md:w-1/2 p-3 rounded-xl border outline-none font-medium ${darkMode ? 'bg-slate-800 border-orange-900/50 text-slate-200' : 'bg-white border-orange-200 text-slate-700 focus:border-orange-400'}`}
+                                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                                     value={newExam.scheduledAt}
                                     onChange={(e) => setNewExam({ ...newExam, scheduledAt: e.target.value })}
                                 />

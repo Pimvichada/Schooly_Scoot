@@ -451,13 +451,14 @@ export const CreateAssignmentModal = ({
     createAssignment,
     setAssignments,
     courses,
-    createNotification
+    createNotification,
+    darkMode
 }) => {
     if (activeModal !== 'createAssignment') return null;
 
     return (
         <div className="p-8">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">
+            <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                 เพิ่มงานในชั้นเรียน
             </h2>
 
@@ -467,7 +468,7 @@ export const CreateAssignmentModal = ({
                         <input
                             type="text"
                             placeholder="ชื่องาน"
-                            className="w-full p-3 rounded-xl border"
+                            className={`w-full p-3 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}
                             value={newAssignment.title}
                             onChange={(e) =>
                                 setNewAssignment({ ...newAssignment, title: e.target.value })
@@ -478,7 +479,7 @@ export const CreateAssignmentModal = ({
                         <input
                             type="number"
                             placeholder="คะแนนเต็ม"
-                            className="w-full p-3 rounded-xl border text-center"
+                            className={`w-full p-3 rounded-xl border text-center ${darkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}
                             value={newAssignment.maxScore}
                             onChange={(e) =>
                                 setNewAssignment({ ...newAssignment, maxScore: e.target.value })
@@ -487,20 +488,14 @@ export const CreateAssignmentModal = ({
                     </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">
+                    <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                         กำหนดส่ง
                     </label>
 
                     <input
                         type="datetime-local"
-                        className="
-      w-full p-3 rounded-xl
-      border border-slate-200
-      bg-white text-slate-700
-      focus:outline-none
-      focus:border-[#96C68E]
-      focus:ring-1 focus:ring-[#96C68E]/30
-    "
+                        className={`w-full p-3 rounded-xl border focus:outline-none focus:border-[#96C68E] focus:ring-1 focus:ring-[#96C68E]/30 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
+                        style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                         value={newAssignment.dueDate}
                         onChange={(e) =>
                             setNewAssignment({
@@ -520,7 +515,7 @@ export const CreateAssignmentModal = ({
                 <textarea
                     placeholder="คำอธิบายงาน"
                     rows={4}
-                    className="w-full p-3 rounded-xl border"
+                    className={`w-full p-3 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-white border-slate-200 text-slate-800'}`}
                     value={newAssignment.description}
                     onChange={(e) =>
                         setNewAssignment({ ...newAssignment, description: e.target.value })
@@ -529,7 +524,7 @@ export const CreateAssignmentModal = ({
 
                 {/* แนบไฟล์สำหรับงานที่กำลังสร้าง */}
                 <div>
-                    <label className="block text-sm font-bold text-slate-600 mb-1">
+                    <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
                         แนบไฟล์ (ถ้ามี)
                     </label>
 
@@ -544,22 +539,21 @@ export const CreateAssignmentModal = ({
                                 }));
                             }
                         }}
-                        className="block w-full text-sm text-slate-500
+                        className={`block w-full text-sm
                file:mr-4 file:py-2 file:px-4
                file:rounded-xl file:border-0
                file:text-sm file:font-bold
-               file:bg-[#F0FDF4] file:text-[#96C68E]
-               hover:file:bg-[#E6F7EC]"
+               ${darkMode ? 'text-slate-400 file:bg-slate-800 file:text-[#96C68E] hover:file:bg-slate-700' : 'text-slate-500 file:bg-[#F0FDF4] file:text-[#96C68E] hover:file:bg-[#E6F7EC]'}`}
                     />
 
                     {newAssignment.files && newAssignment.files.length > 0 && (
                         <div className="mt-3 space-y-2">
                             {newAssignment.files.map((file, index) => (
-                                <div key={index} className="flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3">
+                                <div key={index} className={`flex items-center justify-between border rounded-xl p-3 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                                     <div className="flex items-center gap-3">
                                         <FileText className="text-[#96C68E] w-5 h-5" />
                                         <div className="overflow-hidden">
-                                            <p className="text-sm font-bold text-slate-700 truncate max-w-[200px]">
+                                            <p className={`text-sm font-bold truncate max-w-[200px] ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
                                                 {file.name}
                                             </p>
                                             <p className="text-xs text-slate-400">
@@ -822,7 +816,18 @@ export const GradingModal = ({
                             <tbody className={`divide-y ${darkMode ? 'divide-slate-800' : 'divide-slate-50'}`}>
                                 {submissions.length > 0 ? submissions.map((student) => (
                                     <tr key={student.firestoreId || student.id} className={`group ${darkMode ? 'hover:bg-slate-800' : 'hover:bg-slate-50'}`}>
-                                        <td className={`py-3 font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{student.userName || 'Unknown'}</td>
+                                        <td className={`py-3 font-medium ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>
+                                            <div className="flex items-center gap-3">
+                                                {student.userPhotoURL ? (
+                                                    <img src={student.userPhotoURL} alt={student.userName} className="w-8 h-8 rounded-full object-cover" />
+                                                ) : (
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                                                        {student.userName ? student.userName.charAt(0) : '?'}
+                                                    </div>
+                                                )}
+                                                {student.userName || 'Unknown'}
+                                            </div>
+                                        </td>
                                         <td className="py-3">
                                             <span className="bg-green-100 text-green-600 px-2 py-1 rounded text-xs">ส่งแล้ว</span>
                                         </td>
@@ -897,9 +902,13 @@ export const GradingModal = ({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {missingSubmissions.map((student, idx) => (
                                         <div key={idx} className={`flex items-center gap-3 p-3 rounded-xl border ${darkMode ? 'bg-slate-800 border-slate-700' : 'border-slate-100 bg-slate-50/50'}`}>
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
-                                                {student.fullName ? student.fullName.charAt(0) : '?'}
-                                            </div>
+                                            {student.photoURL ? (
+                                                <img src={student.photoURL} alt={student.fullName} className="w-10 h-10 rounded-full object-cover" />
+                                            ) : (
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-200 text-slate-500'}`}>
+                                                    {student.fullName ? student.fullName.charAt(0) : '?'}
+                                                </div>
+                                            )}
                                             <div>
                                                 <div className={`font-bold ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>{student.fullName || 'Unknown'}</div>
                                                 <div className="text-xs text-red-400 font-bold flex items-center gap-1">

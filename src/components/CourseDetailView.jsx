@@ -295,7 +295,8 @@ export const CourseModals = ({
                                 <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>วันที่เริ่มเรียน/Start Date</label>
                                 <input
                                     type="date"
-                                    className={`w-full p-4 rounded-xl border outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
+                                    className={`w-full p-4 rounded-xl border outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
+                                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                                     value={newCourseData.startDate}
                                     onChange={(e) => setNewCourseData({ ...newCourseData, startDate: e.target.value })}
                                 />
@@ -304,7 +305,8 @@ export const CourseModals = ({
                                 <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>วันที่สิ้นสุด/End Date</label>
                                 <input
                                     type="date"
-                                    className={`w-full p-4 rounded-xl border outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
+                                    className={`w-full p-4 rounded-xl border outline-none transition-colors ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-slate-50 border-slate-200 focus:border-[#96C68E]'}`}
+                                    style={{ colorScheme: darkMode ? 'dark' : 'light' }}
                                     value={newCourseData.endDate}
                                     onChange={(e) => setNewCourseData({ ...newCourseData, endDate: e.target.value })}
                                 />
@@ -330,12 +332,12 @@ export const CourseModals = ({
                                     </div>
                                     <div className="flex-1 min-w-[120px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">เวลาเริ่ม</label>
-                                        <input id="startTime" type="time" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} />
+                                        <input id="startTime" type="time" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} style={{ colorScheme: darkMode ? 'dark' : 'light' }} />
                                     </div>
                                     <div className="flex-none self-center pb-3 text-slate-400">-</div>
                                     <div className="flex-1 min-w-[120px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">เวลาสิ้นสุด</label>
-                                        <input id="endTime" type="time" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E] [color-scheme:dark]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} />
+                                        <input id="endTime" type="time" className={`w-full p-3 rounded-xl border text-sm outline-none ${darkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-[#96C68E]' : 'bg-white border-slate-200 focus:border-[#96C68E]'}`} style={{ colorScheme: darkMode ? 'dark' : 'light' }} />
                                     </div>
                                     <div className="flex-1 min-w-[100px]">
                                         <label className="text-xs font-bold text-slate-400 mb-1 block">ห้องเรียน</label>

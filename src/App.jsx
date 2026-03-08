@@ -749,11 +749,22 @@ export default function SchoolyScootLMS() {
       }
       const subs = await getSubmissions(targetId);
       console.log("Fetched submissions for", targetId, ":", subs);
-      setSubmissions(subs);
 
-      // Initialize editing scores from fetched submissions
+      // Enrich submissions with user profile photos
+      const enrichedSubs = await Promise.all(subs.map(async (s) => {
+        try {
+          const user = await getUserDetails(s.userId);
+          return { ...s, userPhotoURL: user?.photoURL || null };
+        } catch (err) {
+          console.error("Error enrichment:", err);
+          return s;
+        }
+      }));
+      setSubmissions(enrichedSubs);
+
+      // Initialize editing scores from enriched submissions
       const initialScores = {};
-      subs.forEach(s => {
+      enrichedSubs.forEach(s => {
         initialScores[s.firestoreId || s.id] = s.score || "";
       });
       setEditingScores(initialScores);
@@ -1783,7 +1794,8 @@ export default function SchoolyScootLMS() {
               createAssignment,
               setAssignments,
               courses,
-              createNotification
+              createNotification,
+              darkMode
             }}
           />
 
