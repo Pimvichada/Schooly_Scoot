@@ -63,21 +63,18 @@ const CourseClasswork = ({
         // })();
 
         return (
-            <div key={data.id || data.firestoreId} className={`p-4 rounded-2xl border flex items-center justify-between group transition-all ${completed
+            <div key={data.id || data.firestoreId} className={`p-3 md:p-4 rounded-2xl border flex items-center justify-between group transition-all ${completed
                 ? (darkMode ? 'bg-slate-800/50 border-slate-700 opacity-60' : 'bg-slate-50/50 border-slate-100 opacity-80')
                 : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-slate-600 shadow-lg shadow-black/20' : 'bg-white border-slate-100 hover:shadow-md')
                 }`}>
-                <div className="flex items-center gap-4">
-                    {/* <div className={`p-1.5 rounded-lg font-bold text-[10px] ${badge.color}`}>
-                        {badge.text}
-                    </div> */}
-                    <div>
-                        <h4 className={`font-bold ${completed
+                <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
+                        <h4 className={`font-bold text-sm md:text-base leading-snug truncate ${completed
                             ? (darkMode ? 'text-slate-500' : 'text-slate-400')
                             : (darkMode ? 'text-slate-200' : 'text-slate-800')
-                            }`}>{data.title}</h4>
-                        <div className="flex items-center gap-2">
-                            <p className={`text-xs ${completed
+                            }`} title={data.title}>{data.title}</h4>
+                        <div className="flex flex-wrap items-center gap-y-0 gap-x-2 mt-0.5">
+                            <p className={`text-[10px] md:text-xs ${completed
                                 ? (darkMode ? 'text-green-400 font-bold' : 'text-green-500 font-bold')
                                 : (darkMode ? 'text-slate-500' : 'text-slate-400')
                                 }`}>
@@ -90,29 +87,29 @@ const CourseClasswork = ({
                                 }
                             </p>
                             {isLate && userRole === 'student' && (
-                                <span className="text-xs font-bold text-red-500">
+                                <span className="text-[10px] md:text-xs font-bold text-red-500 whitespace-nowrap">
                                     (เลยกำหนด)
                                 </span>
                             )}
                         </div>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 md:gap-2 ml-2">
                     <button
                         onClick={() => {
                             setSelectedAssignment(data);
                             if (isTeacher) openGradingModal(data);
                             else setActiveModal('assignmentDetail');
                         }}
-                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${darkMode
+                        className={`px-2.5 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-sm font-bold transition-colors whitespace-nowrap ${darkMode
                             ? 'bg-slate-700 text-slate-300 hover:bg-indigo-900/30 hover:text-indigo-400'
                             : 'bg-slate-50 text-slate-400 group-hover:bg-[#BEE1FF] group-hover:text-slate-800'
                             }`}
                     >
-                        {isTeacher ? 'ตรวจงาน' : (completed ? 'ดูผลการเรียน' : 'ส่งการบ้าน')}
+                        {isTeacher ? 'ตรวจงาน' : (completed ? 'ดูผล' : 'ส่งการบ้าน')}
                     </button>
                     {isTeacher && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-1.5 md:gap-2">
                             <button
                                 onClick={async (e) => {
                                     e.stopPropagation();
@@ -126,13 +123,13 @@ const CourseClasswork = ({
                                         }
                                     }
                                 }}
-                                className={`p-2 rounded-xl transition-all ${darkMode
+                                className={`p-1.5 md:p-2 rounded-xl transition-all ${darkMode
                                     ? 'text-slate-500 hover:text-red-400 hover:bg-red-900/20'
                                     : 'text-slate-300 hover:text-red-500 hover:bg-red-50'
                                     }`}
                                 title="ลบงาน"
                             >
-                                <Trash size={20} />
+                                <Trash size={16} className="md:w-5 md:h-5" />
                             </button>
                         </div>
                     )}

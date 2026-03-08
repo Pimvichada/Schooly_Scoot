@@ -16,28 +16,35 @@ const CoursesView = ({
 }) => {
     return (
         <div className={`space-y-6 animate-in fade-in duration-500 ${darkMode ? 'text-slate-100' : ''}`}>
-            <div className="flex justify-between items-center">
-                <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'}`}>ห้องเรียนของฉัน</h1>
-                <div className="flex gap-3">
+            <div className="flex justify-between items-center gap-2">
+                <h1 className={`text-lg md:text-2xl font-bold ${darkMode ? 'text-white' : 'text-slate-800'} truncate`}>ห้องเรียนของฉัน</h1>
+                <div className="flex gap-2">
                     {hiddenCoursesList.length > 0 && (
                         <button
                             onClick={() => setShowHiddenCourses(!showHiddenCourses)}
-                            className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${showHiddenCourses
+                            className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-[10px] md:text-sm transition-all flex items-center justify-center gap-1.5 md:gap-2 leading-none border-0 ${showHiddenCourses
                                 ? (darkMode ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600')
                                 : (darkMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')
                                 }`}
                         >
-                            {showHiddenCourses ? <EyeOff size={18} /> : <Eye size={18} />}
-                            {showHiddenCourses ? 'ซ่อนห้องที่ถูกซ่อน' : `ดูห้องที่ซ่อนไว้ (${hiddenCoursesList.length})`}
+                            {showHiddenCourses ? <EyeOff size={14} className="md:w-[18px] md:h-[18px]" /> : <Eye size={14} className="md:w-[18px] md:h-[18px]" />}
+                            <span className="text-left">
+                                <span className="sm:hidden">{showHiddenCourses ? 'ซ่อน' : `ซ่อนไว้ (${hiddenCoursesList.length})`}</span>
+                                <span className="hidden sm:inline">{showHiddenCourses ? 'ซ่อนห้องที่ถูกซ่อน' : `ดูห้องที่ซ่อนไว้ (${hiddenCoursesList.length})`}</span>
+                            </span>
                         </button>
                     )}
                     {userRole === 'teacher' ? (
-                        <button onClick={() => setActiveModal('create')} className="bg-[#96C68E] text-white px-4 py-2 rounded-xl font-bold shadow-sm flex items-center hover:bg-[#85b57d]">
-                            <Plus size={20} className="mr-2" /> สร้างห้องเรียน
+                        <button onClick={() => setActiveModal('create')} className="bg-[#96C68E] text-white px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold text-[10px] md:text-sm shadow-sm flex items-center justify-center hover:bg-[#85b57d]">
+                            <Plus size={16} className="mr-1 md:mr-2 md:w-5 md:h-5" />
+                            <span className="sm:hidden">สร้างห้อง</span>
+                            <span className="hidden sm:inline">สร้างห้องเรียน</span>
                         </button>
                     ) : (
-                        <button onClick={() => setActiveModal('join')} className={`px-4 py-2 rounded-xl font-bold shadow-sm flex items-center transition-all ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'} border`}>
-                            <Search size={20} className="mr-2" /> เข้าร่วมด้วยรหัส
+                        <button onClick={() => setActiveModal('join')} className={`px-3 py-2 md:px-4 md:py-2 rounded-xl font-bold shadow-sm flex items-center justify-center transition-all text-[10px] md:text-sm border ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+                            <Search size={14} className="mr-1 md:mr-2 md:w-5 md:h-5" />
+                            <span className="sm:hidden">เข้าร่วม</span>
+                            <span className="hidden sm:inline">เข้าร่วมด้วยรหัส</span>
                         </button>
                     )}
                 </div>
