@@ -32,7 +32,7 @@ const SettingsView = ({
                                 </div>
                             )}
                         </div>
-                       
+                    
                     </div>
 
                     <div className="flex-1 space-y-4 w-full">
