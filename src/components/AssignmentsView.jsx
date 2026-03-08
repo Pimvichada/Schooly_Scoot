@@ -1,6 +1,6 @@
-import React from 'react';
-import { CheckSquare, Trash, CheckCircle, FileText, Paperclip, Upload, X, Save, Eye, AlertCircle, Users } from 'lucide-react';
-import { compressImage } from '../utils/helpers.jsx';
+import React, { useState, useRef, useEffect } from 'react';
+import { CheckSquare, Trash, CheckCircle, FileText, Paperclip, Upload, X, Save, Eye, AlertCircle, Users, Clock, Calendar, ChevronDown } from 'lucide-react';
+import { compressImage, formatThaiDate } from '../utils/helpers.jsx';
 
 const AssignmentsView = ({
     darkMode,
@@ -454,6 +454,20 @@ export const CreateAssignmentModal = ({
     createNotification,
     darkMode
 }) => {
+    const [showPicker, setShowPicker] = useState(false);
+    const pickerRef = useRef(null);
+
+    // Close picker when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+                setShowPicker(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     if (activeModal !== 'createAssignment') return null;
 
     return (
@@ -488,26 +502,37 @@ export const CreateAssignmentModal = ({
                     </div>
                 </div>
                 <div>
-                    <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
-                        กำหนดส่ง
-                    </label>
+                    <div>
+                        <label className={`block text-sm font-bold mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            กำหนดส่ง
+                        </label>
 
-                    <input
-                        type="datetime-local"
-                        className={`w-full p-3 rounded-xl border focus:outline-none focus:border-[#96C68E] focus:ring-1 focus:ring-[#96C68E]/30 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
-                        style={{ colorScheme: darkMode ? 'dark' : 'light' }}
-                        value={newAssignment.dueDate}
-                        onChange={(e) =>
-                            setNewAssignment({
-                                ...newAssignment,
-                                dueDate: e.target.value,
-                            })
-                        }
-                    />
+                        <div className="flex gap-2">
+                            <input
+                                type="datetime-local"
+                                className={`flex-1 p-3 rounded-xl border focus:outline-none focus:border-[#96C68E] focus:ring-1 focus:ring-[#96C68E]/30 ${darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-700'}`}
+                                style={{ colorScheme: darkMode ? 'dark' : 'light' }}
+                                value={newAssignment.dueDate}
+                                onChange={(e) =>
+                                    setNewAssignment({
+                                        ...newAssignment,
+                                        dueDate: e.target.value,
+                                    })
+                                }
+                            />
+                            <button
+                                type="button"
+                                onClick={(e) => e.currentTarget.blur()}
+                                className="px-6 py-3 bg-[#96C68E] text-white rounded-xl font-bold text-sm shadow-sm hover:bg-[#85b57d] transition-all whitespace-nowrap"
+                            >
+                                เสร็จสิ้น
+                            </button>
+                        </div>
 
-                    <p className="text-xs text-slate-400 mt-1">
-                        เลือกวันและเวลาที่ต้องการให้ส่งงาน
-                    </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                            เลือกวันและเวลาที่ต้องการให้ส่งงาน
+                        </p>
+                    </div>
                 </div>
 
 
