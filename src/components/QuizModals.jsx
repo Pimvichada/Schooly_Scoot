@@ -76,7 +76,7 @@ const QuizModals = ({
                 <TakeQuizModal
                     {...{
                         activeQuiz, darkMode, quizRemainingSeconds, quizResult, MascotStar,
-                        quizAnswers, setQuizAnswers, submitQuiz
+                        quizAnswers, setQuizAnswers, submitQuiz, closeModal
                     }}
                 />
             )}
@@ -1002,7 +1002,7 @@ const ViewAnswerDetailModal = ({
 
 const TakeQuizModal = ({
     activeQuiz, darkMode, quizRemainingSeconds, quizResult, MascotStar,
-    quizAnswers, setQuizAnswers, submitQuiz
+    quizAnswers, setQuizAnswers, submitQuiz, closeModal
 }) => {
     // Pre-calculate shuffled options for matching questions to keep them stable during the quiz
     const shuffledMatchingOptions = useMemo(() => {
@@ -1050,16 +1050,16 @@ const TakeQuizModal = ({
                     {quizResult.status === 'pending_grading' ? (
                         <>
                             <p className={`text-xs md:text-base mb-4 md:mb-6 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>ข้อสอบนี้มีส่วนที่ต้องรอคุณครูตรวจ</p>
-                            <div className={`text-2xl md:text-5xl font-black text-orange-400 mb-4 md:mb-8 px-5 py-6 md:px-12 md:py-8 rounded-2xl md:rounded-[2.5rem] border-4 leading-tight shadow-xl shadow-orange-100/50 ${darkMode ? 'bg-orange-950/20 border-orange-900/50 shadow-none' : 'bg-orange-50/50 border-orange-100'}`}>
-                                <p className="text-xl md:text-2xl mb-1 opacity-60">สถานะ</p>
+                            <div className={`text-1xl md:text-2xl font-black text-orange-400 mb-4 md:mb-8 px-5 py-6 md:px-10 md:py-6 rounded-2xl md:rounded-[2rem] border-4 ${darkMode ? 'bg-orange-950/20 border-orange-900/50 shadow-none' : 'bg-orange-50/50 border-orange-100'}`}>
+                                <p className="text-lg md:text-xl mb-1 opacity-60 text-orange-400/80">สถานะ</p>
                                 รอการตรวจให้คะแนน
                             </div>
                         </>
                     ) : (
                         <>
                             <p className={`text-xs md:text-base mb-4 md:mb-6 font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>คุณทำคะแนนได้</p>
-                            <div className="text-5xl md:text-8xl font-black text-[#FF917B] mb-4 md:mb-8 flex items-baseline gap-2">
-                                {quizResult.score} <span className={`text-xl md:text-3xl font-bold ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>/ {quizResult.total}</span>
+                            <div className="text-5xl md:text-7xl font-black text-[#FF917B] mb-4 md:mb-8 flex items-baseline gap-2">
+                                {quizResult.score} <span className={`text-xl md:text-2xl font-bold ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>/ {quizResult.total}</span>
                             </div>
                         </>
                     )}
