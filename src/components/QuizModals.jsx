@@ -1066,11 +1066,11 @@ const TakeQuizModal = ({
                                     </div>
                                 </div>
 
-                                <div className="pl-12">
+                                <div className="pl-0 sm:pl-12 pt-2 sm:pt-0">
                                     {(!item.type || item.type === 'choice') && (
                                         <div className="space-y-3">
                                             {item.options.map((opt, optIdx) => (
-                                                <label key={optIdx} className={`flex flex-col p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
+                                                <label key={optIdx} className={`flex flex-col p-3 sm:p-4 rounded-xl border cursor-pointer transition-all ${quizAnswers[idx] === optIdx
                                                     ? (darkMode ? 'bg-green-900/20 border-[#96C68E]' : 'bg-[#F0FDF4] border-[#96C68E] shadow-sm')
                                                     : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-white border-slate-100 hover:border-[#96C68E]')
                                                     }`}>
@@ -1078,11 +1078,11 @@ const TakeQuizModal = ({
                                                         <input
                                                             type="radio"
                                                             name={`q-${idx}`}
-                                                            className="mr-3 w-5 h-5 accent-[#96C68E] flex-shrink-0"
+                                                            className="mr-2 sm:mr-3 w-4 h-4 sm:w-5 sm:h-5 accent-[#96C68E] flex-shrink-0"
                                                             onChange={() => setQuizAnswers({ ...quizAnswers, [idx]: optIdx })}
                                                             checked={quizAnswers[idx] === optIdx}
                                                         />
-                                                        <span className={`font-medium ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{opt}</span>
+                                                        <span className={`font-medium text-sm sm:text-base ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>{opt}</span>
                                                     </div>
                                                     {item.optionImages && item.optionImages[optIdx] && (
                                                         <div className="ml-8 mt-3 w-fit">
@@ -1095,33 +1095,34 @@ const TakeQuizModal = ({
                                     )}
 
                                     {item.type === 'true_false' && (
-                                        <div className="flex gap-4">
+                                        <div className="flex gap-2 sm:gap-4">
                                             <button
                                                 onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: true })}
-                                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === true ? 'border-green-50 bg-green-50 text-green-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-green-500' : 'border-slate-100 bg-white text-slate-400 hover:border-green-200')}`}
+                                                className={`flex-1 p-3 sm:p-6 rounded-xl sm:rounded-2xl border-2 font-bold text-sm sm:text-lg transition-all flex items-center justify-center gap-1 sm:gap-2 ${quizAnswers[idx] === true ? 'border-green-50 bg-green-50 text-green-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-green-500' : 'border-slate-100 bg-white text-slate-400 hover:border-green-200')}`}
                                             >
-                                                <CheckCircle2 size={24} /> ถูก (True)
+                                                <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> ถูก (True)
                                             </button>
                                             <button
                                                 onClick={() => setQuizAnswers({ ...quizAnswers, [idx]: false })}
-                                                className={`flex-1 p-6 rounded-2xl border-2 font-bold text-lg transition-all flex items-center justify-center gap-2 ${quizAnswers[idx] === false ? 'border-red-50 bg-red-50 text-red-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-green-500' : 'border-slate-100 bg-white text-slate-400 hover:border-red-200')}`}
+                                                className={`flex-1 p-3 sm:p-6 rounded-xl sm:rounded-2xl border-2 font-bold text-sm sm:text-lg transition-all flex items-center justify-center gap-1 sm:gap-2 ${quizAnswers[idx] === false ? 'border-red-50 bg-red-50 text-red-700' : (darkMode ? 'bg-slate-800 border-slate-700 text-slate-400 hover:border-green-500' : 'border-slate-100 bg-white text-slate-400 hover:border-red-200')}`}
                                             >
-                                                <X size={24} /> ผิด (False)
+                                                <X className="w-5 h-5 sm:w-6 sm:h-6" /> ผิด (False)
                                             </button>
                                         </div>
                                     )}
 
                                     {item.type === 'matching' && (
-                                        <div className={`space-y-4 p-4 rounded-xl ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                                        <div className={`space-y-4 p-2 sm:p-4 rounded-xl w-full ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
                                             {item.pairs.map((pair, pIdx) => (
-                                                <div key={pIdx} className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
-                                                    <div className={`flex-1 font-bold p-3 rounded-lg border ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
-                                                        {pair.left}
+                                                <div key={pIdx} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4 w-full">
+                                                    <div className={`font-bold p-2 sm:p-3 text-[11px] sm:text-base rounded-lg border break-words h-full flex items-center ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
+                                                        <span>{pair.left}</span>
                                                     </div>
-                                                    <ArrowRight className="hidden md:block text-slate-300" />
-                                                    <div className="flex-1">
+                                                    <ArrowRight size={16} className="text-slate-300 hidden sm:block flex-shrink-0" />
+                                                    <ArrowRight size={12} className="text-slate-300 sm:hidden flex-shrink-0" />
+                                                    <div className="h-full">
                                                         <select
-                                                            className={`w-full p-3 rounded-lg border outline-none focus:border-[#96C68E] cursor-pointer ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200'}`}
+                                                            className={`w-full h-full p-2 sm:p-3 text-[11px] sm:text-base rounded-lg border outline-none focus:border-[#96C68E] cursor-pointer ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-200' : 'bg-white border-slate-200'}`}
                                                             value={quizAnswers[idx] ? quizAnswers[idx][pIdx] || '' : ''}
                                                             onChange={(e) => {
                                                                 const currentAns = quizAnswers[idx] || {};
@@ -1147,7 +1148,7 @@ const TakeQuizModal = ({
                                             <input
                                                 type="text"
                                                 placeholder="พิมพ์คำตอบของคุณที่นี่..."
-                                                className={`w-full p-4 rounded-xl border outline-none focus:border-[#96C68E] font-medium ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
+                                                className={`w-full p-3 sm:p-4 rounded-xl border outline-none focus:border-[#96C68E] font-medium text-sm sm:text-base ${darkMode ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'}`}
                                                 value={quizAnswers[idx] || ''}
                                                 onChange={(e) => setQuizAnswers({ ...quizAnswers, [idx]: e.target.value })}
                                             />
@@ -1161,7 +1162,7 @@ const TakeQuizModal = ({
                         <button
                             onClick={submitQuiz}
                             disabled={Object.keys(quizAnswers).length < activeQuiz.items.length}
-                            className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${Object.keys(quizAnswers).length === activeQuiz.items.length
+                            className={`px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl font-bold text-base sm:text-lg transition-all ${Object.keys(quizAnswers).length === activeQuiz.items.length
                                 ? 'bg-[#96C68E] text-white hover:bg-[#85b57d] shadow-md hover:translate-y-[-2px]'
                                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                                 }`}
