@@ -1148,7 +1148,10 @@ export default function SchoolyScootLMS() {
 
           // Update local state ONLY if it's the currently viewed course
           if (selectedCourse && courseObj.firestoreId === selectedCourse.firestoreId) {
-            setQuizzes(prev => [...prev, { ...createdQuiz, status: courseDataObj.status }]);
+            setQuizzes(prev => {
+              if (prev.some(q => q.firestoreId === createdQuiz.firestoreId)) return prev;
+              return [...prev, { ...createdQuiz, status: courseDataObj.status }];
+            });
           }
 
           // Notify Students
@@ -1382,14 +1385,9 @@ export default function SchoolyScootLMS() {
         endDate: editingCourse.endDate || null
       });
 
-      // Update local state
-      const updatedCourses = courses.map(c =>
-        c.firestoreId === editingCourse.firestoreId
-          ? { ...c, ...editingCourse, schedule: editingCourse.scheduleItems }
-          : c
-      );
-      setCourses(updatedCourses);
-      setSelectedCourse({ ...selectedCourse, ...editingCourse, schedule: editingCourse.scheduleItems });
+      // Remove manual state updates as onSnapshot handles real-time sync
+      // setCourses(updatedCourses);
+      // setSelectedCourse({ ...selectedCourse, ...editingCourse, schedule: editingCourse.scheduleItems });
 
       // Reset Edit State
       setEditingScheduleIndex(null);
@@ -1439,8 +1437,8 @@ export default function SchoolyScootLMS() {
 
       await leaveCourse(selectedCourse.firestoreId, auth.currentUser.uid);
 
-      // Update local state
-      setCourses(courses.filter(c => c.firestoreId !== selectedCourse.firestoreId));
+      // Remove manual state updates as onSnapshot handles real-time sync
+      // setCourses(courses.filter(c => c.firestoreId !== selectedCourse.firestoreId));
       setSelectedCourse(null);
 
       alert('ออกจากห้องเรียนเรียบร้อยแล้ว');
@@ -1461,7 +1459,8 @@ export default function SchoolyScootLMS() {
 
     try {
       await deleteCourse(courseToDelete.firestoreId);
-      setCourses(prev => prev.filter(c => c.firestoreId !== courseToDelete.firestoreId));
+      // Remove manual state updates as onSnapshot handles real-time sync
+      // setCourses(prev => prev.filter(c => c.firestoreId !== courseToDelete.firestoreId));
       alert('ลบรายวิชาเรียบร้อยแล้ว');
       if (selectedCourse?.firestoreId === courseToDelete.firestoreId) {
         setSelectedCourse(null);
@@ -1499,12 +1498,8 @@ export default function SchoolyScootLMS() {
         ownerId: auth.currentUser.uid
       });
 
-      const courseWithIcon = {
-        ...createdCourse,
-        icon: getCourseIcon(createdCourse.iconType)
-      };
-
-      setCourses(prev => [...prev, courseWithIcon]);
+      // Remove manual setCourses as onSnapshot in useCourses handles real-time updates
+      // setCourses(prev => [...prev, courseWithIcon]);
       setActiveModal(null);
       setNewCourseData({
         name: '', code: '', color: 'bg-[#96C68E]', description: '',
@@ -1537,12 +1532,7 @@ export default function SchoolyScootLMS() {
       }
 
       const joinedCourse = result;
-      // Add icon component for display
-      const courseWithIcon = {
-        ...joinedCourse,
-        icon: getCourseIcon(joinedCourse.iconType)
-      };
-      setCourses(prev => [...prev, courseWithIcon]);
+      // Note: No manual setCourses needed as useCourses onSnapshot handles it
       setActiveModal(null);
       setJoinCode('');
 

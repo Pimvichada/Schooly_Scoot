@@ -658,7 +658,10 @@ export const CreateAssignmentModal = ({
                             const createdAssign = await createAssignment(assignmentPayload);
 
                             // 2. Update Local State (so it shows up immediately)
-                            setAssignments(prev => [...prev, createdAssign]);
+                            setAssignments(prev => {
+                                if (prev.some(a => (a.firestoreId === createdAssign.firestoreId) || (a.id === createdAssign.id))) return prev;
+                                return [...prev, createdAssign];
+                            });
 
                             // 3. Notify Students
                             const currentCourse = courses.find(c => c.name === newAssignment.course);
