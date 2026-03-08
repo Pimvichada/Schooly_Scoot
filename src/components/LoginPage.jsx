@@ -9,6 +9,9 @@ import fink from '../assets/member/m3.jpg';
 const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     const loginSectionRef = useRef(null);
     const teamSectionRef = useRef(null);
+    const authCardRef = useRef(null);
+    const [authVisible, setAuthVisible] = useState(false);
+    const [teamVisible, setTeamVisible] = useState(false);
 
     const handleScrollToTeam = () => {
         teamSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -51,6 +54,38 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
     const handleScrollToLogin = () => {
         loginSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    // IntersectionObserver: trigger fade when auth section comes into view
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setAuthVisible(true);
+                } else {
+                    setAuthVisible(false);
+                }
+            },
+            { threshold: 0.25 }
+        );
+        if (loginSectionRef.current) observer.observe(loginSectionRef.current);
+        return () => observer.disconnect();
+    }, []);
+
+    // IntersectionObserver: trigger Team section animations
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setTeamVisible(true);
+                } else {
+                    setTeamVisible(false);
+                }
+            },
+            { threshold: 0.2 }
+        );
+        if (teamSectionRef.current) observer.observe(teamSectionRef.current);
+        return () => observer.disconnect();
+    }, []);
 
     // --- COPY EMAIL LOGIC ---
     const [copiedId, setCopiedId] = useState(null);
@@ -288,6 +323,118 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                 .login-btn:hover { 
                     transform: scale(1.1) rotate(2deg); 
                 }
+
+                /* ===== SCROLL REVEAL ===== */
+                @keyframes auth-reveal {
+                    0% { opacity: 0; transform: translateY(40px) scale(0.97); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes auth-hide {
+                    0% { opacity: 1; transform: translateY(0) scale(1); }
+                    100% { opacity: 0; transform: translateY(-80px) scale(0.9); }
+                }
+                @keyframes blob-reveal {
+                    0% { opacity: 0; transform: scale(0.8); }
+                    100% { opacity: 0.4; transform: scale(1); }
+                }
+                @keyframes member-from-left {
+                    0% { opacity: 0; transform: translateX(-60px) rotate(-3deg); }
+                    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+                }
+                @keyframes member-from-right {
+                    0% { opacity: 0; transform: translateX(60px) rotate(3deg); }
+                    100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+                }
+                @keyframes member-from-bottom {
+                    0% { opacity: 0; transform: translateY(60px) scale(0.9); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes team-title-reveal {
+                    0% { opacity: 0; transform: translateY(-20px); letter-spacing: 0.3em; }
+                    100% { opacity: 1; transform: translateY(0); letter-spacing: normal; }
+                }
+                .auth-card-reveal {
+                    animation: auth-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
+                .auth-card-hide {
+                    animation: auth-hide 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
+                .blob-reveal-1 {
+                    animation: blob-reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+                }
+                .blob-reveal-2 {
+                    animation: blob-reveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+                }
+                .member-left {
+                    animation: member-from-left 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+                }
+                .member-right {
+                    animation: member-from-right 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+                }
+                .member-center {
+                    animation: member-from-bottom 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+                }
+                .team-title-anim {
+                    animation: team-title-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
+                /* ===== HERO ENTRANCE ANIMATIONS ===== */
+                @keyframes hero-title {
+                    0% { opacity: 0; transform: translateY(40px) scale(0.97); }
+                    100% { opacity: 1; transform: translateY(0) scale(1); }
+                }
+                @keyframes hero-fade-up {
+                    0% { opacity: 0; transform: translateY(30px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes nav-drop {
+                    0% { opacity: 0; transform: translateY(-20px); }
+                    100% { opacity: 1; transform: translateY(0); }
+                }
+                @keyframes hero-btn {
+                    0% { opacity: 0; transform: scale(0.7); }
+                    70% { transform: scale(1.05); }
+                    100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes pulse-ring {
+                    0% { transform: scale(1); opacity: 0.6; }
+                    100% { transform: scale(1.5); opacity: 0; }
+                }
+                @keyframes text-shimmer {
+                    0% { background-position: -200% center; }
+                    100% { background-position: 200% center; }
+                }
+                
+                .hero-title-anim {
+                    animation: hero-title 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
+                .hero-sub-anim {
+                    animation: hero-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+                }
+                .hero-btn-anim {
+                    animation: hero-btn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
+                }
+                .nav-anim {
+                    animation: nav-drop 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+                }
+                .pulse-ring {
+                    animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+                }
+                .gradient-text {
+                    background: linear-gradient(135deg, #1e293b 0%, #475569 40%, #1e293b 60%, #475569 100%);
+                    background-size: 200% auto;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    animation: text-shimmer 4s linear 1s infinite;
+                }
+                .gradient-text-dark {
+                    background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 40%, #f8fafc 60%, #94a3b8 100%);
+                    background-size: 200% auto;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                    animation: text-shimmer 4s linear 1s infinite;
+                }
             `}</style>
 
             {/* Background Shapes (Fixed) */}
@@ -302,7 +449,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
             </div>
 
             {/* Navbar */}
-            <nav className={`fixed top-0 w-full p-8 flex justify-between items-center z-50 font-kanit transition-colors duration-500 ${darkMode ? 'bg-slate-900/80 backdrop-blur-md border-b border-slate-800' : ''}`}>
+            <nav className={`fixed top-0 w-full p-8 flex justify-between items-center z-50 font-kanit transition-colors duration-500 nav-anim ${darkMode ? 'bg-slate-900/80 backdrop-blur-md border-b border-slate-800' : ''}`}>
                 <div className={`text-2xl font-black tracking-tight ${darkMode ? 'text-white' : 'text-slate-800'}`}>Schooly Scoot<span className="text-[#96C68E]">.</span></div>
                 <div className={`hidden md:flex items-center space-x-8 text-sm font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     <a onClick={handleScrollToTeam} className="hover:text-[#96C68E] transition-colors cursor-pointer">เกี่ยวกับเรา</a>
@@ -322,26 +469,36 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
 
             {/* HERO SECTION */}
             <div className="h-screen w-full flex flex-col items-center justify-center relative z-10 px-4 font-kanit">
-                <h1 className={`text-6xl md:text-8xl font-black tracking-tighter mb-6 drop-shadow-sm text-center ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                {/* Glow behind title */}
+                <div className="absolute w-[600px] h-[300px] rounded-full blur-3xl opacity-20 pointer-events-none"
+                    style={{ background: 'radial-gradient(ellipse, #96C68E 0%, #FF917B 50%, transparent 80%)' }}
+                />
+
+                <h1 className={`text-6xl md:text-8xl font-black tracking-tighter mb-6 drop-shadow-sm text-center hero-title-anim ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                     Schooly Scoot
                 </h1>
-                <p className={`text-xl md:text-3xl font-medium mb-12 text-center max-w-2xl ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-xl md:text-3xl font-medium mb-12 text-center max-w-2xl hero-sub-anim ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     ระบบจัดการโรงเรียนที่<span className="text-[#96C68E] underline decoration-wavy decoration-2 underline-offset-4 px-1">สนุก</span>และ<span className="text-[#FF917B] underline decoration-wavy decoration-2 underline-offset-4 px-1">ง่าย</span>ที่สุด
                 </p>
-                <button onClick={handleScrollToLogin} className="login-btn group relative inline-flex items-center justify-center cursor-pointer">
-                    <div className="w-32 h-32 md:w-36 md:h-36 bg-slate-900 rounded-full flex flex-col items-center justify-center text-white shadow-2xl relative overflow-hidden group-hover:bg-[#96C68E] transition-colors duration-500">
-                        <span className="text-xl font-bold mb-1 group-hover:-translate-y-1 transition-transform relative z-10">Let's go!</span>
-                        <ArrowRight className="animate-bounce mt-1 relative z-10" size={24} />
-                    </div>
-                </button>
+                <div className="hero-btn-anim relative inline-flex items-center justify-center">
+                    {/* Pulsing rings */}
+                    <div className="absolute w-36 h-36 md:w-40 md:h-40 rounded-full bg-[#96C68E]/20 pulse-ring" />
+                    <div className="absolute w-36 h-36 md:w-40 md:h-40 rounded-full bg-[#96C68E]/10 pulse-ring" style={{ animationDelay: '0.9s' }} />
+                    <button onClick={handleScrollToLogin} className="login-btn group relative inline-flex items-center justify-center cursor-pointer">
+                        <div className="w-32 h-32 md:w-36 md:h-36 bg-slate-900 rounded-full flex flex-col items-center justify-center text-white shadow-2xl relative overflow-hidden group-hover:bg-[#96C68E] transition-colors duration-500">
+                            <span className="text-xl font-bold mb-1 group-hover:-translate-y-1 transition-transform relative z-10">Let's go!</span>
+                            <ArrowRight className="animate-bounce mt-1 relative z-10" size={24} />
+                        </div>
+                    </button>
+                </div>
             </div>
 
             {/* AUTH SECTION */}
             <div ref={loginSectionRef} className="min-h-screen w-full flex flex-col items-center justify-center relative z-10 px-4 font-kanit py-20 pb-32 overflow-hidden">
 
                 {/* Background Blobs (Pastel) */}
-                <div className="absolute top-20 right-20 w-64 h-64 bg-[#ffef92] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob pointer-events-none"></div>
-                <div className="absolute bottom-20 left-20 w-80 h-80 bg-[#add8f7] rounded-full mix-blend-multiply filter blur-3xl opacity-40 animate-blob animation-delay-2000 pointer-events-none"></div>
+                <div className={`absolute top-20 right-20 w-64 h-64 bg-[#ffef92] rounded-full mix-blend-multiply filter blur-3xl animate-blob pointer-events-none ${authVisible ? 'blob-reveal-1' : 'opacity-0'}`}></div>
+                <div className={`absolute bottom-20 left-20 w-80 h-80 bg-[#add8f7] rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000 pointer-events-none ${authVisible ? 'blob-reveal-2' : 'opacity-0'}`}></div>
 
                 {/* Google Modal Overlay */}
                 {showGoogleModal && (
@@ -425,7 +582,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                 )}
 
                 {/* TAB-BASED AUTH SECTION */}
-                <div className={`w-full max-w-md p-8  mb-50 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90 ${darkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-white/50'}`}>
+                <div ref={authCardRef} className={`w-full max-w-md p-8 mb-50 md:p-10 rounded-[3rem] shadow-2xl relative z-10 border-4 bg-clip-padding backdrop-filter backdrop-blur-xl bg-opacity-90 ${authVisible ? 'auth-card-reveal' : 'auth-card-hide'} ${darkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-white/50'}`}>
                     {/* Tab Switcher */}
                     {(authMode === 'login' || authMode === 'register') && (
                         <div className="flex justify-center mb-8 space-x-8">
@@ -691,7 +848,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
 
                         {/* Center Hub (Desktop Only) */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20 hidden md:block">
-                            <h2 className={`text-5xl font-black ${darkMode ? 'text-white' : 'text-slate-800'}`}>ทีมผู้พัฒนา</h2>
+                            <h2 className={`text-5xl font-black ${teamVisible ? 'team-title-anim' : 'opacity-0'} ${darkMode ? 'text-white' : 'text-slate-800'}`}>ทีมผู้พัฒนา</h2>
                             <div className="w-px h-16 bg-gray-300 mx-auto mt-1 mb-150"></div>
                         </div>
 
@@ -699,7 +856,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                         <div className="flex flex-col md:flex-row items-center justify-between gap-16 md:gap-0">
 
                             {/* Member 1: Pimvichada (Top Left) */}
-                            <div className="flex flex-col items-center md:items-center md:w-1/3 md:-mt-50 order-1  ">
+                            <div className={`flex flex-col items-center md:items-center md:w-1/3 md:-mt-50 order-1 ${teamVisible ? 'member-left' : 'opacity-0'}`}>
                                 <div className="relative w-[280px] h-[280px] ">
                                     <div className="absolute -right-8 -top-8 z-10 animate-blob mix-blend-multiply opacity-80">
                                         <svg width="90" height="90" viewBox="0 0 100 100" fill="none">
@@ -742,7 +899,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                             </div>
 
                             {/* Member 2: Lalitwadee (Center Bottom) */}
-                            <div className="flex flex-col items-center md:w-1/3 mt-30 order-2 relative z-30">
+                            <div className={`flex flex-col items-center md:w-1/3 mt-30 order-2 relative z-30 ${teamVisible ? 'member-center' : 'opacity-0'}`}>
                                 <div className="relative w-[280px] h-[280px]">
                                     <div className="absolute -left-10 -top-4 z-10 animate-blob animation-delay-2000 mix-blend-multiply opacity-80">
                                         <svg width="100" height="100" viewBox="0 0 100 100" fill="none">
@@ -785,7 +942,7 @@ const LoginPage = ({ onGetStarted, darkMode, setDarkMode }) => {
                             </div>
 
                             {/* Member 3: Onphairin (Top Right) */}
-                            <div className="flex flex-col items-center md:items-center md:w-1/3 md:-mt-50 order-3 ">
+                            <div className={`flex flex-col items-center md:items-center md:w-1/3 md:-mt-50 order-3 ${teamVisible ? 'member-right' : 'opacity-0'}`}>
                                 <div className="relative w-[280px] h-[280px] ">
                                     <div className="absolute -right-6 -bottom-6 z-10 animate-blob mix-blend-multiply opacity-80">
                                         <svg width="80" height="80" viewBox="0 0 100 100" fill="none">

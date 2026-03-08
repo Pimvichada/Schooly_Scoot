@@ -1980,6 +1980,7 @@ export default function SchoolyScootLMS() {
             />
 
             {selectedCourse ? (
+              <div key={selectedCourse.firestoreId} className="page-enter">
               <CourseDetailView
                 darkMode={darkMode}
                 selectedCourse={selectedCourse}
@@ -2042,8 +2043,9 @@ export default function SchoolyScootLMS() {
                 handleDeleteCourse={handleDeleteCourse}
                 validateScheduleConflict={validateScheduleConflict}
               />
+              </div>
             ) : (
-              <>
+              <div key={activeTab} className="page-enter">
                 {activeTab === 'dashboard' && (
                   <DashboardView
                     darkMode={darkMode}
@@ -2116,7 +2118,7 @@ export default function SchoolyScootLMS() {
                   />
                 )}
 
-              </>
+              </div>
             )}
 
             <div className="h-20"></div>
