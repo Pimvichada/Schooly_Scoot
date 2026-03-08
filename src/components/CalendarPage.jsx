@@ -19,7 +19,7 @@ const HOLIDAYS = [
     { date: '2026-07-25', name: 'วันเข้าพรรษา', type: 'thai' }, // Approx
     { date: '2026-07-28', name: 'วันเฉลิมพระชนมพรรษา ร.10', type: 'thai' },
     { date: '2026-08-12', name: 'วันแม่แห่งชาติ', type: 'thai' },
-    { date: '2026-10-13', name: 'วันคล้ายวันสวรรคต ร.9', type: 'thai' },
+    { date: '2026-10-13', name: 'วันนวมินทรมหาราช', type: 'thai' },
     { date: '2026-10-23', name: 'วันปิยมหาราช', type: 'thai' },
     { date: '2026-12-05', name: 'วันพ่อแห่งชาติ', type: 'thai' },
     { date: '2026-12-10', name: 'วันรัฐธรรมนูญ', type: 'thai' },
@@ -75,7 +75,7 @@ export default function CalendarPage({ courses = [], userRole = 'student', darkM
 
                 <div className="grid grid-cols-7 gap-1 md:gap-3">
                     {Array(firstDay).fill(null).map((_, i) => (
-                        <div key={`empty-${i}`} className={`aspect-[1/1.2] md:h-32 rounded-xl md:rounded-2xl ${darkMode ? 'bg-slate-800/30' : 'bg-slate-50/50'}`}></div>
+                        <div key={`empty-${i}`} className={`min-h-[55px] md:min-h-[110px] rounded-xl md:rounded-2xl ${darkMode ? 'bg-slate-800/30' : 'bg-slate-50/50'}`}></div>
                     ))}
 
                     {Array(days).fill(null).map((_, i) => {
@@ -93,37 +93,37 @@ export default function CalendarPage({ courses = [], userRole = 'student', darkM
                         return (
                             <div
                                 key={day}
-                                className={`aspect-[1/1.2] md:h-32 p-1.5 md:p-4 rounded-xl md:rounded-3xl border transition-all relative group cursor-pointer active:scale-95 ${isToday
+                                className={`min-h-[55px] md:min-h-[110px] p-1 md:p-3 rounded-xl md:rounded-3xl border transition-all relative group cursor-pointer active:scale-95 flex flex-col ${isToday
                                     ? (darkMode ? 'bg-green-900/30 border-[#96C68E] shadow-sm z-10 scale-[1.02]' : 'bg-[#F0FDF4] border-[#96C68E] shadow-sm z-10 scale-[1.02]')
                                     : holiday
                                         ? (darkMode ? 'bg-red-900/10 border-[#FF917B]/20 hover:border-[#FF917B]' : 'bg-[#FFF0EE] border-[#FF917B]/30 hover:border-[#FF917B]')
                                         : (darkMode ? 'bg-slate-800 border-slate-700 hover:border-[#96C68E]' : 'bg-white border-slate-100 hover:border-[#BEE1FF]')
                                     }`}
                             >
-                                <div className="flex justify-between items-start">
-                                    <span className={`text-xs md:text-lg font-black ${isToday
-                                        ? 'w-6 h-6 md:w-10 md:h-10 rounded-full bg-[#96C68E] text-white flex items-center justify-center shadow-sm'
+                                <div className="flex justify-between items-start mb-1">
+                                    <span className={`text-[10px] md:text-lg font-black ${isToday
+                                        ? 'w-5 h-5 md:w-10 md:h-10 rounded-full bg-[#96C68E] text-white flex items-center justify-center shadow-sm'
                                         : holiday ? 'text-[#FF917B]' : (darkMode ? 'text-slate-400' : 'text-slate-700')
                                         }`}>
                                         {day}
                                     </span>
 
                                     {hasClass && !holiday && (
-                                        <div className="w-1.5 h-1.5 md:w-3 md:h-3 rounded-full bg-[#BEE1FF] shadow-sm border border-white dark:border-slate-800"></div>
+                                        <div className="w-1 md:w-3 md:h-3 h-1 rounded-full bg-[#BEE1FF] shadow-sm border border-white dark:border-slate-800"></div>
                                     )}
                                 </div>
 
                                 {holiday && (
-                                    <div className="mt-1 md:mt-3">
-                                        <div className={`text-[8px] md:text-xs font-bold text-[#FF917B] p-0.5 md:p-1.5 rounded-lg backdrop-blur-sm line-clamp-1 md:line-clamp-2 border border-[#FF917B]/10 ${darkMode ? 'bg-slate-900/60' : 'bg-white/60'}`}>
+                                    <div className="mt-auto">
+                                        <div className={`text-[6.5px] md:text-[10px] font-bold text-[#FF917B] p-0.5 md:p-1 rounded-md backdrop-blur-sm leading-tight border border-[#FF917B]/10 line-clamp-3 ${darkMode ? 'bg-slate-900/60' : 'bg-white/60'}`}>
                                             {holiday.name}
                                         </div>
                                     </div>
                                 )}
 
                                 {hasClass && !holiday && (
-                                    <div className="mt-1 md:mt-2">
-                                        <span className={`text-[8px] md:text-[10px] font-bold text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/10 px-1 py-0.5 rounded-md md:rounded-lg backdrop-blur-sm line-clamp-1 border ${darkMode ? 'bg-blue-900/40 text-blue-200 border-blue-800/50' : ''}`}>
+                                    <div className="mt-auto">
+                                        <span className={`text-[7px] md:text-[10px] font-bold text-[#5B9BD5] bg-[#E3F2FD] border-[#E3F2FD]/10 px-1 py-0.5 rounded-md backdrop-blur-sm leading-tight border line-clamp-2 ${darkMode ? 'bg-blue-900/40 text-blue-200 border-blue-800/50' : ''}`}>
                                             {userRole === 'teacher' ? 'สอน' : 'เรียน'}
                                         </span>
                                     </div>
