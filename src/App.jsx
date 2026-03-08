@@ -313,24 +313,64 @@ export default function SchoolyScootLMS() {
   // Fetch Courses handled by useCourses
 
   // Handle Toggle Hide Course handled by useCourses
+  const [teacherNamesMap, setTeacherNamesMap] = useState({});
+
+  useEffect(() => {
+    const fetchMissingTeacherNames = async () => {
+      if (!courses || courses.length === 0) return;
+
+      const missingOwnerIds = [...new Set(courses.map(c => c.ownerId))]
+        .filter(id => id && !teacherNamesMap[id] && id !== uid);
+
+      if (missingOwnerIds.length === 0) return;
+
+      try {
+        const profiles = await getUsersByIds(missingOwnerIds);
+        const newNames = {};
+        profiles.forEach(p => {
+          if (p && p.uid) {
+            const name = p.firstName
+              ? `ครู${p.firstName}${p.lastName ? ' ' + p.lastName : ''}`.trim()
+              : (p.fullName?.startsWith('ครู') ? p.fullName : `ครู${p.fullName || ''}`).trim();
+            newNames[p.uid] = name || 'คุณครู';
+          }
+        });
+
+        if (Object.keys(newNames).length > 0) {
+          setTeacherNamesMap(prev => ({ ...prev, ...newNames }));
+        }
+      } catch (err) {
+        console.error("Error fetching teacher names:", err);
+      }
+    };
+
+    fetchMissingTeacherNames();
+  }, [courses, uid, teacherNamesMap]);
 
   // Filter visible and hidden courses
 
 
   // Filter visible and hidden courses
   const enrichedCourses = useMemo(() => {
-    if (!courses || !profile || userRole !== 'teacher') return courses;
+    if (!courses) return [];
     return courses.map(course => {
-      // If the current user is the owner of the course, use their latest profile name
-      if (course.ownerId === uid) {
+      // Priority 1: Current user is the teacher (immediate feedback)
+      if (profile && course.ownerId === uid) {
         const fullName = profile.firstName
           ? `ครู${profile.firstName}${profile.lastName ? ' ' + profile.lastName : ''}`.trim()
-          : course.teacher;
-        return { ...course, teacher: fullName };
+          : (profile.fullName?.startsWith('ครู') ? profile.fullName : `ครู${profile.fullName || ''}`).trim();
+        return { ...course, teacher: fullName || course.teacher };
       }
+
+      // Priority 2: Teacher's name found in our profile cache (live data for students)
+      if (teacherNamesMap[course.ownerId]) {
+        return { ...course, teacher: teacherNamesMap[course.ownerId] };
+      }
+
+      // Fallback: Database value
       return course;
     });
-  }, [courses, profile, uid, userRole]);
+  }, [courses, profile, uid, teacherNamesMap]);
 
   const visibleCourses = enrichedCourses.filter(c => !hiddenCourseIds.includes(c.firestoreId));
   const hiddenCoursesList = enrichedCourses.filter(c => hiddenCourseIds.includes(c.firestoreId));

@@ -2,9 +2,24 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
 const CourseHeader = ({ selectedCourse, setSelectedCourse, darkMode, teacherProfile }) => {
-    const teacherDisplayName = teacherProfile
-        ? `ครู${teacherProfile.firstName || ''}${teacherProfile.lastName ? ' ' + teacherProfile.lastName : ''}`.trim()
-        : selectedCourse.teacher;
+    const teacherDisplayName = (() => {
+        if (!teacherProfile) return selectedCourse.teacher || 'คุณครู';
+
+        // If we have first name, use it with prefix
+        if (teacherProfile.firstName) {
+            return `ครู${teacherProfile.firstName}${teacherProfile.lastName ? ' ' + teacherProfile.lastName : ''}`.trim();
+        }
+
+        // Fallback to fullName
+        if (teacherProfile.fullName) {
+            // Ensure prefix
+            if (teacherProfile.fullName.startsWith('ครู')) return teacherProfile.fullName;
+            return `ครู${teacherProfile.fullName}`.trim();
+        }
+
+        // Final fallbacks
+        return selectedCourse.teacher || 'คุณครู';
+    })();
 
     return (
         <div className="space-y-6">

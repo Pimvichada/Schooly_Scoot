@@ -60,9 +60,24 @@ const CourseMembers = ({
             <h3 className={`font-bold mb-4 text-lg border-b pb-2 ${darkMode ? 'text-orange-400 border-slate-800' : 'text-[#FF917B] border-slate-100'}`}>ครูผู้สอน</h3>
             <div className="flex items-center gap-4 mb-8">
                 {(() => {
-                    const teacherDisplayName = teacherProfile
-                        ? `ครู${teacherProfile.firstName || ''}${teacherProfile.lastName ? ' ' + teacherProfile.lastName : ''}`.trim()
-                        : selectedCourse.teacher;
+                    const teacherDisplayName = (() => {
+                        if (!teacherProfile) return selectedCourse.teacher || 'คุณครู';
+
+                        // If we have first name, use it with prefix
+                        if (teacherProfile.firstName) {
+                            return `ครู${teacherProfile.firstName}${teacherProfile.lastName ? ' ' + teacherProfile.lastName : ''}`.trim();
+                        }
+
+                        // Fallback to fullName
+                        if (teacherProfile.fullName) {
+                            // Ensure prefix
+                            if (teacherProfile.fullName.startsWith('ครู')) return teacherProfile.fullName;
+                            return `ครู${teacherProfile.fullName}`.trim();
+                        }
+
+                        // Final fallbacks
+                        return selectedCourse.teacher || 'คุณครู';
+                    })();
 
                     return (
                         <>
