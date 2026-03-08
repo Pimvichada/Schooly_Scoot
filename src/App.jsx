@@ -200,19 +200,26 @@ export default function SchoolyScootLMS() {
   const showAlert = (message, title = null) => {
     return new Promise((resolve) => {
       const msgStr = String(message).toLowerCase();
+      const isWarning = ['กรุณา', 'ต้อง', 'ระบุ'].some(k => msgStr.includes(k));
+      const isError = ['ผิดพลาด', 'ไม่สำเร็จ', 'error', 'failed', 'fail', 'ล้มเหลว', 'ไม่ได้', 'ชนกับ', 'สั้นเกินไป', 'ไม่เกิน', 'จำกัด'].some(k => msgStr.includes(k));
+      const isSuccess = ['สำเร็จ', 'เรียบร้อย', 'แล้ว'].some(k => msgStr.includes(k));
+
       let finalType = 'success';
-      const hasErrorWord = ['ผิดพลาด', 'ไม่สำเร็จ', 'error', 'failed', 'fail', 'ล้มเหลว', 'ไม่ได้', 'ชนกับ', 'สั้นเกินไป', 'ไม่เกิน', 'จำกัด'].some(k => msgStr.includes(k));
-      const hasSuccessWord = ['สำเร็จ', 'เรียบร้อย', 'แล้ว'].some(k => msgStr.includes(k));
-      if (hasErrorWord) finalType = 'error';
-      if (hasSuccessWord) {
-        finalType = 'success';
-        if (msgStr.includes('ไม่สำเร็จ') || msgStr.includes('ไม่เกิน') || msgStr.includes('จำกัด')) finalType = 'error';
+      if (isWarning) finalType = 'warning';
+      else if (isError) finalType = 'error';
+      else if (isSuccess) finalType = 'success';
+
+      let finalTitle = title;
+      if (!finalTitle) {
+        if (finalType === 'warning') finalTitle = 'แจ้งเตือน';
+        else if (finalType === 'error') finalTitle = 'ไม่สำเร็จ';
+        else finalTitle = 'เสร็จสิ้น';
       }
 
       setSystemAlert({
         isOpen: true,
         type: finalType,
-        title: title || (finalType === 'error' ? 'ไม่สำเร็จ' : 'สำเร็จ'),
+        title: finalTitle,
         message: String(message),
         showCancel: false,
         resolve: resolve

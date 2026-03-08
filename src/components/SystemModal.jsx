@@ -9,53 +9,53 @@ const SystemModal = ({ isOpen, onClose, onConfirm, type = "success", title, mess
         switch (type) {
             case 'confirm':
                 return {
-                    icon: <HelpCircle size={56} className="text-[#FF917B]" strokeWidth={3} />,
+                    icon: <HelpCircle size={40} className="text-[#FF917B]" strokeWidth={2.5} />,
                     circleStroke: '#FF917B',
                     bgCircle: darkMode ? '#32211e' : '#fff5f2'
                 };
             case 'error':
             case 'danger':
                 return {
-                    icon: <X size={56} className="text-red-500" strokeWidth={4} />,
+                    icon: <X size={40} className="text-red-500" strokeWidth={3} />,
                     circleStroke: '#EF4444',
                     bgCircle: darkMode ? '#451a1a' : '#fef2f2'
                 };
             case 'warning':
                 return {
-                    icon: <AlertTriangle size={56} className="text-amber-500" strokeWidth={3} />,
-                    circleStroke: '#F59E0B',
-                    bgCircle: darkMode ? '#452e1a' : '#fffbeb'
+                    icon: <AlertTriangle size={40} className="text-[#FF917B]" strokeWidth={2.5} />,
+                    circleStroke: '#FF917B',
+                    bgCircle: darkMode ? '#32211e' : '#fff5f2'
                 };
             case 'info':
                 return {
-                    icon: <Info size={56} className="text-blue-500" strokeWidth={3} />,
+                    icon: <Info size={40} className="text-blue-500" strokeWidth={2.5} />,
                     circleStroke: '#3B82F6',
                     bgCircle: darkMode ? '#1a2e45' : '#eff6ff'
                 };
             default:
                 return {
-                    icon: <Check size={56} className="text-[#4ADE80]" strokeWidth={4} />,
-                    circleStroke: '#4ADE80',
-                    bgCircle: darkMode ? '#1a452d' : '#f0fdf4'
+                    icon: <Check size={40} className="text-[#96C68E]" strokeWidth={3} />,
+                    circleStroke: '#96C68E',
+                    bgCircle: darkMode ? '#1a2e26' : '#f0fdf4'
                 };
         }
     };
 
     const config = getIconConfig();
-    const displayTitle = title || (type === 'confirm' ? 'ยืนยัน' : type === 'error' ? 'ไม่สำเร็จ' : 'สำเร็จ');
+    const displayTitle = title || (type === 'confirm' ? 'ยืนยัน' : type === 'error' || type === 'danger' ? 'ไม่สำเร็จ' : type === 'warning' ? 'แจ้งเตือน' : 'เสร็จสิ้น');
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className={`w-full max-w-sm rounded-[2.5rem] p-8 text-center shadow-2xl transform transition-all animate-in zoom-in duration-300 ${darkMode ? 'bg-[#1a1a1a] text-white border border-white/10' : 'bg-white text-slate-800'}`}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className={`w-full max-w-[320px] rounded-3xl p-6 text-center shadow-2xl transform transition-all animate-in zoom-in duration-300 ${darkMode ? 'bg-slate-900 text-white border border-slate-800' : 'bg-white text-slate-800'}`}>
 
-                <div className="relative w-32 h-32 flex items-center justify-center mx-auto mb-6">
+                <div className="relative w-20 h-20 flex items-center justify-center mx-auto mb-5">
                     {/* Circle Background */}
                     <div className="absolute inset-0 rounded-full flex items-center justify-center">
                         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                             <circle
                                 cx="50"
                                 cy="50"
-                                r="45"
+                                r="48"
                                 fill="none"
                                 stroke={darkMode ? 'rgba(255,255,255,0.05)' : config.bgCircle}
                                 strokeWidth="2"
@@ -63,11 +63,11 @@ const SystemModal = ({ isOpen, onClose, onConfirm, type = "success", title, mess
                             <circle
                                 cx="50"
                                 cy="50"
-                                r="45"
+                                r="48"
                                 fill="none"
                                 stroke={config.circleStroke}
-                                strokeWidth="2"
-                                strokeDasharray="280"
+                                strokeWidth="3"
+                                strokeDasharray="301"
                                 strokeLinecap="round"
                             />
                         </svg>
@@ -79,33 +79,33 @@ const SystemModal = ({ isOpen, onClose, onConfirm, type = "success", title, mess
                     </div>
                 </div>
 
-                <h2 className={`text-3xl font-black mb-3 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
+                <h2 className={`text-xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-slate-800'}`}>
                     {displayTitle}
                 </h2>
 
-                <p className={`text-lg font-medium mb-8 px-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                <p className={`text-sm font-medium mb-6 px-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                     {message}
                 </p>
 
-                <div className={`flex gap-3 ${showCancel ? 'flex-row' : 'flex-col'}`}>
+                <div className="flex gap-2">
                     {showCancel && (
                         <button
                             onClick={onClose}
-                            className={`flex-1 py-4 font-bold text-xl rounded-[1.25rem] transition-all active:scale-95 border ${darkMode ? 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-white'}`}
+                            className={`flex-1 py-2.5 font-bold text-sm rounded-xl transition-all active:scale-95 border ${darkMode ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100 hover:text-slate-600'}`}
                         >
                             ยกเลิก
                         </button>
                     )}
                     <button
                         onClick={onConfirm || onClose}
-                        className={`flex-1 py-4 text-white rounded-[1.25rem] font-bold text-xl shadow-lg transition-all active:scale-95 ${type === 'error' || type === 'danger' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
-                            type === 'warning' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-200' :
-                                type === 'info' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
-                                    type === 'confirm' ? 'bg-[#FF917B] hover:bg-[#FF7A5C] shadow-orange-200' :
-                                        'bg-[#4ADE80] hover:bg-[#3ec471] shadow-green-200'
+                        className={`flex-1 py-2.5 text-white rounded-xl font-bold text-sm transition-all active:scale-95 ${type === 'error' || type === 'danger' ? 'bg-red-500 hover:bg-red-600' :
+                            type === 'warning' ? 'bg-[#FF917B] hover:bg-[#FF7A5C]' :
+                                type === 'info' ? 'bg-blue-500 hover:bg-blue-600' :
+                                    type === 'confirm' ? 'bg-[#FF917B] hover:bg-[#FF7A5C]' :
+                                        'bg-[#96C68E] hover:bg-[#85b57d]'
                             }`}
                     >
-                        OK
+                        ตกลง
                     </button>
                 </div>
             </div>

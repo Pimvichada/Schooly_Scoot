@@ -645,6 +645,16 @@ export const CreateAssignmentModal = ({
                             return;
                         }
 
+                        if (!newAssignment.maxScore) {
+                            alert('กรุณาระบุคะแนนเต็ม');
+                            return;
+                        }
+
+                        if (!newAssignment.dueDate) {
+                            alert('กรุณากำหนดวันส่ง');
+                            return;
+                        }
+
                         try {
                             // Prepare data for Firestore
                             const processFiles = async () => {
